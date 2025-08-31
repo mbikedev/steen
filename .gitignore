@@ -39,3 +39,32 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# API Configuration (contains sensitive data)
+/api/php/config.php
+/api/php/error.log
+/api/php/*.log
+
+# Test files with credentials
+/api/php/test-*
+*test*.php
+*TEST*.php
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Database dumps
+*.sql
+*.db
+*.sqlite
+
+# Uploads
+/api/php/uploads/*
+!/api/php/uploads/.htaccess
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
