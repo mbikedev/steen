@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Search, Bed, Users, Home, UserCheck, UserX } from 'lucide-react';
-import { useData } from '../../../lib/DataContext';
+import { useData } from "../../../lib/DataContextDebug";
 import { formatDate } from '../../../lib/utils';
 import { ALL_ROOMS, CAPACITY } from '../../../lib/bedConfig';
 
@@ -20,8 +20,8 @@ export default function BedManagementPage() {
 
   const filteredRooms = bedOccupancy.filter(room => {
     const matchesSearch = 
-      room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.residents.some(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      room.roomNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      room.residents.some(r => r.name?.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesBuilding = filterBuilding === 'all' || room.building === filterBuilding;
     
@@ -153,8 +153,8 @@ export default function BedManagementPage() {
                       <Home className="h-4 w-4 mr-2" />
                       Kamer {room.roomNumber}
                     </h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getOccupancyColor(room.occupancyRate)}`}>
-                      {room.occupancyRate.toFixed(0)}%
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getOccupancyColor(room.occupancyRate || 0)}`}>
+                      {(room.occupancyRate || 0).toFixed(0)}%
                     </span>
                   </div>
                 </div>
@@ -180,13 +180,13 @@ export default function BedManagementPage() {
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
                           className={`h-2 rounded-full ${
-                            room.occupancyRate === 0 ? 'bg-gray-300' :
-                            room.occupancyRate < 50 ? 'bg-green-500' :
-                            room.occupancyRate < 80 ? 'bg-yellow-500' :
-                            room.occupancyRate < 100 ? 'bg-orange-500' :
+                            (room.occupancyRate || 0) === 0 ? 'bg-gray-300' :
+                            (room.occupancyRate || 0) < 50 ? 'bg-green-500' :
+                            (room.occupancyRate || 0) < 80 ? 'bg-yellow-500' :
+                            (room.occupancyRate || 0) < 100 ? 'bg-orange-500' :
                             'bg-red-500'
                           }`}
-                          style={{ width: `${room.occupancyRate}%` }}
+                          style={{ width: `${room.occupancyRate || 0}%` }}
                         />
                       </div>
                     </div>
@@ -198,8 +198,8 @@ export default function BedManagementPage() {
                   <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 border-t dark:border-gray-600">
                     <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Bewoners:</h4>
                     <div className="space-y-1">
-                      {room.residents.map((resident) => (
-                        <div key={resident.id} className="flex items-center justify-between text-xs">
+                      {room.residents.map((resident, index) => (
+                        <div key={resident.id || `${room.roomNumber}-${index}`} className="flex items-center justify-between text-xs">
                           <span className="text-gray-900 dark:text-gray-100">
                             Bed {resident.bedNumber}: {resident.name}
                           </span>

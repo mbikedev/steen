@@ -1,0 +1,8 @@
+[31-Aug-2025 15:02:46 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[31-Aug-2025 15:02:46 Europe/Brussels] PHP Fatal error:  Uncaught Exception: Database connection failed in /Users/mbike/Documents/Werk/steen/api/php/config.php:53
+Stack trace:
+#0 /Users/mbike/Documents/Werk/steen/api/php/config.php(59): Database->__construct()
+#1 /Users/mbike/Documents/Werk/steen/api/php/resident-photos.php(15): Database::getInstance()
+#2 /Users/mbike/Documents/Werk/steen/api/php/index.php(21): include('/Users/mbike/Do...')
+#3 {main}
+  thrown in /Users/mbike/Documents/Werk/steen/api/php/config.php on line 53

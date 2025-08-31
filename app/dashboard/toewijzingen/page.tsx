@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Home, Search, Save, X, Edit2, Upload, FileText } from 'lucide-react';
+import { Home, Search, Save, X, Edit2, Upload, FileText, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useData } from '../../../lib/DataContext';
+import { useData } from "../../../lib/DataContextDebug";
 import * as XLSX from 'xlsx';
 
 export default function ToewijzingenPage() {
   const router = useRouter();
-  const { dataMatchIt, setDataMatchIt } = useData();
+  const { dataMatchIt, setDataMatchIt, ageVerificationStatus } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [editingCell, setEditingCell] = useState<{row: number, col: number} | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -17,155 +17,30 @@ export default function ToewijzingenPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{type: 'success' | 'error' | 'info' | null, message: string}>({type: null, message: ''});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedCell, setSelectedCell] = useState<{row: number, col: number} | null>(null);
   
-  // Default table data with exact PDF content
-  const getDefaultTableData = () => [
-    // Row 1
-    [
-      { text: 'Gerish Faniel Habtay', color: 'white', type: '' },
-      { text: 'Abdela Selah Ali', color: 'gray', type: '' },
-      { text: 'Zahir Said', color: 'red', type: '' },
-      { text: 'Araya Even Fsaha', color: 'blue', type: '' },
-      { text: 'Baye Fasil Alebacho', color: 'red', type: '' },
-      { text: 'Hakimi Shaheen', color: 'white', type: '' },
-      { text: 'Girmay Filmon Tesfamichael', color: 'red', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' }
-    ],
-    // Row 2
-    [
-      { text: 'Gerebrhan Tesfamariam Fsaha', color: 'white', type: '' },
-      { text: 'Mohammed Seid Abdelkhadr', color: 'red', type: '' },
-      { text: 'Tesfaldet Ateshim Weldegergish', color: 'red', type: '' },
-      { text: 'Haile Amaniel Abraham', color: 'red', type: '' },
-      { text: 'Gebrehewit Dinar Gebremedhin', color: 'red', type: '' },
-      { text: 'Nsangou Moulion Hétu Aliyou', color: 'red', type: '' },
-      { text: 'Ebrahemkhil Mirwais', color: 'white', type: 'meerderjarig' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' }
-    ],
-    // Row 3
-    [
-      { text: 'Jabarkhel Noor Agha', color: 'white', type: '' },
-      { text: 'Tewelde Faniel Tesfaldet', color: 'white', type: '' },
-      { text: 'Gerezgiher Samiel Gebre', color: 'white', type: '' },
-      { text: 'Tesfazghi Abel Kesete', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: 'Haile Merhawi Weldu', color: 'red', type: '' },
-      { text: 'Teklemichael Simon Luul', color: 'white', type: 'leeftijdstwijfel' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' }
-    ],
-    // Row 4  
-    [
-      { text: 'Tewelde Samsom Kifle', color: 'white', type: '' },
-      { text: 'Gebrezgabiher Thomas Zeray', color: 'white', type: '' },
-      { text: 'Gebremariam Adhanom Measho', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: 'Diomande Mory', color: 'white', type: '' },
-      { text: 'Teweldebrhan Saba Teklezghi', color: 'white', type: 'transfer' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' }
-    ],
-    // Row 5
-    [
-      { text: 'Adhanom Filmon Asfha', color: 'white', type: '' },
-      { text: 'Mahtsen Ambesajer Teklab', color: 'white', type: '' },
-      { text: 'Sahle Ruta Weldeslasie', color: 'white', type: '' },
-      { text: 'Kidanemariam Kibrom Gebretsadkan', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: 'Luzizila Ngongo Grace Albertine', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' }
-    ],
-    // Row 6
-    [
-      { text: 'Kahsay Merhawi Mengstu', color: 'red', type: '' },
-      { text: 'Berhe Maebel Kebedom', color: 'white', type: '' },
-      { text: 'Berhane Muzit Mehari', color: 'white', type: '' },
-      { text: 'Stephen Mirfat Issa', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: 'Lizizila Ngongo Merveille Albertine', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' }
-    ],
-    // Row 7
-    [
-      { text: 'Kidane Daniel Berhe', color: 'white', type: '' },
-      { text: 'Zere Fanuel Shewit', color: 'white', type: '' },
-      { text: 'Da Silva Kumpbela Marta', color: 'white', type: '' },
-      { text: 'Behbodi Bahram', color: 'white', type: '' },
-      { text: 'Evelien Second Resident', color: 'white', type: '' },
-      { text: 'Lizizila Ngongo Junior', color: 'white', type: '' },
-      { text: 'Imane Seventh Resident', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' }
-    ],
-    // Row 8
-    [
-      { text: 'Nazari Ahmad Zafar', color: 'red', type: '' },
-      { text: 'Abdulrahman EL TAHHAN', color: 'white', type: '' },
-      { text: 'Isak Diana Tesfu', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: 'Diallo Aminata', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' }
-    ],
-    // Row 9
-    [
-      { text: 'Ashrafi Baraktullah', color: 'white', type: '' },
-      { text: 'Ahmed Ibrahim SHATA', color: 'white', type: '' },
-      { text: 'Weldegebriel Luwam Gebremariam', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: 'Abunaja Wafa M I', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' }
-    ],
-    // Row 10
-    [
-      { text: 'Geremariam Aman Teklezgi', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: 'Camara Christine', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' }
-    ],
-    // Row 11 - Empty row
-    [
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' },
-      { text: '', color: 'white', type: '' }
-    ]
-  ];
+  // Create template structure matching the PDF exactly
+  const getDefaultTableData = () => {
+    // Create 10 main rows (numbered 1-10, removing row 4) with empty cells
+    const mainRows = Array.from({ length: 13 }, () => 
+      Array.from({ length: 9 }, () => ({ text: '', color: 'white', type: '' }))
+    );
+    
+    return mainRows;
+  };
 
   // Initialize with default data, load from localStorage after mount
   const [tableData, setTableData] = useState(getDefaultTableData);
 
   // Default staff columns data from PDF
   const getDefaultStaffColumns = () => [
-    { name: 'Kris B', count: 3, annotation: 'verlof 22/08 tem 22/09' },
-    { name: 'Torben', count: 10, annotation: '' },
-    { name: 'Didar', count: 9, annotation: '' },
-    { name: 'Dorien', count: 9, annotation: '' },
-    { name: 'Evelien', count: 2, annotation: 'verlof 23/08 tem 14/09' },
-    { name: 'Yasmina', count: 10, annotation: '' },
-    { name: 'Imane', count: 7, annotation: '' },
+    { name: 'Kris B', count: 0, annotation: 'verlof 22/08 tem 22/09' },
+    { name: 'Torben', count: 0, annotation: '' },
+    { name: 'Didar', count: 0, annotation: '' },
+    { name: 'Dorien', count: 0, annotation: '' },
+    { name: 'Evelien', count: 0, annotation: 'verlof 23/08 tem 14/09' },
+    { name: 'Yasmina', count: 0, annotation: '' },
+    { name: 'Imane', count: 0, annotation: '' },
     { name: 'Kirsten', count: 0, annotation: 'start 22/09' },
     { name: 'Monica', count: 0, annotation: 'start 08/09' }
   ];
@@ -214,6 +89,55 @@ export default function ToewijzingenPage() {
     }
   }, []);
 
+  // Ensure table has the desired number of rows/columns even if old data is loaded
+  useEffect(() => {
+    if (!isMounted) return;
+    const desiredRows = 13;
+    const desiredCols = 9;
+    setTableData((prev) => {
+      let changed = false;
+      const rows = prev.map((row) => {
+        if (row.length < desiredCols) {
+          changed = true;
+          return [
+            ...row,
+            ...Array.from({ length: desiredCols - row.length }, () => ({ text: '', color: 'white', type: '' }))
+          ];
+        }
+        return row;
+      });
+      if (rows.length < desiredRows) {
+        changed = true;
+        for (let i = rows.length; i < desiredRows; i++) {
+          rows.push(Array.from({ length: desiredCols }, () => ({ text: '', color: 'white', type: '' })));
+        }
+      }
+      return changed ? rows : prev;
+    });
+  }, [isMounted]);
+
+  // Keyboard event handling for cell deletion
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle Delete key when not editing and a cell is selected
+      if (event.key === 'Delete' && !editingCell && selectedCell) {
+        event.preventDefault();
+        deleteCell(selectedCell.row, selectedCell.col);
+        setSelectedCell(null);
+      }
+      // Clear all with Ctrl+Delete (or Cmd+Delete on Mac)
+      else if (event.key === 'Delete' && (event.ctrlKey || event.metaKey) && !editingCell) {
+        event.preventDefault();
+        clearAllCells();
+      }
+    };
+    
+    if (isMounted) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isMounted, editingCell, selectedCell]);
+
   // Function to extract current assignments from Toewijzingen table
   const getCurrentToewijzingenAssignments = () => {
     const assignments: { [residentName: string]: string } = {};
@@ -233,11 +157,15 @@ export default function ToewijzingenPage() {
 
   // Sync referentiepersoon with current assignments whenever tableData changes
   useEffect(() => {
-    if (isMounted && dataMatchIt && setDataMatchIt) {
-      const currentAssignments = getCurrentToewijzingenAssignments();
-      syncReferentiepersoonWithToewijzingen(currentAssignments);
+    if (isMounted && dataMatchIt && tableData) {
+      try {
+        const currentAssignments = getCurrentToewijzingenAssignments();
+        syncReferentiepersoonWithToewijzingen(currentAssignments);
+      } catch (error) {
+        console.error('Error syncing referentiepersoon:', error);
+      }
     }
-  }, [tableData, isMounted, dataMatchIt]);
+  }, [tableData, isMounted, dataMatchIt, setDataMatchIt]);
 
   // Helper function to calculate string similarity (Levenshtein distance based)
   const calculateSimilarity = (str1: string, str2: string): number => {
@@ -407,32 +335,148 @@ export default function ToewijzingenPage() {
 
   // Handle Excel files
   const handleExcelFile = async (file: File) => {
-    const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    setUploadStatus({type: 'info', message: 'Excel bestand wordt verwerkt...'});
+    
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { 
+        type: 'array',
+        cellText: false,
+        cellDates: true
+      });
+      
+      console.log('📊 Excel workbook loaded:', { 
+        sheetNames: workbook.SheetNames, 
+        totalSheets: workbook.SheetNames.length 
+      });
+      
+      // Try to find the most appropriate sheet
+      let targetSheet = workbook.SheetNames[0]; // Default to first sheet
+      
+      // Look for sheets with common names
+      const commonNames = ['toewijzingen', 'assignments', 'data', 'sheet1'];
+      for (const sheetName of workbook.SheetNames) {
+        if (commonNames.some(name => sheetName.toLowerCase().includes(name))) {
+          targetSheet = sheetName;
+          break;
+        }
+      }
+      
+      console.log('🎯 Using sheet:', targetSheet);
+      
+      const worksheet = workbook.Sheets[targetSheet];
+      
+      // Get sheet range to understand the data structure
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+      console.log('📋 Sheet range:', range);
+      
+      // Extract all data including empty cells
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+        header: 1, 
+        raw: false,
+        defval: '', // Default value for empty cells
+        range: range
+      });
 
-    console.log('📊 Excel data loaded:', jsonData);
-    
-    // Parse Excel data into table format
-    const parsedData = parseExcelToToewijzingen(jsonData as string[][]);
-    
-    if (parsedData.length > 0) {
-      setTableData(parsedData);
-      setUploadStatus({type: 'success', message: `✅ Excel bestand ingeladen: ${parsedData.length} rijen`});
-      console.log('✅ Table data updated from Excel');
-    } else {
-      throw new Error('Geen geldige data gevonden in Excel bestand');
+      console.log('📊 Excel raw data:', { 
+        totalRows: jsonData.length,
+        firstFewRows: jsonData.slice(0, 3),
+        lastFewRows: jsonData.slice(-3)
+      });
+      
+      // Parse Excel data into table format
+      const parsedData = parseExcelToToewijzingen(jsonData as string[][]);
+      
+      if (parsedData && parsedData.length > 0) {
+        setTableData(parsedData);
+        const filledCells = parsedData.flat().filter(cell => cell.text).length;
+        setUploadStatus({
+          type: 'success', 
+          message: `✅ Excel bestand ingeladen: ${parsedData.length} rijen, ${parsedData[0]?.length || 0} kolommen, ${filledCells} cellen met data`
+        });
+        console.log('✅ Table data updated from Excel');
+      } else {
+        throw new Error('Geen geldige data gevonden in Excel bestand');
+      }
+    } catch (error) {
+      console.error('❌ Excel parsing error:', error);
+      setUploadStatus({type: 'error', message: `Excel parsing mislukt: ${error instanceof Error ? error.message : 'Onbekende fout'}`});
+      throw error;
     }
   };
 
   // Handle PDF files
   const handlePdfFile = async (file: File) => {
-    // For now, show a message that PDF parsing needs to be implemented
-    // You could integrate a PDF parsing library here
-    setUploadStatus({type: 'info', message: 'PDF parsing wordt binnenkort toegevoegd. Gebruik voorlopig Excel bestanden.'});
-    throw new Error('PDF parsing wordt binnenkort toegevoegd');
+    setUploadStatus({type: 'info', message: 'PDF wordt verwerkt, dit kan even duren...'});
+    
+    try {
+      // Convert PDF to text using browser's capabilities
+      const text = await extractTextFromPDF(file);
+      console.log('📄 PDF text extracted:', text.substring(0, 200) + '...');
+      
+      // Parse PDF text data
+      const lines = text.split('\n').filter(line => line.trim());
+      const parsedData = parseTextToToewijzingen(lines);
+      
+      if (parsedData.length > 0) {
+        setTableData(parsedData);
+        setUploadStatus({type: 'success', message: `✅ PDF bestand ingeladen: ${parsedData.length} rijen`});
+        console.log('✅ Table data updated from PDF');
+      } else {
+        throw new Error('Geen geldige data gevonden in PDF bestand');
+      }
+    } catch (error) {
+      console.error('❌ PDF parsing error:', error);
+      setUploadStatus({type: 'error', message: `PDF parsing mislukt: ${error instanceof Error ? error.message : 'Onbekende fout'}`});
+      throw error;
+    }
+  };
+
+  // Extract text from PDF file
+  const extractTextFromPDF = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        try {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          
+          // Try to extract text using a simple approach
+          // This is a basic text extraction - for better results, you might want to use pdf.js
+          const uint8Array = new Uint8Array(arrayBuffer);
+          let text = '';
+          
+          // Convert bytes to string and try to extract readable text
+          for (let i = 0; i < uint8Array.length - 1; i++) {
+            const char = String.fromCharCode(uint8Array[i]);
+            // Only include printable characters and whitespace
+            if ((char >= ' ' && char <= '~') || char === '\n' || char === '\r' || char === '\t') {
+              text += char;
+            }
+          }
+          
+          // Clean up the extracted text
+          const cleanText = text
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0 && /[a-zA-Z]/.test(line)) // Only keep lines with letters
+            .join('\n');
+          
+          if (cleanText.length < 10) {
+            reject(new Error('Geen leesbare tekst gevonden in PDF. Probeer het bestand te converteren naar Excel of tekstformaat.'));
+          } else {
+            resolve(cleanText);
+          }
+        } catch (error) {
+          reject(new Error('Fout bij het verwerken van PDF bestand'));
+        }
+      };
+      
+      reader.onerror = () => reject(new Error('Fout bij het lezen van PDF bestand'));
+      reader.readAsArrayBuffer(file);
+    });
   };
 
   // Handle text/CSV files
@@ -455,27 +499,93 @@ export default function ToewijzingenPage() {
 
   // Parse Excel data to Toewijzingen table format
   const parseExcelToToewijzingen = (data: string[][]) => {
-    console.log('🔄 Parsing Excel data to Toewijzingen format...');
+    console.log('🔄 Parsing Excel data to Toewijzingen format...', { totalRows: data.length });
     
-    // Skip header rows and find data
-    const dataRows = data.slice(1); // Skip first row (assuming it's header)
-    const newTableData = Array(15).fill(null).map(() => 
-      Array(9).fill(null).map(() => ({ text: '', color: 'white', type: '' }))
+    if (!data || data.length === 0) {
+      throw new Error('Geen data gevonden in Excel bestand');
+    }
+    
+    // Always maintain the template structure: now 13 rows, 9 columns
+    const templateRows = 13;
+    const templateCols = 9;
+    
+    console.log('📊 Excel file dimensions:', { 
+      templateRows, 
+      templateCols, 
+      actualDataRows: data.length,
+      willFitToTemplate: true 
+    });
+    
+    // Check if first row looks like headers (contains mostly text)
+    let dataRows = data;
+    if (data.length > 1) {
+      const firstRow = data[0];
+      const hasTextHeaders = firstRow.some(cell => 
+        cell && typeof cell === 'string' && 
+        (cell.toLowerCase().includes('naam') || 
+         cell.toLowerCase().includes('name') ||
+         cell.toLowerCase().includes('resident') ||
+         cell.length > 15) // Long text likely indicates headers
+      );
+      
+      if (hasTextHeaders) {
+        console.log('📋 Detected header row, skipping first row');
+        dataRows = data.slice(1);
+      } else {
+        console.log('📋 No header row detected, using all rows');
+        dataRows = data;
+      }
+    }
+    
+    // Create template structure - always 10x9
+    const newTableData = Array(templateRows).fill(null).map(() => 
+      Array(templateCols).fill(null).map(() => ({ text: '', color: 'white', type: '' }))
     );
     
-    // Fill table with Excel data
+    // Fill table with Excel data - fit to template limits (11 rows, 9 cols)
     dataRows.forEach((row, rowIndex) => {
-      if (rowIndex < 15) {
+      if (row && Array.isArray(row) && rowIndex < templateRows) { // Only fill within template
         row.forEach((cell, colIndex) => {
-          if (colIndex < 9 && cell && cell.toString().trim()) {
-            newTableData[rowIndex][colIndex] = {
-              text: cell.toString().trim(),
-              color: 'white', // Default color, could be enhanced to detect colors
-              type: ''
-            };
+          if (colIndex < templateCols) { // Always process within template columns
+            const cellText = cell ? cell.toString().trim() : '';
+            
+            // Only process non-empty cells
+            if (cellText) {
+              // Check if this is a resident name and if they're marked as Meerderjarig
+              let cellColor = 'white';
+              if (cellText && ageVerificationStatus) {
+                const resident = dataMatchIt.find(r => {
+                  const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
+                  const reversedName = `${r.lastName} ${r.firstName}`.toLowerCase();
+                  const textLower = cellText.toLowerCase();
+                  return fullName === textLower || reversedName === textLower || 
+                         fullName.includes(textLower) || reversedName.includes(textLower) ||
+                         textLower.includes(fullName) || textLower.includes(reversedName);
+                });
+                
+                if (resident && ageVerificationStatus[resident.badge.toString()] === 'Meerderjarig') {
+                  cellColor = 'red';
+                }
+              }
+              
+              newTableData[rowIndex][colIndex] = {
+                text: cellText,
+                color: cellColor,
+                type: ''
+              };
+            }
           }
         });
       }
+    });
+    
+    // Debug output with actual content preview
+    const filledCells = newTableData.flat().filter(cell => cell.text);
+    console.log('✅ Parsed Excel data:', { 
+      outputRows: newTableData.length, 
+      outputCols: newTableData[0]?.length,
+      filledCells: filledCells.length,
+      sampleData: filledCells.slice(0, 10).map(cell => cell.text)
     });
     
     return newTableData;
@@ -483,26 +593,73 @@ export default function ToewijzingenPage() {
 
   // Parse text/CSV data to Toewijzingen table format
   const parseTextToToewijzingen = (lines: string[]) => {
-    console.log('🔄 Parsing text data to Toewijzingen format...');
+    console.log('🔄 Parsing text data to Toewijzingen format...', { totalLines: lines.length });
     
-    const newTableData = Array(15).fill(null).map(() => 
-      Array(9).fill(null).map(() => ({ text: '', color: 'white', type: '' }))
+    if (!lines || lines.length === 0) {
+      throw new Error('Geen data gevonden in tekstbestand');
+    }
+    
+    // Always maintain the template structure: now 13 rows, 9 columns
+    const templateRows = 13;
+    const templateCols = 9;
+    
+    console.log('📄 Text file dimensions:', { 
+      templateRows, 
+      templateCols, 
+      actualLines: lines.length,
+      willFitToTemplate: true 
+    });
+    
+    // Create template structure - always 10x9
+    const newTableData = Array(templateRows).fill(null).map(() => 
+      Array(templateCols).fill(null).map(() => ({ text: '', color: 'white', type: '' }))
     );
     
-    // Parse each line as comma-separated or tab-separated values
+    // Parse each line as comma-separated, tab-separated, semicolon or pipe-separated values
     lines.forEach((line, rowIndex) => {
-      if (rowIndex < 15) {
-        const cells = line.split(/[,\t]/).map(cell => cell.trim());
+      if (rowIndex < templateRows) { // Only fill within template
+        const cells = line.split(/[,\t;|]/).map(cell => cell.trim());
         cells.forEach((cell, colIndex) => {
-          if (colIndex < 9 && cell) {
-            newTableData[rowIndex][colIndex] = {
-              text: cell,
-              color: 'white',
-              type: ''
-            };
+          if (colIndex < templateCols) { // Always process within template columns
+            const cellText = cell ? cell.trim() : '';
+            
+            // Only process non-empty cells  
+            if (cellText) {
+              // Check if this is a resident name and if they're marked as Meerderjarig
+              let cellColor = 'white';
+              if (cellText && ageVerificationStatus) {
+                const resident = dataMatchIt.find(r => {
+                  const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
+                  const reversedName = `${r.lastName} ${r.firstName}`.toLowerCase();
+                  const textLower = cellText.toLowerCase();
+                  return fullName === textLower || reversedName === textLower || 
+                         fullName.includes(textLower) || reversedName.includes(textLower) ||
+                         textLower.includes(fullName) || textLower.includes(reversedName);
+                });
+                
+                if (resident && ageVerificationStatus[resident.badge.toString()] === 'Meerderjarig') {
+                  cellColor = 'red';
+                }
+              }
+              
+              newTableData[rowIndex][colIndex] = {
+                text: cellText,
+                color: cellColor,
+                type: ''
+              };
+            }
           }
         });
       }
+    });
+    
+    // Debug output with actual content preview
+    const filledCells = newTableData.flat().filter(cell => cell.text);
+    console.log('✅ Parsed text data:', { 
+      outputRows: newTableData.length, 
+      outputCols: newTableData[0]?.length,
+      filledCells: filledCells.length,
+      sampleData: filledCells.slice(0, 10).map(cell => cell.text)
     });
     
     return newTableData;
@@ -532,6 +689,9 @@ export default function ToewijzingenPage() {
 
   // Handle cell editing
   const handleCellClick = (row: number, col: number, value: string, type: string = '') => {
+    // Track selected cell
+    setSelectedCell({ row, col });
+    
     // Don't reset if we're already editing this cell
     if (editingCell?.row === row && editingCell?.col === col) {
       return;
@@ -551,14 +711,36 @@ export default function ToewijzingenPage() {
       
       console.log('Before update - currentCell:', currentCell);
       
+      // Check if the resident is marked as Meerderjarig in Permissielijst
+      let finalColor = currentCell.color;
+      const cellText = editValue.trim();
+      
+      if (cellText && ageVerificationStatus) {
+        const resident = dataMatchIt.find(r => {
+          const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
+          const reversedName = `${r.lastName} ${r.firstName}`.toLowerCase();
+          const textLower = cellText.toLowerCase();
+          return fullName === textLower || reversedName === textLower || 
+                 fullName.includes(textLower) || reversedName.includes(textLower) ||
+                 textLower.includes(fullName) || textLower.includes(reversedName);
+        });
+        
+        if (resident && ageVerificationStatus[resident.badge.toString()] === 'Meerderjarig') {
+          // Auto-set color to red for Meerderjarig residents
+          finalColor = 'red';
+        }
+      }
+      
+      // Update based on manual type selection
+      if (editType === 'meerderjarig') finalColor = 'red';
+      else if (editType === 'leeftijdstwijfel') finalColor = 'gray';
+      else if (editType === 'transfer') finalColor = 'blue';
+      
       newData[editingCell.row][editingCell.col] = {
         ...currentCell,
         text: editValue,
         type: editType,
-        // Preserve existing color from PDF or update based on type if needed
-        color: editType === 'meerderjarig' ? 'red' : 
-               editType === 'leeftijdstwijfel' ? 'gray' : 
-               editType === 'transfer' ? 'blue' : currentCell.color
+        color: finalColor
       };
       
       console.log('After update - newCell:', newData[editingCell.row][editingCell.col]);
@@ -671,6 +853,58 @@ export default function ToewijzingenPage() {
     setEditType('');
   };
 
+  // Delete individual cell content
+  const deleteCell = (rowIndex: number, colIndex: number) => {
+    const newData = [...tableData];
+    const currentCell = newData[rowIndex][colIndex];
+    const previousText = currentCell.text.trim();
+    
+    console.log(`🗑️ Deleting cell [${rowIndex}][${colIndex}]: "${previousText}"`);
+    
+    // Clear the cell content
+    newData[rowIndex][colIndex] = {
+      text: '',
+      color: 'white',
+      type: ''
+    };
+    
+    // If this was an IB assignment, clear the resident's referentiepersoon
+    if (previousText && colIndex < dynamicStaffColumns.length) {
+      console.log('Clearing referentiepersoon for removed resident:', previousText);
+      clearResidentReferentiepersoon(previousText);
+    }
+    
+    setTableData(newData);
+    console.log('✅ Cell deleted and table updated');
+  };
+
+  // Clear all cell contents while preserving template structure
+  const clearAllCells = () => {
+    if (window.confirm('Weet je zeker dat je ALLE celinhoud wilt wissen? Dit kan niet ongedaan worden gemaakt.')) {
+      console.log('🗑️ Clearing all cell contents - preserving template structure');
+      
+      // Clear all residents' referentiepersoon
+      if (dataMatchIt && setDataMatchIt) {
+        const updatedData = dataMatchIt.map(resident => ({
+          ...resident,
+          referencePerson: ''
+        }));
+        setDataMatchIt(updatedData);
+      }
+      
+      // Reset to default template structure (10 rows, 9 columns, all empty)
+      const templateData = getDefaultTableData();
+      setTableData(templateData);
+      
+      // Force clear localStorage to ensure clean state
+      localStorage.removeItem('toewijzingen_tableData');
+      localStorage.removeItem('toewijzingen_staffColumns');
+      localStorage.removeItem('toewijzingen_bottomData');
+      
+      console.log('✅ All cells cleared, localStorage cleared, and template structure restored');
+    }
+  };
+
   // Handle type change specifically
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value;
@@ -697,19 +931,46 @@ export default function ToewijzingenPage() {
 
   // Get cell background class based on PDF color attributions
   const getCellClass = (text: string = '', type: string = '', color: string = 'white') => {
-    if (text === '') return 'bg-white hover:bg-gray-50 text-gray-400';
+    if (text === '') return 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-400';
+    
+    // Check if this resident has a specific status in Permissielijst
+    if (text && ageVerificationStatus) {
+      // Try to find the resident's badge by matching the name
+      const resident = dataMatchIt.find(r => {
+        const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
+        const reversedName = `${r.lastName} ${r.firstName}`.toLowerCase();
+        const cellText = text.toLowerCase();
+        return fullName === cellText || reversedName === cellText || 
+               fullName.includes(cellText) || reversedName.includes(cellText) ||
+               cellText.includes(fullName) || cellText.includes(reversedName);
+      });
+      
+      if (resident) {
+        const status = (ageVerificationStatus[resident.badge.toString()] ?? '') as string;
+        if (status === 'Meerderjarig') {
+          // Override color to red for Meerderjarig residents
+          return 'bg-red-500 text-white hover:bg-red-600 font-bold transition-colors duration-200';
+        } else if (status === 'Leeftijdstwijfel') {
+          // Override color to gray for Leeftijdstwijfel residents
+          return 'bg-gray-500 text-white hover:bg-gray-600 font-bold transition-colors duration-200';
+        } else if (status === 'Transfer') {
+          // Override color to blue for Transfer residents
+          return 'bg-blue-500 text-white hover:bg-blue-600 font-bold transition-colors duration-200';
+        }
+      }
+    }
     
     // Use PDF color attributions
     switch(color.toLowerCase()) {
       case 'red': 
-        return 'bg-red-500 text-white hover:bg-red-600';
+        return 'bg-red-500 text-white hover:bg-red-600 transition-colors duration-200';
       case 'gray': 
-        return 'bg-gray-500 text-white hover:bg-gray-600';
+        return 'bg-gray-500 text-white hover:bg-gray-600 transition-colors duration-200';
       case 'blue': 
-        return 'bg-blue-500 text-white hover:bg-blue-600';
+        return 'bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200';
       case 'white':
       default: 
-        return 'bg-white text-black hover:bg-gray-50';
+        return 'bg-white dark:bg-gray-800 text-black dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200';
     }
   };
 
@@ -720,8 +981,11 @@ export default function ToewijzingenPage() {
   };
 
   // Calculate dynamic resident count per column
+  // Only count rows 2-11 (indices 2-11 in the tableData array)
   const getColumnResidentCount = (colIndex: number) => {
-    return tableData.reduce((count, row) => {
+    return tableData.reduce((count, row, rowIndex) => {
+      // Only count rows 2-11 (skip rows 0, 1, and anything after 11)
+      if (rowIndex < 2 || rowIndex > 11) return count;
       return count + (row[colIndex]?.text?.trim() ? 1 : 0);
     }, 0);
   };
@@ -736,23 +1000,40 @@ export default function ToewijzingenPage() {
 
   const dynamicStaffColumns = getDynamicStaffColumns();
 
-  // Total residents - sum of all dynamic column counts
-  const total = dynamicStaffColumns.reduce((sum, staff) => sum + staff.count, 0);
+  // Total residents - count all residents in IB columns (columns 0-8)
+  // Only count rows 2-11 (indices 2-11, skipping rows 0 and 1)
+  const total = tableData.reduce((totalCount, row, rowIndex) => {
+    // Only count rows 2-11 (skip rows 0, 1, and anything after 11)
+    if (rowIndex < 2 || rowIndex > 11) return totalCount;
+    
+    // Count residents in columns 0-8 (the 9 IB columns)
+    const rowCount = row.slice(0, 9).reduce((count, cell) => {
+      return count + (cell?.text?.trim() ? 1 : 0);
+    }, 0);
+    
+    return totalCount + rowCount;
+  }, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-slate-900">
-      <div className="p-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-gray-900 dark:via-indigo-950 dark:to-slate-900 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+      </div>
+      <div className="p-4 relative z-10">
         {/* Header with search and back button */}
-        <div className="mb-6 flex justify-between items-center">
+        <div className="mb-6 flex justify-between items-center backdrop-blur-sm bg-white/30 dark:bg-gray-900/30 rounded-2xl p-3 shadow-xl border border-white/20">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push('/dashboard')}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 font-medium backdrop-blur-sm"
             >
               <Home className="h-5 w-5" />
               <span className="font-medium">Dashboard</span>
             </button>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent drop-shadow-sm">
               Toewijzingen
             </h1>
           </div>
@@ -770,17 +1051,29 @@ export default function ToewijzingenPage() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 ${
                   isUploading 
-                    ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
-                    : 'bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-800'
-                } text-white shadow-md hover:shadow-lg`}
+                    ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed opacity-60'
+                    : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 transform hover:scale-105'
+                } text-white shadow-lg hover:shadow-2xl font-medium`}
                 title="Upload Excel, CSV, txt of PDF bestand"
               >
                 <Upload className={`h-5 w-5 ${isUploading ? 'animate-bounce' : ''}`} />
                 <span className="font-medium">
                   {isUploading ? 'Uploading...' : 'Upload Bestand'}
                 </span>
+              </button>
+            </div>
+
+            {/* Delete Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={clearAllCells}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 font-medium"
+                title="Wis alle cellen (Ctrl+Delete)"
+              >
+                <Trash2 className="h-5 w-5" />
+                <span className="font-medium">Alles Wissen</span>
               </button>
             </div>
 
@@ -791,7 +1084,7 @@ export default function ToewijzingenPage() {
                 placeholder="Zoeken..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                className="pl-10 pr-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:text-white shadow-sm hover:shadow-md transition-all duration-200"
               />
             </div>
           </div>
@@ -799,25 +1092,39 @@ export default function ToewijzingenPage() {
 
         {/* Upload Status */}
         {uploadStatus.message && (
-          <div className={`mb-4 p-4 rounded-lg ${
-            uploadStatus.type === 'success' ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border border-green-300' :
-            uploadStatus.type === 'error' ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 border border-red-300' :
-            'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border border-blue-300'
+          <div className={`mb-4 p-3 rounded-xl backdrop-blur-md shadow-xl border animate-slideIn ${
+            uploadStatus.type === 'success' ? 'bg-gradient-to-r from-green-100/90 to-emerald-100/90 dark:from-green-900/50 dark:to-emerald-900/50 text-green-700 dark:text-green-300 border-green-300/50' :
+            uploadStatus.type === 'error' ? 'bg-gradient-to-r from-red-100/90 to-rose-100/90 dark:from-red-900/50 dark:to-rose-900/50 text-red-700 dark:text-red-300 border-red-300/50' :
+            'bg-gradient-to-r from-blue-100/90 to-indigo-100/90 dark:from-blue-900/50 dark:to-indigo-900/50 text-blue-700 dark:text-blue-300 border-blue-300/50'
           }`}>
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              <span>{uploadStatus.message}</span>
+              <FileText className={`h-4 w-4 ${uploadStatus.type === 'info' ? 'animate-pulse' : ''}`} />
+              <span className="text-sm font-medium">{uploadStatus.message}</span>
             </div>
           </div>
         )}
 
         {/* Centered date */}
-        <div className="mb-6 flex justify-center">
-          <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">8/22/25</span>
+        <div className="mb-4 flex justify-center">
+          <div className="px-5 py-1.5 bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 rounded-full shadow-lg backdrop-blur-sm border border-white/20">
+            <span className="text-base font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">8/22/25</span>
+          </div>
+        </div>
+        {/* Status labels moved from last column */}
+        <div className="mb-4 flex flex-col items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-sm font-bold shadow-md">Aantal jongeren:</span>
+            <span className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white text-base font-bold shadow-lg transform hover:scale-105 transition-transform duration-200 cursor-default">{total}</span>
+          </div>
+          <div className="flex justify-center gap-2">
+            <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-red-500 to-rose-600 text-white text-xs font-bold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 cursor-default">meerderjarig</span>
+            <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-gray-500 to-slate-600 text-white text-xs font-bold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 cursor-default">leeftijdstwijfel</span>
+            <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 cursor-default">transfer</span>
+          </div>
         </div>
 
         {/* Main table */}
-        <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+        <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-300 dark:border-gray-700 hover:shadow-3xl transition-shadow duration-300">
           <table className="border-collapse w-full">
             <thead>
               {/* Annotations row - only show for specific columns that have notes */}
@@ -831,58 +1138,45 @@ export default function ToewijzingenPage() {
                         type="text"
                         value={staff.annotation}
                         onChange={(e) => handleStaffEdit(idx, 'annotation', e.target.value)}
-                        className="w-full text-xs text-center bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded"
-                        placeholder="Notitie..."
+                        className="w-full text-[10px] text-center bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded"
+                        placeholder="..."
                       />
                     ) : (
-                      <div className="text-xs text-center text-gray-400">-</div>
+                      <div className="text-[10px] text-center text-gray-400">-</div>
                     )}
                   </td>
                 ))}
-                <td className="border-0"></td>
               </tr>
               {/* Count row */}
-              <tr>
-                <td className="border-2 border-gray-800 px-2 py-1 text-xs font-bold bg-white">
-                  Aantal jongeren:
-                </td>
-                {dynamicStaffColumns.map((staff, idx) => (
-                  <td key={idx} className="border-2 border-gray-800 px-2 py-1 text-xs font-bold text-center bg-white">
-                    <span className="w-full text-center font-bold text-blue-600">
-                      {staff.count}
-                    </span>
-                  </td>
-                ))}
-                <td className="border-2 border-gray-800 px-3 py-1 text-lg font-bold text-center bg-green-500 text-white" title="Total residents from Match IT">
-                  {total}
-                </td>
-              </tr>
+              
               {/* Staff names row */}
               <tr>
-                <td className="border-2 border-gray-800 px-2 py-1 bg-yellow-300 text-xs font-bold text-center">IB's</td>
+                <td className="border-2 border-black dark:border-gray-300 px-2 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-400 text-sm font-bold text-center text-black shadow-inner">IB&apos;s</td>
                 {dynamicStaffColumns.map((staff, idx) => (
-                  <td key={idx} className="border-2 border-gray-800 px-2 py-1 bg-yellow-300">
+                  <td key={idx} className="border-2 border-black dark:border-gray-300 px-2 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-400 shadow-inner">
                     <input
                       type="text"
                       value={staff.name}
                       onChange={(e) => handleStaffEdit(idx, 'name', e.target.value)}
-                      className="w-full text-xs font-bold text-center bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded"
+                      className="w-full text-sm font-bold text-center bg-transparent border-0 focus:ring-2 focus:ring-purple-500 rounded-lg text-black placeholder-gray-600"
                     />
                   </td>
                 ))}
-                <td className="border-2 border-gray-800"></td>
               </tr>
+              
             </thead>
             <tbody>
-              {tableData.map((row, rowIndex) => (
+              {tableData.map((row, rowIndex) => rowIndex === 1 ? null : (
                 <tr key={rowIndex} className={searchTerm && !row.some(cell => isVisible(cell.text)) ? 'hidden' : ''}>
-                  <td className="border-2 border-gray-800 px-2 py-1 text-xs font-bold text-center bg-white">
-                    {rowIndex < 15 ? rowIndex + 1 : ''}
+                  <td className="border-2 border-black dark:border-gray-300 px-2 py-1 text-xs font-bold text-center bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-black dark:text-gray-300">
+                    {rowIndex <= 1 ? '' : rowIndex - 1}
                   </td>
                   {row.map((cell, colIndex) => (
                     <td 
                       key={colIndex}
-                      className={`border-2 border-gray-800 px-1 py-1 text-xs cursor-pointer relative text-center ${getCellClass(cell.text, cell.type, cell.color)}`}
+                      className={`border-2 border-black dark:border-gray-300 px-1 py-1 text-xs cursor-pointer relative text-center group transition-all duration-200 hover:z-10 hover:transform hover:scale-105 ${getCellClass(cell.text, cell.type, cell.color)} ${
+                        selectedCell?.row === rowIndex && selectedCell?.col === colIndex ? 'ring-2 ring-purple-500 ring-inset shadow-lg' : ''
+                      }`}
                       onClick={() => handleCellClick(rowIndex, colIndex, cell.text, cell.type)}
                     >
                       {editingCell?.row === rowIndex && editingCell?.col === colIndex ? (
@@ -913,10 +1207,10 @@ export default function ToewijzingenPage() {
                             <option value="transfer">Transfer</option>
                           </select>
                           <div className="flex gap-1">
-                            <button onClick={handleSaveCell} className="flex-1 p-0.5 bg-green-500 text-white rounded text-xs">
+                            <button onClick={handleSaveCell} className="flex-1 p-0.5 bg-green-500 text-white rounded-lg text-xs">
                               <Save className="h-3 w-3 mx-auto" />
                             </button>
-                            <button onClick={handleCancelEdit} className="flex-1 p-0.5 bg-red-500 text-white rounded text-xs">
+                            <button onClick={handleCancelEdit} className="flex-1 p-0.5 bg-red-500 text-white rounded-lg text-xs">
                               <X className="h-3 w-3 mx-auto" />
                             </button>
                           </div>
@@ -925,53 +1219,80 @@ export default function ToewijzingenPage() {
                         <div className="flex flex-col items-center justify-center group w-full h-full relative">
                           <span className={`text-center ${!isVisible(cell.text) ? 'opacity-30' : ''}`}>{cell.text}</span>
                           {cell.text && (
-                            <Edit2 className="h-3 w-3 opacity-0 group-hover:opacity-50 absolute top-1 right-1" />
+                            <>
+                              <Edit2 className="h-3 w-3 opacity-0 group-hover:opacity-50 absolute top-1 right-1" />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteCell(rowIndex, colIndex);
+                                }}
+                                className="opacity-0 group-hover:opacity-70 hover:opacity-100 absolute top-1 left-1 p-0.5 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all"
+                                title="Wis cel (Delete)"
+                              >
+                                <Trash2 className="h-2 w-2" />
+                              </button>
+                            </>
                           )}
                         </div>
                       )}
                     </td>
                   ))}
-                  <td className={`border-2 border-gray-800 px-1 py-1 text-xs text-center ${
-                    rowIndex === 1 ? 'bg-red-500 text-white' :
-                    rowIndex === 2 ? 'bg-gray-500 text-white' :
-                    rowIndex === 3 ? 'bg-blue-500 text-white' :
-                    'bg-white'
-                  }`} title="Specifications column - not a group">
-                    {rowIndex === 1 && 'meerderjarig'}
-                    {rowIndex === 2 && 'leeftijdstwijfel'}
-                    {rowIndex === 3 && 'transfer'}
-                  </td>
                 </tr>
               ))}
-              {/* Footer title row */}
+              {/* Footer title row - Backups section */}
               <tr>
-                <td colSpan="11" className="border-2 border-gray-800 px-2 py-2 text-sm font-bold text-center bg-gray-100">
-                  IB's GB's and NB's
+                <td colSpan={11} className="border-2 border-black dark:border-gray-300 px-2 py-2 text-sm font-bold text-center bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 text-black dark:text-gray-200">
+                  Backups
                 </td>
               </tr>
               {/* Footer rows - IB, GB, NB */}
               {Object.entries(bottomData).map(([key, values]) => (
                 <tr key={key}>
-                  <td className="border-2 border-gray-800 px-2 py-1 text-xs font-bold bg-white">{key}</td>
+                  <td className="border-2 border-black dark:border-gray-300 px-2 py-1 text-xs font-bold bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 text-center text-black dark:text-gray-200">{key}</td>
                   {values.map((value, idx) => (
-                    <td key={idx} className="border-2 border-gray-800 px-2 py-1 text-xs bg-white">
+                    <td key={idx} className="border-2 border-black dark:border-gray-300 px-2 py-1 text-xs bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200" title={key}>
                       <input
                         type="text"
                         value={value}
                         onChange={(e) => handleBottomEdit(key as 'IB' | 'GB' | 'NB', idx, e.target.value)}
-                        className="w-full bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded text-center"
-                        placeholder="-"
+                        className="w-full bg-transparent border-0 focus:ring-2 focus:ring-purple-500 rounded-lg text-center text-black dark:text-gray-300 placeholder-gray-400"
+                        placeholder={key}
                       />
                     </td>
                   ))}
-                  {/* Specifications column - empty for IB/GB/NB rows (not part of any group) */}
-                  <td className="border-2 border-gray-800 px-2 py-1 text-xs bg-white" title="Specifications column - not a group"></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+      
+      {/* Add animation styles */}
+      <style jsx>{`
+        @keyframes blob {
+          0% {
+            transform: translate(0px, 0px) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
+          100% {
+            transform: translate(0px, 0px) scale(1);
+          }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,16 +1,9 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+// Authentication disabled - direct access allowed
 import Link from 'next/link';
 import LoginForm from '../../components/auth/LoginForm';
-import { createClient } from '../../lib/supabase/server';
 
-export default async function LoginPage() {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (session) {
-    redirect('/dashboard');
-  }
+export default function LoginPage() {
+  // Authentication check disabled
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

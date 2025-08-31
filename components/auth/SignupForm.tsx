@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+// Authentication disabled - using local access only
 import Link from 'next/link';
 
 export default function SignupForm() {
@@ -12,7 +12,7 @@ export default function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  // Authentication system disabled
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -3,12 +3,34 @@
 import { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Search, UserPlus, Trash2, Clipboard, Upload, Undo, Redo, RefreshCw } from 'lucide-react';
-import { useData } from '../../../lib/DataContext';
+import { useData } from "../../../lib/DataContextDebug";
 import AddUserModal from '../../components/AddUserModal';
 import { formatDate, formatDateTime } from '../../../lib/utils';
-import { testDatabaseConnection } from '../../../lib/supabase';
-import { fullDatabaseDiagnostic, quickConnectionTest } from '../../../lib/debug-supabase';
+import { testDatabaseConnection } from '../../../lib/api-service';
 import * as XLSX from 'xlsx';
+
+// Helper function to calculate days of stay from arrival date
+const calculateDaysOfStay = (arrivalDate: string | Date | null | undefined): number => {
+  if (!arrivalDate) return 1; // Default to 1 if no arrival date
+  
+  try {
+    const arrival = new Date(arrivalDate);
+    const today = new Date();
+    
+    // Reset time parts to get accurate day count
+    arrival.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    
+    const diffTime = today.getTime() - arrival.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Return at least 1 day (arrival day counts as day 1)
+    return Math.max(1, diffDays + 1);
+  } catch (error) {
+    console.warn('Error calculating days of stay:', error);
+    return 1;
+  }
+};
 
 export default function DataMatchItPage() {
   const { dataMatchIt, deleteFromDataMatchIt, addToDataMatchIt, addMultipleToDataMatchIt, clearAllData, getStorageInfo, updateInDataMatchIt, undoDelete, redoDelete, canUndo, canRedo, deleteMultipleFromDataMatchIt, syncWithToewijzingen } = useData();
@@ -26,9 +48,71 @@ export default function DataMatchItPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Update timestamp on client side to avoid hydration mismatch
+  // Also recalculate days of stay for all residents
   useEffect(() => {
     setLastUpdated(formatDateTime(new Date()));
-  }, [dataMatchIt]);
+    
+    // Auto-update days of stay for all residents based on their arrival date
+    const updatedResidents = dataMatchIt.filter(resident => {
+      if (resident.dateIn) {
+        const calculatedDays = calculateDaysOfStay(resident.dateIn);
+        if (calculatedDays !== resident.daysOfStay) {
+          return true;
+        }
+      }
+      return false;
+    });
+    
+    // Update residents with new days of stay
+    updatedResidents.forEach(resident => {
+      const calculatedDays = calculateDaysOfStay(resident.dateIn);
+      console.log(`Auto-updating days of stay for ${resident.firstName} ${resident.lastName}: ${calculatedDays} days`);
+      updateInDataMatchIt(resident.id, { daysOfStay: calculatedDays });
+    });
+  }, [dataMatchIt.length]); // Only recalculate when number of residents changes
+
+  // Recalculate days of stay when page regains focus or at midnight
+  useEffect(() => {
+    const recalculateDaysOfStay = () => {
+      console.log('Recalculating days of stay for all residents...');
+      dataMatchIt.forEach(resident => {
+        if (resident.dateIn) {
+          const calculatedDays = calculateDaysOfStay(resident.dateIn);
+          if (calculatedDays !== resident.daysOfStay) {
+            console.log(`Updating days for ${resident.firstName} ${resident.lastName}: ${resident.daysOfStay} -> ${calculatedDays}`);
+            updateInDataMatchIt(resident.id, { daysOfStay: calculatedDays });
+          }
+        }
+      });
+    };
+
+    // Recalculate when page regains focus
+    const handleFocus = () => {
+      recalculateDaysOfStay();
+    };
+
+    // Calculate time until midnight for daily update
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const msUntilMidnight = tomorrow.getTime() - now.getTime();
+
+    // Set timeout for midnight update
+    const midnightTimeout = setTimeout(() => {
+      recalculateDaysOfStay();
+      // Set interval for daily updates after first midnight
+      const dailyInterval = setInterval(recalculateDaysOfStay, 24 * 60 * 60 * 1000);
+      return () => clearInterval(dailyInterval);
+    }, msUntilMidnight);
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearTimeout(midnightTimeout);
+    };
+  }, [dataMatchIt, updateInDataMatchIt]);
 
   // Sync with Toewijzingen when page mounts
   useEffect(() => {
@@ -120,47 +204,73 @@ export default function DataMatchItPage() {
         }
 
         // Get headers from first row
-        const headers = (jsonData[0] as any[]).map(h => String(h || '').trim());
+        const headers = (jsonData[0] as any[]).map(h => {
+          // Remove BOM and trim
+          const cleanHeader = String(h || '').replace(/^\uFEFF/, '').trim();
+          return cleanHeader;
+        });
         console.log('Column headers found:', headers);
+        console.log('Headers as JSON:', JSON.stringify(headers));
 
         // Find column indices by trying different header variations
         const findColumnIndex = (possibleNames: string[]) => {
+          // First try exact match (case insensitive)
+          for (const name of possibleNames) {
+            const index = headers.findIndex(h => 
+              h.toLowerCase() === name.toLowerCase()
+            );
+            if (index !== -1) {
+              console.log(`Found exact match for column "${name}" at index ${index} (actual header: "${headers[index]}")`);
+              return index;
+            }
+          }
+          
+          // Then try partial match
           for (const name of possibleNames) {
             const index = headers.findIndex(h => 
               h.toLowerCase().includes(name.toLowerCase()) || 
               h.toLowerCase().replace(/\s+/g, '') === name.toLowerCase().replace(/\s+/g, '')
             );
             if (index !== -1) {
-              console.log(`Found column "${name}" at index ${index} (actual header: "${headers[index]}")`);
+              console.log(`Found partial match for column "${name}" at index ${index} (actual header: "${headers[index]}")`);
               return index;
             }
           }
+          
+          console.log(`Column not found for any of: ${possibleNames.join(', ')}`);
           return -1;
         };
 
         // Map column names to indices
         const columns = {
-          badge: findColumnIndex(['badge', 'Badge']),
-          naam: findColumnIndex(['naam', 'Naam', 'last name', 'lastname']),
+          badge: findColumnIndex(['badge', 'Badge', 'externe referentie', 'Externe referentie', 'externe', 'referentie']),
+          naam: findColumnIndex(['naam', 'Naam', 'last name', 'lastname', 'achternaam', 'Achternaam']),
           voornaam: findColumnIndex(['voornaam', 'Voornaam', 'first name', 'firstname']),
-          blok: findColumnIndex(['blok', 'Blok', 'room', 'kamer']),
+          blok: findColumnIndex(['blok', 'Blok', 'room', 'kamer', 'wooneenheid', 'Wooneenheid']),
           nationaliteit: findColumnIndex(['nationaliteit', 'Nationaliteit', 'nationality']),
           ovNummer: findColumnIndex(['ov nummer', 'OV Nummer', 'ovnummer', 'ov', 'OV nummer']),
-          rijkregisternr: findColumnIndex(['rijkregisternr', 'Rijkregisternr', 'rijksregister', 'register']),
+          rijkregisternr: findColumnIndex(['rijkregisternr', 'Rijkregisternr', 'rijksregister', 'register', 'nationaal nummer', 'Nationaal Nummer']),
           geboortedatum: findColumnIndex(['geboortedatum', 'Geboortedatum', 'birth', 'geboorte']),
           leeftijd: findColumnIndex(['leeftijd', 'Leeftijd', 'age']),
-          geslacht: findColumnIndex(['geslacht', 'Geslacht', 'gender', 'sex']),
-          referentiepersoon: findColumnIndex(['referentiepersoon', 'Referentiepersoon', 'reference', 'referent']),
-          datumIn: findColumnIndex(['datum in', 'Datum In', 'datum', 'date in', 'datein']),
+          geslacht: findColumnIndex(['geslacht', 'Geslacht', 'gender', 'sex', 'Gender', 'Sex', 'M/F', 'm/f', 'M/V', 'm/v']),
+          referentiepersoon: findColumnIndex(['referentiepersoon', 'Referentiepersoon', 'reference', 'referent', 'Referent', 'REFERENT', 'Referent ']),
+          datumIn: findColumnIndex(['datum in', 'Datum In', 'aankomstdatum', 'Aankomstdatum', 'date in', 'datein']),
           dagenVerblijf: findColumnIndex(['dagen verblijf', 'Dagen verblijf', 'dagen', 'days', 'verblijf'])
         };
 
         console.log('Column mapping:', columns);
+        console.log('Referentiepersoon column index:', columns.referentiepersoon);
+        if (columns.referentiepersoon >= 0) {
+          console.log('Referentiepersoon column header:', headers[columns.referentiepersoon]);
+        }
 
         let successCount = 0;
         let errorCount = 0;
         const errors: string[] = [];
-        const parsedResidents: ResidentData[] = [];
+        const parsedResidents: any[] = [];
+        const duplicates: {type: string, value: string, line: number, existing?: any}[] = [];
+        const skippedResidents: any[] = [];
+        const badgeNumbers = new Map<string, number>(); // Track badge numbers and their first occurrence
 
         // Process each data row (skip header at index 0)
         for (let i = 1; i < jsonData.length; i++) {
@@ -174,36 +284,154 @@ export default function DataMatchItPage() {
 
             // Get badge value - try to parse it
             let badgeValue = columns.badge >= 0 ? row[columns.badge] : null;
-            const badge = parseInt(String(badgeValue || '0').replace(/\D/g, '')) || 0;
+            if (i <= 5) {
+              console.log(`Row ${i} - Badge column index: ${columns.badge}, Badge value: "${badgeValue}", All columns:`, columns);
+            }
+            
+            // For Excel files, badge might be a number already
+            let badge;
+            if (typeof badgeValue === 'number') {
+              badge = badgeValue;
+            } else {
+              badge = parseInt(String(badgeValue || '0').replace(/\D/g, '')) || 0;
+            }
             
             // Skip rows without a valid badge number
             if (!badge || badge === 0) {
-              console.log(`Skipping row ${i}: No valid badge number (value: "${badgeValue}")`);
+              console.log(`Skipping row ${i}: No valid badge number (value: "${badgeValue}", type: ${typeof badgeValue}, parsed: ${badge})`);
               errorCount++;
               continue;
             }
+            
+            // Check for duplicate badge numbers within the Excel file
+            const badgeStr = String(badge);
+            if (badgeNumbers.has(badgeStr)) {
+              const firstOccurrence = badgeNumbers.get(badgeStr);
+              console.error(`❌ DUPLICATE: Badge ${badge} appears in both row ${firstOccurrence} and row ${i}`);
+              duplicates.push({
+                type: 'badge-excel',
+                value: badgeStr,
+                line: i,
+                existing: { line: firstOccurrence }
+              });
+              errorCount++;
+              continue; // Skip this duplicate row
+            }
+            badgeNumbers.set(badgeStr, i);
+            
+            console.log(`✅ Row ${i}: Processing badge ${badge}`);
+
+            // Helper function to parse dates from Excel
+            const parseExcelDate = (dateValue: any): string => {
+              if (!dateValue) return new Date().toISOString().split('T')[0];
+              
+              // If it's already a date string in DD/MM/YYYY format
+              if (typeof dateValue === 'string' && dateValue.includes('/')) {
+                const parts = dateValue.split('/');
+                if (parts.length === 3) {
+                  const [day, month, year] = parts;
+                  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+              }
+              
+              // If it's an Excel serial date number
+              if (typeof dateValue === 'number') {
+                const excelDate = new Date((dateValue - 25569) * 86400 * 1000);
+                return excelDate.toISOString().split('T')[0];
+              }
+              
+              return new Date().toISOString().split('T')[0];
+            };
 
             const newResident = {
               id: generateUniqueId(),
-              badge: badge,
+              badge: String(badge),  // Convert to string to match the type
               lastName: columns.naam >= 0 ? String(row[columns.naam] || '') : '',
               firstName: columns.voornaam >= 0 ? String(row[columns.voornaam] || '') : '',
               room: columns.blok >= 0 ? String(row[columns.blok] || '') : '',
               nationality: columns.nationaliteit >= 0 ? String(row[columns.nationaliteit] || '') : '',
               ovNumber: columns.ovNummer >= 0 ? String(row[columns.ovNummer] || '0000000') : '0000000',
               registerNumber: columns.rijkregisternr >= 0 ? String(row[columns.rijkregisternr] || `0FICT${badge}A`) : `0FICT${badge}A`,
-              dateOfBirth: columns.geboortedatum >= 0 ? row[columns.geboortedatum] : new Date(),
+              dateOfBirth: parseExcelDate(columns.geboortedatum >= 0 ? row[columns.geboortedatum] : null),
               age: columns.leeftijd >= 0 ? parseInt(String(row[columns.leeftijd] || '0')) || 0 : 0,
-              gender: columns.geslacht >= 0 ? String(row[columns.geslacht] || 'M') : 'M',
-              referencePerson: columns.referentiepersoon >= 0 ? String(row[columns.referentiepersoon] || '') : '',
-              dateIn: columns.datumIn >= 0 ? row[columns.datumIn] : new Date(),
-              daysOfStay: columns.dagenVerblijf >= 0 ? parseInt(String(row[columns.dagenVerblijf] || '0')) || 0 : 0,
-              status: 'active'
+              gender: columns.geslacht >= 0 ? 
+                (String(row[columns.geslacht] || '').toUpperCase().includes('V') || 
+                 String(row[columns.geslacht] || '').toUpperCase().includes('F') || 
+                 String(row[columns.geslacht] || '').toLowerCase().includes('vrouwelijk') ? 'F' : 'M') : 'M',
+              referencePerson: (() => {
+                if (columns.referentiepersoon >= 0) {
+                  const rawValue = row[columns.referentiepersoon];
+                  console.log(`Row ${i}: REFERENT raw value:`, rawValue, `(type: ${typeof rawValue}, index: ${columns.referentiepersoon})`);
+                  
+                  // Handle undefined, null, or empty values
+                  if (rawValue === undefined || rawValue === null || rawValue === '') {
+                    return '';
+                  }
+                  
+                  // Convert to string and trim
+                  const strValue = String(rawValue).trim();
+                  console.log(`Row ${i}: REFERENT converted to string: "${strValue}"`);
+                  
+                  return strValue;
+                } else {
+                  console.log(`Row ${i}: REFERENT column not found (index: ${columns.referentiepersoon})`);
+                  return '';
+                }
+              })(),
+              dateIn: parseExcelDate(columns.datumIn >= 0 ? row[columns.datumIn] : null),
+              daysOfStay: calculateDaysOfStay(parseExcelDate(columns.datumIn >= 0 ? row[columns.datumIn] : null)),
+              status: 'active',
+              name: '' // Add name field
             };
 
+            // Check for duplicates
+            let isDuplicate = false;
+            
+            // Check badge duplicate
+            const existingByBadge = dataMatchIt.find(r => r.badge === String(badge));
+            if (existingByBadge) {
+              duplicates.push({
+                type: 'badge',
+                value: String(badge),
+                line: i,
+                existing: existingByBadge
+              });
+              skippedResidents.push(newResident);
+              isDuplicate = true;
+              console.warn(`Excel Import: Badge ${badge} already exists, row ${i} skipped`);
+            }
+            
+            // Check name duplicate
+            const fullName = `${newResident.firstName} ${newResident.lastName}`.toLowerCase();
+            const existingByName = dataMatchIt.find(r => 
+              `${r.firstName} ${r.lastName}`.toLowerCase() === fullName
+            );
+            if (existingByName && !isDuplicate) {
+              duplicates.push({
+                type: 'name',
+                value: `${newResident.firstName} ${newResident.lastName}`,
+                line: i,
+                existing: existingByName
+              });
+              skippedResidents.push(newResident);
+              isDuplicate = true;
+              console.warn(`Excel Import: Name ${newResident.firstName} ${newResident.lastName} already exists, row ${i} skipped`);
+            }
+            
+            if (isDuplicate) {
+              errorCount++;
+              continue;
+            }
+
+            // Log the created resident for debugging
+            if (i <= 5 || i === jsonData.length - 1) {
+              console.log(`Created resident ${i}:`, newResident);
+            }
+            
             // Collect residents instead of adding individually
             parsedResidents.push(newResident);
             successCount++;
+            console.log(`✅ Added resident ${badge} to import list (total: ${successCount})`);
           } catch (rowError) {
             console.error(`Error processing row ${i}:`, rowError);
             errors.push(`Row ${i}: ${rowError}`);
@@ -223,18 +451,46 @@ export default function DataMatchItPage() {
 
         // Show detailed result message
         let message = `Import voltooid:\n`;
-        message += `- ${successCount} rijen succesvol geïmporteerd\n`;
-        if (errorCount > 0) {
-          message += `- ${errorCount} rijen overgeslagen (geen geldige badge nummer)\n`;
+        message += `✅ ${successCount} rijen succesvol geïmporteerd\n`;
+        
+        // Show duplicate information
+        if (duplicates.length > 0) {
+          message += `\n⚠️ ${duplicates.length} duplica${duplicates.length !== 1 ? 'ten' : 'at'} gevonden:\n`;
+          
+          const excelDuplicates = duplicates.filter(d => d.type === 'badge-excel');
+          const badgeDuplicates = duplicates.filter(d => d.type === 'badge');
+          const nameDuplicates = duplicates.filter(d => d.type === 'name');
+          
+          if (excelDuplicates.length > 0) {
+            message += `\n❌ DUPLICATEN IN EXCEL BESTAND:\n`;
+            message += `${excelDuplicates.length} dubbele Badge nummer${excelDuplicates.length !== 1 ? 's' : ''} gevonden in het Excel bestand:\n`;
+            excelDuplicates.slice(0, 5).forEach(d => {
+              message += `  • Badge ${d.value} komt voor op rij ${d.existing.line} en rij ${d.line}\n`;
+            });
+            if (excelDuplicates.length > 5) {
+              message += `  ... en ${excelDuplicates.length - 5} meer\n`;
+            }
+            message += `\n⚠️ Verwijder eerst de dubbele badges uit het Excel bestand!\n`;
+          }
+          
+          if (badgeDuplicates.length > 0) {
+            message += `• ${badgeDuplicates.length} badge${badgeDuplicates.length !== 1 ? 's' : ''} bestaan al in het systeem\n`;
+          }
+          if (nameDuplicates.length > 0) {
+            message += `• ${nameDuplicates.length} na${nameDuplicates.length !== 1 ? 'men' : 'am'} besta${nameDuplicates.length !== 1 ? 'an' : 'at'} al in het systeem\n`;
+          }
+        }
+        
+        const otherErrors = errorCount - duplicates.length;
+        if (otherErrors > 0) {
+          message += `❌ ${otherErrors} rijen overgeslagen (ongeldige data)\n`;
           if (errors.length > 0) {
-            message += `\nFouten:\n${errors.slice(0, 5).join('\n')}`;
-            if (errors.length > 5) {
-              message += `\n... en ${errors.length - 5} meer`;
+            message += `\nFouten:\n${errors.slice(0, 3).join('\n')}`;
+            if (errors.length > 3) {
+              message += `\n... en ${errors.length - 3} meer`;
             }
           }
         }
-        // Only mention database sync if it's configured
-        // message += `\n✅ Data wordt automatisch gesynchroniseerd naar database`;
         
         alert(message);
         
@@ -302,17 +558,9 @@ export default function DataMatchItPage() {
     
     // Auto-calculate days of stay if entry date was edited
     if (field === 'dateIn' && processedValue) {
-      try {
-        const entryDate = new Date(processedValue);
-        const today = new Date();
-        const daysDifference = Math.floor((today.getTime() - entryDate.getTime()) / (24 * 60 * 60 * 1000));
-        // Days start at 1 (same day = 1 day of stay), ensure minimum 1
-        const calculatedDays = Math.max(1, daysDifference + 1);
-        updates.daysOfStay = calculatedDays;
-        console.log(`✓ Auto-calculated days of stay: ${calculatedDays} days from entry date ${processedValue}`);
-      } catch (error) {
-        console.warn(`Failed to calculate days of stay from entry date ${processedValue}:`, error);
-      }
+      const calculatedDays = calculateDaysOfStay(processedValue);
+      updates.daysOfStay = calculatedDays;
+      console.log(`✓ Auto-calculated days of stay: ${calculatedDays} days from entry date ${processedValue}`);
     }
     
     updateInDataMatchIt(residentId, updates);
@@ -418,6 +666,8 @@ export default function DataMatchItPage() {
       const parsedResidents = [];
       let successCount = 0;
       let errorCount = 0;
+      const duplicates: {type: string, value: string, line: number, existing?: any}[] = [];
+      const skippedResidents: any[] = [];
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -518,36 +768,20 @@ export default function DataMatchItPage() {
               console.warn(`Could not parse birth date "${columns[7]}" for ${columns[2]} ${columns[1]}, using provided age: ${calculatedAge}`);
             }
             
-            // Calculate days of stay from entry date if available
-            let calculatedDaysOfStay = parseNumber(columns[12]); // Use provided value as fallback
+            // Calculate days of stay from entry date
+            let calculatedDaysOfStay = parsedDateIn ? calculateDaysOfStay(parsedDateIn) : 1;
             
             if (parsedDateIn) {
-              try {
-                const entryDate = new Date(parsedDateIn);
-                const today = new Date();
-                const daysFromEntry = Math.floor((today.getTime() - entryDate.getTime()) / (24 * 60 * 60 * 1000));
-                if (daysFromEntry >= 0) { // Must be positive
-                  calculatedDaysOfStay = daysFromEntry;
-                  console.log(`✓ Calculated days of stay for ${columns[2]} ${columns[1]}: ${calculatedDaysOfStay} from entry date ${parsedDateIn}`);
-                } else {
-                  console.warn(`Entry date ${parsedDateIn} is in the future for ${columns[2]} ${columns[1]}, using provided value: ${calculatedDaysOfStay}`);
-                }
-              } catch (error) {
-                console.warn(`Failed to calculate days of stay from entry date ${parsedDateIn}:`, error);
-              }
-            } else if (columns[11]?.trim()) {
-              console.warn(`Could not parse entry date "${columns[11]}" for ${columns[2]} ${columns[1]}, using provided days of stay: ${calculatedDaysOfStay}`);
-            }
-            
-            // Ensure days of stay is never 0 or empty - provide default if needed
-            if (calculatedDaysOfStay === 0 || isNaN(calculatedDaysOfStay)) {
-              // If no entry date and no provided value, estimate based on typical stay
-              if (!parsedDateIn && (!columns[11]?.trim() || columns[11].trim() === '')) {
-                calculatedDaysOfStay = 30; // Default to 30 days if no information available
-                console.log(`⚠️  No entry date or days provided for ${columns[2]} ${columns[1]}, using default: ${calculatedDaysOfStay} days`);
-              } else if (calculatedDaysOfStay === 0) {
-                calculatedDaysOfStay = 1; // Minimum 1 day if calculation results in 0
-                console.log(`⚠️  Days of stay was 0 for ${columns[2]} ${columns[1]}, setting to minimum: ${calculatedDaysOfStay} day`);
+              console.log(`✓ Calculated days of stay for ${columns[2]} ${columns[1]}: ${calculatedDaysOfStay} from entry date ${parsedDateIn}`);
+            } else {
+              // If no entry date provided, try to use the value from the column
+              const providedDays = parseNumber(columns[12]);
+              if (providedDays > 0) {
+                calculatedDaysOfStay = providedDays;
+                console.log(`Using provided days of stay for ${columns[2]} ${columns[1]}: ${calculatedDaysOfStay} days`);
+              } else {
+                calculatedDaysOfStay = 1; // Default to 1 day if no information
+                console.log(`⚠️  No valid entry date or days for ${columns[2]} ${columns[1]}, using default: ${calculatedDaysOfStay} day`);
               }
             }
 
@@ -571,19 +805,20 @@ export default function DataMatchItPage() {
 
             const newResident = {
               id: Date.now() + i,
-              badge: badgeNumber,
+              badge: String(badgeNumber),  // Ensure badge is a string
               name: `${columns[2] || ''} ${columns[1] || ''}`.trim(),
               firstName: columns[2]?.trim() || '',
               lastName: columns[1]?.trim() || '',
-              block: columns[3]?.trim() || '',
               room: columns[3]?.trim() || '',
               nationality: columns[4]?.trim() || '',
               ovNumber: ovNumber,
               registerNumber: registerNumber,
               dateOfBirth: parsedDateOfBirth,
               age: calculatedAge,
-              gender: (columns[9]?.trim() === 'Vrouwelijk' || columns[9]?.trim() === 'V') ? 'V' : 'M',
-              referencePerson: columns[10]?.trim() || '',
+              gender: (columns[9]?.trim()?.toLowerCase().includes('vrouwelijk') || 
+                       columns[9]?.trim()?.toUpperCase().includes('V') || 
+                       columns[9]?.trim()?.toUpperCase().includes('F')) ? 'F' : 'M',
+              referencePerson: String(columns[10]?.trim() || ''),  // Ensure referencePerson is a string
               dateIn: parsedDateIn,
               daysOfStay: calculatedDaysOfStay,
               status: 'active'
@@ -603,10 +838,41 @@ export default function DataMatchItPage() {
 
             console.log('Parsed resident:', newResident);
 
-            // Skip if badge already exists
-            const existingResident = dataMatchIt.find(r => r.badge === newResident.badge);
-            if (existingResident) {
-              console.warn(`Bewoner met badge ${newResident.badge} bestaat al, overgeslagen`);
+            // Check for duplicates by badge and name
+            let isDuplicate = false;
+            
+            // Check badge duplicate
+            const existingByBadge = dataMatchIt.find(r => String(r.badge) === String(newResident.badge));
+            if (existingByBadge) {
+              duplicates.push({
+                type: 'badge',
+                value: String(newResident.badge),
+                line: i + 1,
+                existing: existingByBadge
+              });
+              skippedResidents.push(newResident);
+              isDuplicate = true;
+              console.warn(`Bewoner met badge ${newResident.badge} bestaat al, regel ${i + 1} overgeslagen`);
+            }
+            
+            // Check name duplicate (exact match of first + last name)
+            const fullName = `${newResident.firstName} ${newResident.lastName}`.toLowerCase();
+            const existingByName = dataMatchIt.find(r => 
+              `${r.firstName} ${r.lastName}`.toLowerCase() === fullName
+            );
+            if (existingByName && !isDuplicate) {
+              duplicates.push({
+                type: 'name',
+                value: `${newResident.firstName} ${newResident.lastName}`,
+                line: i + 1,
+                existing: existingByName
+              });
+              skippedResidents.push(newResident);
+              isDuplicate = true;
+              console.warn(`Bewoner ${newResident.firstName} ${newResident.lastName} bestaat al, regel ${i + 1} overgeslagen`);
+            }
+            
+            if (isDuplicate) {
               errorCount++;
               continue;
             }
@@ -633,17 +899,66 @@ export default function DataMatchItPage() {
         setTimeout(() => setDbSyncStatus({type: null, message: ''}), 5000);
       }
 
-      // Show result message
+      // Show result message with detailed duplicate info
       let message = `${successCount} bewoner${successCount !== 1 ? 's' : ''} succesvol toegevoegd`;
-      if (errorCount > 0) {
-        message += `\n${errorCount} regel${errorCount !== 1 ? 's' : ''} overgeslagen (fouten of duplicaten)`;
+      
+      // Show duplicate details if any
+      if (duplicates.length > 0) {
+        message += `\n\n⚠️ ${duplicates.length} duplica${duplicates.length !== 1 ? 'ten' : 'at'} gevonden en overgeslagen:`;
+        
+        // Group duplicates by type
+        const badgeDuplicates = duplicates.filter(d => d.type === 'badge');
+        const nameDuplicates = duplicates.filter(d => d.type === 'name');
+        
+        if (badgeDuplicates.length > 0) {
+          message += `\n• ${badgeDuplicates.length} badge duplica${badgeDuplicates.length !== 1 ? 'ten' : 'at'}`;
+          if (badgeDuplicates.length <= 3) {
+            badgeDuplicates.forEach(d => {
+              message += `\n  - Badge ${d.value} (regel ${d.line})`;
+            });
+          }
+        }
+        
+        if (nameDuplicates.length > 0) {
+          message += `\n• ${nameDuplicates.length} naam duplica${nameDuplicates.length !== 1 ? 'ten' : 'at'}`;
+          if (nameDuplicates.length <= 3) {
+            nameDuplicates.forEach(d => {
+              message += `\n  - ${d.value} (regel ${d.line})`;
+            });
+          }
+        }
+        
+        if (duplicates.length > 3) {
+          message += `\n\nMeer details in de browser console (F12)`;
+        }
       }
+      
+      if (errorCount > duplicates.length) {
+        const otherErrors = errorCount - duplicates.length;
+        message += `\n${otherErrors} regel${otherErrors !== 1 ? 's' : ''} overgeslagen (fouten)`;
+      }
+      
       message += `\n\n✓ Leeftijd en dagen verblijf automatisch berekend uit datums`;
       message += `\n✓ Datumformaten geconverteerd naar standaard format`;
-      // Only mention database sync if it's configured
-      // message += `\n✓ Data wordt automatisch gesynchroniseerd naar database`;
-      message += `\n\nKijk in de browser console (F12) voor gedetailleerde informatie.`;
-      alert(message);
+      
+      // Ask user if they want to see the full duplicate list if many duplicates
+      if (duplicates.length > 5) {
+        message += `\n\nWilt u de volledige lijst met duplicaten zien in de console?`;
+        alert(message);
+        
+        // Log detailed duplicate information
+        console.group('🔍 Duplicaten Rapport');
+        console.table(duplicates.map(d => ({
+          'Regel': d.line,
+          'Type': d.type === 'badge' ? 'Badge' : 'Naam',
+          'Waarde': d.value,
+          'Bestaande Badge': d.existing?.badge,
+          'Bestaande Naam': `${d.existing?.firstName} ${d.existing?.lastName}`
+        })));
+        console.groupEnd();
+      } else {
+        alert(message);
+      }
 
       console.log('Paste operation completed:', {
         totalLines: lines.length,
@@ -726,34 +1041,6 @@ export default function DataMatchItPage() {
           </div>
         </div>
 
-        {/* Import Instructions */}
-        <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <Clipboard className="h-5 w-5 text-blue-400" />
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                Data Importeren vanuit Excel
-              </h3>
-              <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
-                <p><strong>Optie 1:</strong> Upload een Excel bestand met de "Excel Importeren" knop.</p>
-                <p className="mt-1"><strong>Optie 2:</strong> Kopieer rijen vanuit Excel en plak ze hier.</p>
-                <p className="mt-2">Verwachte kolomnamen in Excel:</p>
-                <p className="mt-1 font-mono text-xs bg-blue-100 dark:bg-blue-800/30 p-1 rounded">
-                  Badge | Naam | Voornaam | Blok | Nationaliteit | OV Nummer | Rijkregisternr | Geboortedatum | Leeftijd | Geslacht | Referentiepersoon | Datum In | Dagen verblijf
-                </p>
-                <div className="mt-2 text-xs space-y-1">
-                  <p><strong>Vereist:</strong> Badge, Naam, Voornaam (kolommen 1-3)</p>
-                  <p><strong>Datums:</strong> Ondersteunt 1/2/1997, 12-31-1997, 2024-01-15 formaten</p>
-                  <p><strong>Auto-berekening:</strong> Leeftijd en dagen verblijf worden automatisch berekend</p>
-                  <p><strong>Tip:</strong> Gebruik Ctrl+V om snel te plakken</p>
-                  <p><strong>Probleem?</strong> Open browser console (F12) voor details</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Database Sync Status */}
         {dbSyncStatus.type && (
@@ -968,8 +1255,8 @@ export default function DataMatchItPage() {
               {/* Database Test Button */}
               <button 
                 onClick={() => {
-                  console.log('🔍 Running full database diagnostic...');
-                  fullDatabaseDiagnostic();
+                  console.log('🔍 Running database connection test...');
+                  testDatabaseConnection();
                 }}
                 className="px-4 py-2 bg-purple-600 dark:bg-purple-700 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-800 flex items-center gap-2"
               >
@@ -992,7 +1279,6 @@ export default function DataMatchItPage() {
                     status: 'active',
                     dateOfBirth: '1999-01-01',
                     name: 'Test Person',
-                    block: '1',
                     ovNumber: '',
                     registerNumber: '',
                     referencePerson: '',
@@ -1057,7 +1343,7 @@ export default function DataMatchItPage() {
                     Geslacht
                   </th>
                   <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
-                    Referentiepersoon
+                    REFERENT
                   </th>
                   <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
                     Aankomstdatum
@@ -1069,7 +1355,7 @@ export default function DataMatchItPage() {
               </thead>
               <tbody className="bg-white dark:bg-gray-800">
                 {filteredData.map((resident, index) => (
-                  <tr key={resident.id} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} border-b border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-gray-600`}>
+                  <tr key={`${resident.id}-${resident.badge}-${index}`} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} border-b border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-gray-600`}>
                     <td className="px-2 py-2 text-center border-r border-gray-200 dark:border-gray-600">
                       <input
                         type="checkbox"
@@ -1103,7 +1389,9 @@ export default function DataMatchItPage() {
                       {renderEditableCell(resident, 'dateOfBirth', resident.dateOfBirth, 'date')}
                     </td>
                     <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
-                      {renderEditableCell(resident, 'age', resident.age, 'number')}
+                      <div className="px-1 py-1" title="Leeftijd wordt automatisch berekend uit geboortedatum">
+                        {resident.age || 0}
+                      </div>
                     </td>
                     <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
                       {renderEditableCell(resident, 'gender', resident.gender)}
@@ -1115,7 +1403,15 @@ export default function DataMatchItPage() {
                       {renderEditableCell(resident, 'dateIn', resident.dateIn, 'date')}
                     </td>
                     <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100">
-                      {renderEditableCell(resident, 'daysOfStay', resident.daysOfStay, 'number')}
+                      <div className="flex items-center gap-1">
+                        {resident.dateIn ? (
+                          <span title={`Automatisch berekend vanaf ${formatDate(resident.dateIn)}`}>
+                            {calculateDaysOfStay(resident.dateIn)}
+                          </span>
+                        ) : (
+                          renderEditableCell(resident, 'daysOfStay', resident.daysOfStay, 'number')
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1149,10 +1445,10 @@ export default function DataMatchItPage() {
                 Test Database
               </button>
               <button
-                onClick={() => fullDatabaseDiagnostic()}
+                onClick={() => window.open('/dashboard/db-test', '_blank')}
                 className="text-xs text-green-400 hover:text-green-600 underline ml-2"
               >
-                Full Diagnostic
+                Open DB Test Page
               </button>
             </div>
           </div>

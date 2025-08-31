@@ -10,14 +10,17 @@ import {
   ToastViewport,
 } from './toast';
 
+interface ToastData {
+  id: string;
+  title?: string;
+  description?: string;
+  action?: React.ReactNode;
+  variant?: 'default' | 'destructive';
+  duration?: number;
+}
+
 interface ToasterProps {
-  toasts: Array<{
-    id: string;
-    title?: string;
-    description?: string;
-    action?: React.ReactNode;
-    [key: string]: any;
-  }>;
+  toasts: ToastData[];
 }
 
 export function Toaster({ toasts = [] }: ToasterProps) {
@@ -39,14 +42,3 @@ export function Toaster({ toasts = [] }: ToasterProps) {
     </ToastProvider>
   );
 }
-  {
-    variants: {
-      variant: {
-        default: 'border bg-background text-foreground',
-        destructive:
-          'destructive group border-destructive bg-destructive text-destructive-foreground',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-    },

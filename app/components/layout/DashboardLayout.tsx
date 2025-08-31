@@ -18,12 +18,12 @@ import {
   Bed,
   Sun,
   Moon,
-  Monitor,
   Sparkles,
-  UserCheck
+  UserCheck,
+  Grid3X3
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { useData } from '../../../lib/DataContext';
+import { useData } from "../../../lib/DataContextDebug";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +43,7 @@ const navigation = [
   { name: 'Noord', href: '/dashboard/noord', icon: MapPin },
   { name: 'Zuid', href: '/dashboard/zuid', icon: MapPin },
   { name: 'Data-Match-It', href: '/dashboard/data-match-it', icon: Users },
+  { name: 'Residents Grid', href: '/dashboard/residents-grid', icon: Grid3X3 },
   { name: 'Bedden Beheer', href: '/dashboard/bed-management', icon: Bed },
   { name: 'Afspraken', href: '/dashboard/appointments', icon: Calendar },
   { name: 'Permissielijst', href: '/dashboard/permissielijst', icon: List },
@@ -312,10 +313,8 @@ export default function DashboardLayout({ children, className }: DashboardLayout
                     <button className="relative p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105">
                       {theme === 'dark' ? (
                         <Moon className="h-5 w-5 text-blue-500" />
-                      ) : theme === 'light' ? (
-                        <Sun className="h-5 w-5 text-yellow-500" />
                       ) : (
-                        <Monitor className="h-5 w-5 text-gray-500" />
+                        <Sun className="h-5 w-5 text-yellow-500" />
                       )}
                       <span className="sr-only">Toggle theme</span>
                     </button>
@@ -328,10 +327,6 @@ export default function DashboardLayout({ children, className }: DashboardLayout
                     <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer">
                       <Moon className="mr-2 h-4 w-4" />
                       Dark
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer">
-                      <Monitor className="mr-2 h-4 w-4" />
-                      System
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

@@ -1,13 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Search, Filter, Printer } from 'lucide-react';
-import { useData } from '../../../lib/DataContext';
+import { useData } from "../../../lib/DataContextDebug";
 import { formatDate } from '../../../lib/utils';
 
-export default function BewonerslijstPage() {
+// Utility function to truncate text for print
+const truncateText = (text: string, maxLength: number) => {
+  if (!text) return '';
+  return text.length > maxLength ? text.substring(0, maxLength - 1) + '…' : text;
+};
+
+function BewonerslijstPageContent() {
   const { bewonerslijst } = useData();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
@@ -159,7 +165,7 @@ export default function BewonerslijstPage() {
               <thead className="bg-teal-700 dark:bg-teal-800 text-white">
                 <tr>
                   <th className="px-2 py-2 text-left text-xs font-medium uppercase tracking-tight" style={{fontSize: '0.625rem'}}>
-                    Externe referentie
+                    Badge
                   </th>
                   <th className="px-2 py-2 text-left text-xs font-medium uppercase tracking-tight" style={{fontSize: '0.625rem'}}>
                     Achternaam
@@ -277,7 +283,7 @@ export default function BewonerslijstPage() {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8px' }}>
         <thead>
           <tr style={{ backgroundColor: '#99CCFF', fontWeight: 'bold' }}>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '40px' }}>Externe referentie</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '40px' }}>Badge</th>
             <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '80px' }}>Achternaam</th>
             <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '80px' }}>Voornaam</th>
             <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '30px' }}>Wooneenheid</th>
@@ -296,12 +302,22 @@ export default function BewonerslijstPage() {
           {filteredResidents.map((resident, index) => (
             <tr key={resident.id}>
               <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{resident.badge}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left' }}>{resident.lastName}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left' }}>{resident.firstName}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {truncateText(resident.lastName, 12)}
+              </td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {truncateText(resident.firstName, 12)}
+              </td>
               <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{resident.room}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left' }}>{resident.nationality}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left' }}>{resident.ovNumber}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left' }}>{resident.registerNumber}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {truncateText(resident.nationality, 10)}
+              </td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {truncateText(resident.ovNumber, 11)}
+              </td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {truncateText(resident.registerNumber, 13)}
+              </td>
               <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                 {formatDate(resident.dateOfBirth)}
               </td>
@@ -309,7 +325,9 @@ export default function BewonerslijstPage() {
               <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>
                 {resident.gender === 'M' ? 'M' : 'V'}
               </td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left' }}>{resident.referencePerson}</td>
+              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {truncateText(resident.referencePerson, 12)}
+              </td>
               <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                 {formatDate(resident.dateIn)}
               </td>
@@ -320,5 +338,13 @@ export default function BewonerslijstPage() {
       </table>
     </div>
     </>
+  );
+}
+
+export default function BewonerslijstPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BewonerslijstPageContent />
+    </Suspense>
   );
 }

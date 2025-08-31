@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ResidentData, getBewonerslijstData, getKeukenlijstData, getNoordData, getZuidData } from './excelUtils';
 import { BedOccupancy, ALL_ROOMS, getRoomConfig, CAPACITY } from './bedConfig';
-import { dbOperations, testDatabaseConnection } from './supabase';
 
 interface DataContextType {
   // Data-Match-It is the primary source
@@ -222,10 +221,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       syncWithToewijzingen();
     }, 500);
     
-    // Test database connection in the background
-    setTimeout(() => {
-      testDatabaseConnection();
-    }, 1000);
   }, []);
 
   // Derived lists - computed from dataMatchIt
@@ -387,79 +382,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       badge: resident.badge
     });
     
-    // First add to local state
+    // Add to local state
     setDataMatchIt(prev => [...prev, resident]);
     console.log('✅ Resident added to local state');
-    
-    // Then try to sync to database (but don't block if it fails)
-    console.log('🗄️ Starting database sync...');
-    try {
-      console.log('📞 Calling dbOperations.addResident...');
-      const result = await dbOperations.addResident(resident);
-      console.log('📥 Database result received:', result);
-      
-      if (result.success) {
-        console.log('✅ Resident added to database:', result.resident?.id);
-        // Update the resident with the database ID if needed
-        if (result.resident?.id) {
-          setDataMatchIt(prev => prev.map(r => 
-            r.id === resident.id 
-              ? { ...r, dbId: result.resident.id }
-              : r
-          ));
-          console.log('🔄 Updated local resident with database ID');
-        }
-      } else {
-        console.warn('⚠️ Database sync failed, data saved locally only:', result.error);
-        // Data is still saved locally in state and localStorage
-      }
-    } catch (error) {
-      console.error('❌ Database sync threw exception:', error);
-      console.warn('⚠️ Database sync failed, data saved locally only:', error);
-      // Data is still saved locally in state and localStorage
-    }
-    
-    console.log('🏁 addToDataMatchIt function completed');
   };
 
   // Add multiple residents at once (for paste and import operations)
   const addMultipleToDataMatchIt = async (residents: ResidentData[]) => {
-    // First add all to local state
+    // Add all to local state
     setDataMatchIt(prev => [...prev, ...residents]);
-    
-    // Then try to sync to database in batch (but don't block if it fails)
-    try {
-      console.log(`🔄 Attempting to sync ${residents.length} residents to database...`);
-      const results = await dbOperations.addMultipleResidents(residents);
-      
-      const successful = results.filter(r => r.success).length;
-      const failed = results.filter(r => !r.success).length;
-      
-      if (successful > 0) {
-        console.log(`✅ Database sync: ${successful} succeeded`);
-      }
-      if (failed > 0) {
-        console.warn(`⚠️ Database sync: ${failed} failed (data saved locally)`);
-      }
-      
-      // Update residents with database IDs where successful
-      const dbIdMap = new Map();
-      results.forEach((result, index) => {
-        if (result.success && result.resident?.id) {
-          dbIdMap.set(residents[index].id, result.resident.id);
-        }
-      });
-      
-      if (dbIdMap.size > 0) {
-        setDataMatchIt(prev => prev.map(r => {
-          const dbId = dbIdMap.get(r.id);
-          return dbId ? { ...r, dbId } : r;
-        }));
-      }
-    } catch (error) {
-      console.warn('⚠️ Database sync failed, all data saved locally only:', error);
-      // Data is still saved locally in state and localStorage
-    }
+    console.log(`✅ ${residents.length} residents added to local state`);
   };
 
   const updateInDataMatchIt = (id: number, updates: Partial<ResidentData>) => {

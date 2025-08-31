@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { X, UserPlus } from 'lucide-react';
-import { useData } from '../../lib/DataContext';
+import { useData } from "../../lib/DataContextDebug";
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -375,8 +375,8 @@ export default function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
             <p className="text-sm text-blue-800">
               <strong>Let op:</strong> 
               <br />• Leeftijd en Dagen Verblijf worden automatisch berekend op basis van de ingevoerde datums.
-              <br />• OV Nummer wordt automatisch '0000000' indien leeggelaten.
-              <br />• Rijkregisternr wordt automatisch '0FICT' + badge + 'A' indien leeggelaten.
+              <br />• OV Nummer wordt automatisch &apos;0000000&apos; indien leeggelaten.
+              <br />• Rijkregisternr wordt automatisch &apos;0FICT&apos; + badge + &apos;A&apos; indien leeggelaten.
             </p>
           </div>
 

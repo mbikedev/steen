@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { X, Upload } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { useData } from '../../lib/DataContext';
+import { useData } from "../../lib/DataContextDebug";
 
 interface UploadDocModalProps {
   isOpen: boolean;

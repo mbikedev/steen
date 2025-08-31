@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Calendar, User, FileText, Search, Download, Upload, Plus, Edit, Save, X, Trash2, Clipboard, UserPlus, ArrowLeft, Home } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Calendar, User, FileText, Search, Download, Upload, Plus, Edit, Save, X, Trash2, Clipboard, UserPlus, ArrowLeft, Home, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useData } from '../../../lib/DataContext';
+import { useData } from "../../../lib/DataContextDebug";
 import { formatDate } from '../../../lib/utils';
 
 interface YouthRecord {
@@ -60,7 +60,7 @@ interface YouthRecord {
 // OUT tab starts empty - residents are moved here when they leave
 const staticOutData: YouthRecord[] = [];
 
-// IN data comes purely from DataContext (data-match-it) to maintain consistency
+// IN data comes purely from "../../../lib/DataContextDebug";
 const staticInData: YouthRecord[] = [];
 
 // Convert static data to YouthRecord format with IDs
@@ -75,7 +75,7 @@ const inData: YouthRecord[] = staticInData.map(record => ({
 }));
 
 export default function PermissielijstPage() {
-  const { dataMatchIt } = useData();
+  const { dataMatchIt, setAgeVerificationStatus } = useData();
   const [activeTab, setActiveTab] = useState('IN');
   const [isClient, setIsClient] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,6 +86,7 @@ export default function PermissielijstPage() {
   const [lastPasteDebug, setLastPasteDebug] = useState<string | null>(null);
   const [ageDoubtModeDisabled, setAgeDoubtModeDisabled] = useState(true); // Start with Age Doubt Mode disabled (show normal view)
   const [cellChanges, setCellChanges] = useState<{[key: string]: any}>({});
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -335,6 +336,15 @@ export default function PermissielijstPage() {
         ...prev,
         [key]: editValue
       }));
+      
+      // If the Resultaat column is updated, save to DataContext
+      if (editingCell.col === 'resultaat') {
+        if (editValue === 'Meerderjarig' || editValue === 'Minderjarig') {
+          setAgeVerificationStatus(editingCell.badge, editValue as 'Meerderjarig' | 'Minderjarig');
+        } else {
+          setAgeVerificationStatus(editingCell.badge, null);
+        }
+      }
     }
     setEditingCell(null);
     setEditValue('');
@@ -368,6 +378,29 @@ export default function PermissielijstPage() {
   }, [hasAgeDoubtJa, editingCell, handleEscapeToNormalView]);
 
   const router = useRouter();
+
+  // Scroll functions
+  const scrollTable = (direction: 'left' | 'right' | 'up' | 'down') => {
+    if (!tableContainerRef.current) return;
+    
+    const scrollAmount = 200; // pixels to scroll
+    const container = tableContainerRef.current;
+    
+    switch (direction) {
+      case 'left':
+        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+        break;
+      case 'right':
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        break;
+      case 'up':
+        container.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+        break;
+      case 'down':
+        container.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+        break;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-slate-900">
@@ -483,13 +516,56 @@ export default function PermissielijstPage() {
                   className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 />
               </div>
+              
+              {/* Scroll Control Buttons */}
+              <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg p-1 shadow-md border border-gray-200 dark:border-gray-600">
+                <span className="text-xs text-gray-500 dark:text-gray-400 px-2 font-medium">Scroll:</span>
+                
+                {/* Horizontal arrows */}
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => scrollTable('left')}
+                    className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
+                    title="Scroll Links"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => scrollTable('right')}
+                    className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
+                    title="Scroll Rechts"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+                
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+                
+                {/* Vertical arrows */}
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => scrollTable('up')}
+                    className="p-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
+                    title="Scroll Omhoog"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => scrollTable('down')}
+                    className="p-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
+                    title="Scroll Omlaag"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Table */}
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full overflow-auto">
+        {/* Table with Scroll Arrows */}
+        <div className="flex-1 overflow-hidden relative">
+          <div ref={tableContainerRef} className="h-full overflow-auto">
             <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
               <thead className="sticky top-0 bg-white dark:bg-gray-800 z-10">
                 {/* First header row - Group headers */}
@@ -687,6 +763,13 @@ export default function PermissielijstPage() {
                                         ...prev,
                                         [key]: newValue
                                       }));
+                                      
+                                      // Update age verification status in DataContext
+                                      if (newValue === 'Meerderjarig' || newValue === 'Minderjarig') {
+                                        setAgeVerificationStatus(editingCell.badge, newValue as 'Meerderjarig' | 'Minderjarig');
+                                      } else {
+                                        setAgeVerificationStatus(editingCell.badge, null);
+                                      }
                                     }
                                     
                                     // Close editing immediately

@@ -16,7 +16,6 @@ export default function EditResidentModal({ isOpen, onClose, onSubmit, resident 
     name: '',
     firstName: '',
     lastName: '',
-    block: '',
     room: '',
     nationality: '',
     ovNumber: '',
@@ -37,7 +36,6 @@ export default function EditResidentModal({ isOpen, onClose, onSubmit, resident 
         name: resident.name || '',
         firstName: resident.firstName || '',
         lastName: resident.lastName || '',
-        block: resident.block || '',
         room: resident.room || '',
         nationality: resident.nationality || '',
         ovNumber: resident.ovNumber || '',
@@ -62,7 +60,6 @@ export default function EditResidentModal({ isOpen, onClose, onSubmit, resident 
       name: formData.name,
       firstName: formData.firstName,
       lastName: formData.lastName,
-      block: formData.block,
       room: formData.room,
       nationality: formData.nationality,
       ovNumber: formData.ovNumber,
@@ -166,23 +163,7 @@ export default function EditResidentModal({ isOpen, onClose, onSubmit, resident 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Block
-              </label>
-              <input
-                type="text"
-                name="block"
-                value={formData.block}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter block (e.g., A, B, C)"
-              />
-            </div>
-
-            <div>
+          <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Room
               </label>
@@ -196,7 +177,6 @@ export default function EditResidentModal({ isOpen, onClose, onSubmit, resident 
                 placeholder="Enter room number (e.g., 2.17)"
               />
             </div>
-          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

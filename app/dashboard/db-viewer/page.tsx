@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { residentsApi } from '../../../lib/api-service';
 
 export default function DatabaseViewer() {
   const [residents, setResidents] = useState<any[]>([]);
@@ -19,45 +19,25 @@ export default function DatabaseViewer() {
       setLoading(true);
       setError(null);
       
-      console.log('🔍 Fetching data from database...');
-      console.log('🔗 Database URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-      console.log('🔑 Using key ending in:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(-10));
+      console.log('🔍 Fetching data from PHP API...');
+      console.log('🔗 API URL:', process.env.NEXT_PUBLIC_API_URL);
       
-      if (!supabase) {
-        throw new Error('Supabase client not initialized');
+      // Fetch residents from PHP API
+      const residentsResponse = await residentsApi.getAll();
+      
+      if (residentsResponse.success && residentsResponse.data) {
+        console.log('✅ Residents fetched:', residentsResponse.data.length);
+        setResidents(residentsResponse.data);
+      } else {
+        throw new Error(residentsResponse.error || 'Failed to fetch residents');
       }
       
-      // Fetch residents
-      const { data: residentsData, error: residentsError } = await supabase
-        .from('residents')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (residentsError) {
-        console.error('❌ Error fetching residents:', residentsError);
-        throw residentsError;
-      }
-      
-      console.log('✅ Residents fetched:', residentsData?.length || 0);
-      setResidents(residentsData || []);
-      
-      // Fetch data matches
-      const { data: dataMatchData, error: dataMatchError } = await supabase
-        .from('data_match')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (dataMatchError) {
-        console.error('❌ Error fetching data matches:', dataMatchError);
-        throw dataMatchError;
-      }
-      
-      console.log('✅ Data matches fetched:', dataMatchData?.length || 0);
-      setDataMatches(dataMatchData || []);
+      // For now, just use residents data for both (until we have separate data_match table)
+      setDataMatches(residentsResponse.data || []);
       
     } catch (err: any) {
       console.error('❌ Database fetch error:', err);
-      setError(err.message || 'Failed to fetch data');
+      setError(err.message || 'Failed to fetch data from PHP API');
     } finally {
       setLoading(false);
     }

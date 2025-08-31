@@ -4,7 +4,7 @@ import { useState } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import AddResidentModal from '../components/AddResidentModal';
 import UploadDocModal from '../components/UploadDocModal';
-import { useData } from '../../lib/DataContext';
+import { useData } from "../../lib/DataContextDebug";
 import { formatDateWithDay } from '../../lib/utils';
 
 export default function DashboardPage() {
@@ -315,10 +315,24 @@ export default function DashboardPage() {
                   </div>
                 </button>
 
+                <button 
+                  onClick={() => window.location.href = '/dashboard/residents-grid'}
+                  className="relative rounded-lg border border-gray-300 bg-white px-6 py-4 shadow-sm flex items-center space-x-3 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <div className="flex-shrink-0">
+                    <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="absolute inset-0" aria-hidden="true"></span>
+                    <p className="text-sm font-medium text-gray-900">Residents Grid</p>
+                  </div>
+                </button>
 
                 <button 
                   onClick={() => setIsUploadModalOpen(true)}
-                  className="relative rounded-lg border border-gray-300 bg-white px-6 py-4 shadow-sm flex items-center space-x-3 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="relative rounded-lg border border-gray-300 bg-white px-6 py-4 shadow-sm flex items-center space-x-3 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 col-span-2"
                 >
                   <div className="flex-shrink-0">
                     <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Search, ChefHat, Printer } from 'lucide-react';
-import { useData } from '../../../lib/DataContext';
+import { useData } from "../../../lib/DataContextDebug";
 import { formatDate } from '../../../lib/utils';
 
 export default function KeukenlijstPage() {
@@ -178,7 +178,7 @@ export default function KeukenlijstPage() {
               <thead className="bg-teal-700 dark:bg-teal-800 text-white">
                 <tr>
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Externe referentie
+                    Badge
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Achternaam
@@ -349,7 +349,7 @@ export default function KeukenlijstPage() {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '7px' }}>
         <thead>
           <tr style={{ backgroundColor: '#E6E6FA', color: 'black' }}>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Externe referentie</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Badge</th>
             <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Achternaam</th>
             <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Voornaam</th>
             <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Wooneenheid</th>
