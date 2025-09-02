@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { Search, UserPlus, Trash2, Clipboard, Upload, Undo, Redo, RefreshCw } from 'lucide-react';
+import { Search, UserPlus, Trash2, Clipboard, Upload, Undo, Redo, RefreshCw, ChevronDown } from 'lucide-react';
 import { useData } from "../../../lib/DataContextDebug";
 import AddUserModal from '../../components/AddUserModal';
 import { formatDate, formatDateTime } from '../../../lib/utils';
@@ -32,9 +33,11 @@ const calculateDaysOfStay = (arrivalDate: string | Date | null | undefined): num
   }
 };
 
-export default function DataMatchItPage() {
-  const { dataMatchIt, deleteFromDataMatchIt, addToDataMatchIt, addMultipleToDataMatchIt, clearAllData, getStorageInfo, updateInDataMatchIt, undoDelete, redoDelete, canUndo, canRedo, deleteMultipleFromDataMatchIt, syncWithToewijzingen } = useData();
+function DataMatchItPageContent() {
+  const { dataMatchIt, bewonerslijst, deleteFromDataMatchIt, addToDataMatchIt, addMultipleToDataMatchIt, clearAllData, getStorageInfo, updateInDataMatchIt, undoDelete, redoDelete, canUndo, canRedo, deleteMultipleFromDataMatchIt, syncWithToewijzingen } = useData();
+  const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentView, setCurrentView] = useState('bewonerslijst');
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [selectedResidents, setSelectedResidents] = useState<Set<number>>(new Set());
   const [isPasting, setIsPasting] = useState(false);
@@ -46,6 +49,16 @@ export default function DataMatchItPage() {
   const [dbSyncStatus, setDbSyncStatus] = useState<{type: 'success' | 'error' | 'info' | null, message: string}>({type: null, message: ''});
   const [isSyncing, setIsSyncing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle URL parameter to switch between views
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'keukenlijst') {
+      setCurrentView('keukenlijst');
+    } else {
+      setCurrentView('bewonerslijst');
+    }
+  }, [searchParams]);
 
   // Update timestamp on client side to avoid hydration mismatch
   // Also recalculate days of stay for all residents
@@ -120,7 +133,12 @@ export default function DataMatchItPage() {
     syncWithToewijzingen();
   }, []);
 
-  const filteredData = dataMatchIt
+  // Get the appropriate data source based on current view
+  const getCurrentDataSource = () => {
+    return currentView === 'keukenlijst' ? bewonerslijst : dataMatchIt;
+  };
+
+  const filteredData = getCurrentDataSource()
     .filter(resident => {
       const matchesSearch = 
         resident.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1024,14 +1042,17 @@ export default function DataMatchItPage() {
           <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-6 border dark:border-gray-700">
             <div className="grid grid-cols-3 gap-4 items-center">
               <div className="bg-blue-200 dark:bg-blue-600 px-3 py-2 text-center font-semibold text-black dark:text-white">
-                DATA-MATCH-IT
+                <div className="text-lg font-bold">DATA-MATCH-IT</div>
+                <div className="text-sm mt-1 capitalize">
+                  {currentView === 'keukenlijst' ? 'Keukenlijst' : 'Bewonerslijst'}
+                </div>
               </div>
               <div className="text-center text-gray-900 dark:text-gray-100">
                 {formatDate(new Date())}
               </div>
               <div className="text-right">
                 <div className="text-black dark:text-gray-100">
-                  Aantal: <span className="font-bold">{dataMatchIt.length}</span> bewoners
+                  Aantal: <span className="font-bold">{getCurrentDataSource().length}</span> bewoners
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   Gefilterd: <span className="font-bold">{filteredData.length}</span>
@@ -1515,5 +1536,13 @@ export default function DataMatchItPage() {
         />
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function DataMatchItPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DataMatchItPageContent />
+    </Suspense>
   );
 }

@@ -20,7 +20,9 @@ import {
   Moon,
   Sparkles,
   UserCheck,
-  Grid3X3
+  Grid3X3,
+  FileText,
+  ChevronDown
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useData } from "../../../lib/DataContextDebug";
@@ -38,16 +40,20 @@ interface DashboardLayoutProps {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Administratieve Documenten', href: '/dashboard/administrative-documents', icon: FileText },
+  { name: 'Bedden Beheer', href: '/dashboard/bed-management', icon: Bed },
+  { name: 'Permissielijst', href: '/dashboard/permissielijst', icon: List },
+  { name: 'Bewoners Overzicht', href: '/dashboard/residents-grid', icon: Grid3X3 },
+];
+
+const dataMatchItItems = [
   { name: 'Bewonerslijst', href: '/dashboard/bewonerslijst', icon: List },
   { name: 'Keukenlijst', href: '/dashboard/keukenlijst', icon: ChefHat },
+];
+
+const kamersItems = [
   { name: 'Noord', href: '/dashboard/noord', icon: MapPin },
   { name: 'Zuid', href: '/dashboard/zuid', icon: MapPin },
-  { name: 'Data-Match-It', href: '/dashboard/data-match-it', icon: Users },
-  { name: 'Residents Grid', href: '/dashboard/residents-grid', icon: Grid3X3 },
-  { name: 'Bedden Beheer', href: '/dashboard/bed-management', icon: Bed },
-  { name: 'Afspraken', href: '/dashboard/appointments', icon: Calendar },
-  { name: 'Permissielijst', href: '/dashboard/permissielijst', icon: List },
-  { name: 'Toewijzingen', href: '/dashboard/toewijzingen', icon: UserCheck },
 ];
 
 export default function DashboardLayout({ children, className }: DashboardLayoutProps) {
@@ -56,6 +62,8 @@ export default function DashboardLayout({ children, className }: DashboardLayout
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [dataMatchItOpen, setDataMatchItOpen] = useState(false);
+  const [kamersOpen, setKamersOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
@@ -113,6 +121,16 @@ export default function DashboardLayout({ children, className }: DashboardLayout
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+  
+  // Auto-expand Data-Match-It dropdown when on related page
+  useEffect(() => {
+    if (pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst') {
+      setDataMatchItOpen(true);
+    }
+    if (pathname === '/dashboard/noord' || pathname === '/dashboard/zuid') {
+      setKamersOpen(true);
+    }
+  }, [pathname]);
   
   // Global Escape key handler
   useEffect(() => {
@@ -209,6 +227,106 @@ export default function DashboardLayout({ children, className }: DashboardLayout
                 </Link>
               );
             })}
+            
+            {/* Data-Match-It Dropdown */}
+            <div className="space-y-1">
+              <button
+                onClick={() => setDataMatchItOpen(!dataMatchItOpen)}
+                className={`group flex items-center w-full px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                  pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst'
+                    ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                }`}
+              >
+                <Users className="mr-3 h-5 w-5" />
+                DATA-MATCH-IT
+                <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${dataMatchItOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {dataMatchItOpen && (
+                <div className="ml-6 space-y-1">
+                  {dataMatchItItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                          pathname === item.href
+                            ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                        }`}
+                      >
+                        <Icon className="mr-3 h-4 w-4" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            {/* KAMERS Dropdown */}
+            <div className="space-y-1">
+              <button
+                onClick={() => setKamersOpen(!kamersOpen)}
+                className={`group flex items-center w-full px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                  pathname === '/dashboard/noord' || pathname === '/dashboard/zuid'
+                    ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                }`}
+              >
+                <MapPin className="mr-3 h-5 w-5" />
+                KAMERS
+                <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${kamersOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {kamersOpen && (
+                <div className="ml-6 space-y-1">
+                  {kamersItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                          pathname === item.href
+                            ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                        }`}
+                      >
+                        <Icon className="mr-3 h-4 w-4" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            {/* Toewijzingen - Standalone item */}
+            <Link
+              href="/dashboard/toewijzingen"
+              className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                pathname === '/dashboard/toewijzingen'
+                  ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+              }`}
+            >
+              <UserCheck className="mr-3 h-5 w-5" />
+              Toewijzingen
+            </Link>
+            
+            {/* Afspraken - Standalone item */}
+            <Link
+              href="/dashboard/appointments"
+              className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                pathname === '/dashboard/appointments'
+                  ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+              }`}
+            >
+              <Calendar className="mr-3 h-5 w-5" />
+              Afspraken
+            </Link>
           </nav>
         </div>
       </div>
@@ -240,6 +358,106 @@ export default function DashboardLayout({ children, className }: DashboardLayout
                 </Link>
               );
             })}
+            
+            {/* Data-Match-It Dropdown */}
+            <div className="space-y-2">
+              <button
+                onClick={() => setDataMatchItOpen(!dataMatchItOpen)}
+                className={`group flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                  pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst'
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                <Users className={`mr-3 h-5 w-5 transition-colors ${pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst' ? 'text-white' : 'text-current'}`} />
+                DATA-MATCH-IT
+                <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${dataMatchItOpen ? 'rotate-180' : ''} ${pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst' ? 'text-white' : 'text-current'}`} />
+              </button>
+              {dataMatchItOpen && (
+                <div className="ml-6 space-y-1">
+                  {dataMatchItItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                          pathname === item.href
+                            ? 'bg-blue-200 text-blue-900 dark:bg-blue-800 dark:text-blue-100'
+                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                        }`}
+                      >
+                        <Icon className="mr-3 h-4 w-4" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            {/* KAMERS Dropdown */}
+            <div className="space-y-2">
+              <button
+                onClick={() => setKamersOpen(!kamersOpen)}
+                className={`group flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                  pathname === '/dashboard/noord' || pathname === '/dashboard/zuid'
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
+                }`}
+              >
+                <MapPin className={`mr-3 h-5 w-5 transition-colors ${pathname === '/dashboard/noord' || pathname === '/dashboard/zuid' ? 'text-white' : 'text-current'}`} />
+                KAMERS
+                <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${kamersOpen ? 'rotate-180' : ''} ${pathname === '/dashboard/noord' || pathname === '/dashboard/zuid' ? 'text-white' : 'text-current'}`} />
+              </button>
+              {kamersOpen && (
+                <div className="ml-6 space-y-1">
+                  {kamersItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                          pathname === item.href
+                            ? 'bg-blue-200 text-blue-900 dark:bg-blue-800 dark:text-blue-100'
+                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                        }`}
+                      >
+                        <Icon className="mr-3 h-4 w-4" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            {/* Toewijzingen - Standalone item */}
+            <Link
+              href="/dashboard/toewijzingen"
+              className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                pathname === '/dashboard/toewijzingen'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
+              }`}
+            >
+              <UserCheck className={`mr-3 h-5 w-5 transition-colors ${pathname === '/dashboard/toewijzingen' ? 'text-white' : 'text-current'}`} />
+              Toewijzingen
+            </Link>
+            
+            {/* Afspraken - Standalone item */}
+            <Link
+              href="/dashboard/appointments"
+              className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                pathname === '/dashboard/appointments'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
+              }`}
+            >
+              <Calendar className={`mr-3 h-5 w-5 transition-colors ${pathname === '/dashboard/appointments' ? 'text-white' : 'text-current'}`} />
+              Afspraken
+            </Link>
           </nav>
         </div>
       </div>
@@ -257,7 +475,8 @@ export default function DashboardLayout({ children, className }: DashboardLayout
           </button>
           <div className="flex flex-1 items-center justify-between px-4">
             <div className="flex flex-1 items-center">
-              <div className="relative w-full max-w-md" ref={searchRef}>
+              {pathname !== '/dashboard/residents-grid' && (
+                <div className="relative w-full max-w-md" ref={searchRef}>
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 z-10">
                   <Search className="h-5 w-5 text-gray-400 dark:text-gray-400" />
                 </div>
@@ -304,7 +523,8 @@ export default function DashboardLayout({ children, className }: DashboardLayout
                     </div>
                   </div>
                 )}
-              </div>
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-3">
               {mounted && (

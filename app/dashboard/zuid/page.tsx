@@ -15,6 +15,17 @@ export default function ZuidPage() {
   const [editingLanguage, setEditingLanguage] = useState<{[key: number]: string}>({});
   const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('landscape');
 
+  // Remove date fragments from remarks for display only
+  const stripDateFromRemarks = (remarks?: string) => {
+    if (!remarks) return '';
+    let text = remarks;
+    // Remove common date formats like YYYY-MM-DD, YYYY/MM/DD, DD/MM/YYYY, DD-MM-YYYY
+    text = text.replace(/\b(?:\d{4}[./-]\d{2}[./-]\d{2}|\d{2}[./-]\d{2}[./-]\d{4})\b/g, '').trim();
+    // Remove leading separators left over
+    text = text.replace(/^[\s\-–—:|]+/, '').trim();
+    return text;
+  };
+
   const filteredData = zuidData.filter(resident => {
     const matchesSearch = 
       resident.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -76,7 +87,13 @@ export default function ZuidPage() {
 
   const handleRemarksSave = (residentId: number) => {
     const newRemarks = editingRemarks[residentId] || '';
-    updateInDataMatchIt(residentId, { roomRemarks: newRemarks });
+    const resident = zuidData.find(r => r.id === residentId);
+    const currentRemarks = resident?.roomRemarks || '';
+    
+    // Only update if the remarks have actually changed
+    if (newRemarks !== currentRemarks) {
+      updateInDataMatchIt(residentId, { roomRemarks: newRemarks });
+    }
     
     // Remove from editing state
     const newEditing = { ...editingRemarks };
@@ -99,7 +116,13 @@ export default function ZuidPage() {
 
   const handleLanguageSave = (residentId: number) => {
     const newLanguage = editingLanguage[residentId] || '';
-    updateInDataMatchIt(residentId, { language: newLanguage });
+    const resident = zuidData.find(r => r.id === residentId);
+    const currentLanguage = resident?.language || '';
+    
+    // Only update if the language has actually changed
+    if (newLanguage !== currentLanguage) {
+      updateInDataMatchIt(residentId, { language: newLanguage });
+    }
     
     // Remove from editing state
     const newEditing = { ...editingLanguage };
@@ -119,7 +142,7 @@ export default function ZuidPage() {
         @media print {
           @page {
             size: A4 ${printOrientation};
-            margin: 15mm;
+            margin: 10mm;
           }
           
           * {
@@ -150,11 +173,6 @@ export default function ZuidPage() {
             page-break-before: always !important;
             break-before: always !important;
           }
-
-          .ground-floor-section {
-            page-break-after: always !important;
-            break-after: always !important;
-          }
         }
         
         @media screen {
@@ -165,7 +183,7 @@ export default function ZuidPage() {
       `}</style>
     <DashboardLayout className="no-print">
       <div className="p-6">
-        {/* Header - Matching PDF Layout */}
+        {/* Header */}
         <div className="mb-8">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-black dark:text-gray-100 font-title">STEENOKKERZEEL ZUID</h1>
@@ -173,16 +191,15 @@ export default function ZuidPage() {
           
           <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-6 border-2 border-black dark:border-gray-300">
             <div className="flex justify-between items-center">
-              <div className="text-lg font-semibold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 align-middle h-16">
+              <div className="text-lg font-semibold text-black dark:text-gray-100">
                 {formatDate(new Date())}
               </div>
-              <div className="text-lg font-semibold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 align-middle h-16">
+              <div className="text-lg font-semibold text-black dark:text-gray-100">
                 {zuidData.length} personen
               </div>
             </div>
           </div>
         </div>
-
 
         {/* Filters and Actions */}
         <div className="mb-6 space-y-4">
@@ -235,22 +252,22 @@ export default function ZuidPage() {
           </div>
         </div>
 
-        {/* Ground Floor Rooms - Page 1 */}
-        <div className="ground-floor-section space-y-8">
+        {/* Ground Floor Rooms */}
+        <div className="space-y-8">
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 align-middle h-16">Begane Grond</h2>
+            <h2 className="text-xl font-bold text-black dark:text-gray-100">Begane Grond</h2>
             <p className="text-sm text-gray-600 dark:text-gray-300">Kamers 2.06 - 2.09</p>
           </div>
           {groundFloorRooms.map(room => {
             const roomResidents = sortedRoomGroups[room] || [];
             const roomConfig = getRoomConfig(room);
-            const maxBeds = roomConfig?.maxBeds || 3;
+            const maxBeds = roomConfig?.maxBeds || 5;
             
             return (
               <div key={room} className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden border-2 border-black dark:border-gray-300">
                 {/* Room Header */}
                 <div className="bg-gray-100 dark:bg-gray-700 px-4 py-3 border-b-2 border-black dark:border-gray-300">
-                  <h3 className="text-lg font-semibold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 align-middle h-16">Kamer {room}</h3>
+                  <h3 className="text-lg font-semibold text-black dark:text-gray-100">Kamer {room}</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">{roomResidents.length} van {maxBeds} bedden bezet</p>
                 </div>
                 
@@ -259,28 +276,28 @@ export default function ZuidPage() {
                   <table className="min-w-full divide-y-2 divide-black dark:divide-gray-300">
                     <thead className="bg-teal-700 dark:bg-teal-800 text-white">
                       <tr>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Bed
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Achternaam
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Voornaam
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Nationaliteit
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Taal
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Geslacht
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Opmerkingen
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Badge
                         </th>
                       </tr>
@@ -293,19 +310,19 @@ export default function ZuidPage() {
                         
                         return (
                         <tr key={resident?.id || `${room}-bed-${bedNumber}`} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} hover:bg-blue-50 dark:hover:bg-gray-600 transition-colors border-b-2 border-black dark:border-gray-300`}>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {bedNumber}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {resident ? resident.lastName : <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {resident ? resident.firstName : <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {resident ? resident.nationality : <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {resident ? (
                               editingLanguage[resident.id] !== undefined ? (
                                 <div className="flex items-center gap-2">
@@ -350,10 +367,10 @@ export default function ZuidPage() {
                               <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
-                            {resident ? resident.gender : <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
+                            {resident ? (resident.gender === 'M' ? 'Mannelijk' : 'Vrouwelijk') : <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {resident ? (
                               editingRemarks[resident.id] !== undefined ? (
                                 <div className="flex items-center gap-2">
@@ -400,7 +417,7 @@ export default function ZuidPage() {
                               <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {resident ? resident.badge : <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>}
                           </td>
                         </tr>
@@ -414,11 +431,11 @@ export default function ZuidPage() {
           })}
         </div>
 
-        {/* First Floor Rooms - Page 2 */}
+        {/* First Floor Rooms */}
         <div className="page-break space-y-8">
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 align-middle h-16">Eerste Verdieping</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-300">Kamers 2.14 - 2.18 (Minors &lt; 17)</p>
+            <h2 className="text-xl font-bold text-black dark:text-gray-100">Eerste Verdieping</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Kamers 2.14 - 2.18</p>
           </div>
           {firstFloorRooms.map(room => {
             const roomResidents = sortedRoomGroups[room] || [];
@@ -429,7 +446,7 @@ export default function ZuidPage() {
               <div key={room} className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden border-2 border-black dark:border-gray-300">
                 {/* Room Header */}
                 <div className="bg-gray-100 dark:bg-gray-700 px-4 py-3 border-b-2 border-black dark:border-gray-300">
-                  <h3 className="text-lg font-semibold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 align-middle h-16">Kamer {room}</h3>
+                  <h3 className="text-lg font-semibold text-black dark:text-gray-100">Kamer {room}</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">{roomResidents.length} van {maxBeds} bedden bezet</p>
                 </div>
                 
@@ -438,28 +455,28 @@ export default function ZuidPage() {
                   <table className="min-w-full divide-y-2 divide-black dark:divide-gray-300">
                     <thead className="bg-teal-700 dark:bg-teal-800 text-white">
                       <tr>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Bed
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Achternaam
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Voornaam
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Nationaliteit
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Taal
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Geslacht
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Opmerkingen
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300 align-middle h-12 bg-blue-900 text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
                           Badge
                         </th>
                       </tr>
@@ -472,19 +489,19 @@ export default function ZuidPage() {
                         
                         return (
                         <tr key={resident?.id || `${room}-bed-${bedNumber}`} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} hover:bg-blue-50 dark:hover:bg-gray-600 transition-colors border-b-2 border-black dark:border-gray-300`}>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {bedNumber}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {resident ? resident.lastName : <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {resident ? resident.firstName : <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {resident ? resident.nationality : <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {resident ? (
                               editingLanguage[resident.id] !== undefined ? (
                                 <div className="flex items-center gap-2">
@@ -529,10 +546,10 @@ export default function ZuidPage() {
                               <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
-                            {resident ? resident.gender : <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
+                            {resident ? (resident.gender === 'M' ? 'Mannelijk' : 'Vrouwelijk') : <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 text-sm font-medium text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {resident ? (
                               editingRemarks[resident.id] !== undefined ? (
                                 <div className="flex items-center gap-2">
@@ -579,7 +596,7 @@ export default function ZuidPage() {
                               <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center align-middle h-14">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black dark:text-gray-100 border-r-2 border-black dark:border-gray-300 text-center">
                             {resident ? resident.badge : <span className="italic text-gray-400 dark:text-gray-500">Leeg</span>}
                           </td>
                         </tr>
@@ -650,41 +667,142 @@ export default function ZuidPage() {
       </div>
     </DashboardLayout>
 
-    {/* Print-only layout - matches PDF format exactly */}
+    {/* Print-only layout - enhanced compact design */}
     <div className="print-only">
-      {/* Header */}
-      <div style={{ textAlign: 'center', fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
-        OOC STEENOKKERZEEL
-      </div>
-      
-
-      {/* Ground Floor Rooms - Page 1 */}
+      {/* Ground Floor Rooms - Page 1 (2.06-2.09) */}
       <div style={{ pageBreakAfter: 'always', breakAfter: 'always' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', marginTop: '20px' }}>
+        {/* Header with gradient background */}
+        <div style={{ 
+          background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+          padding: '10px',
+          borderRadius: '6px',
+          marginBottom: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ 
+            textAlign: 'center', 
+            fontSize: '16px', 
+            fontWeight: 'bold',
+            color: 'white',
+            letterSpacing: '1px',
+            textShadow: '1px 1px 2px rgba(0,0,0,0.3)'
+          }}>
+            OOC STEENOKKERZEEL - ZUID
+          </div>
+          <div style={{
+            textAlign: 'center',
+            fontSize: '10px',
+            color: '#e0e7ff',
+            marginTop: '2px',
+            fontStyle: 'italic'
+          }}>
+            Bewonersoverzicht Begane Grond - Kamers 2.06 t/m 2.09
+          </div>
+        </div>
+
+        <table style={{ 
+          width: '100%', 
+          borderCollapse: 'separate',
+          borderSpacing: '0',
+          fontSize: '9px',
+          marginTop: '5px',
+          borderRadius: '4px',
+          overflow: 'hidden',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
+        }}>
           <thead>
-            <tr style={{ backgroundColor: '#FFFF99', border: '1px solid black' }}>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'left', fontWeight: 'bold' }}>
-                {new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            <tr style={{ 
+              background: 'linear-gradient(90deg, #064e3b 0%, #059669 100%)',
+              color: 'white'
+            }}>
+              <th style={{ 
+                border: '1px solid #047857',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '10px',
+                letterSpacing: '0.5px'
+              }}>
+                <div style={{ fontWeight: 'bold', fontSize: '11px' }}>
+                  {new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                </div>
+                <div style={{ fontSize: '8px', opacity: 0.9, marginTop: '1px' }}>Kamer</div>
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                LOCK
+              <th style={{ 
+                border: '1px solid #047857',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'center',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
+                BED
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                NAAM
+              <th style={{ 
+                border: '1px solid #047857',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
+                ACHTERNAAM
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
+              <th style={{ 
+                border: '1px solid #047857',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
                 VOORNAAM
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                Nationaliteit
+              <th style={{ 
+                border: '1px solid #047857',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
+                NATIONALITEIT
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
+              <th style={{ 
+                border: '1px solid #047857',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'center',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
                 TAAL
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                Sexe
+              <th style={{ 
+                border: '1px solid #047857',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'center',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
+                GESLACHT
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
+              <th style={{ 
+                border: '1px solid #047857',
+                padding: '6px 4px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
                 OPMERKINGEN
               </th>
             </tr>
@@ -699,54 +817,113 @@ export default function ZuidPage() {
                 const bedNumber = bedIndex + 1;
                 const resident = roomResidents.find(r => r.bedNumber === bedNumber);
                 const isFirstBedInRoom = bedNumber === 1;
+                const isEmpty = !resident;
                 
                 return (
-                  <tr key={`${room}-${bedNumber}`}>
+                  <tr key={`${room}-${bedNumber}`} style={{
+                    backgroundColor: isEmpty ? '#f9fafb' : (bedIndex % 2 === 0 ? '#ffffff' : '#f3f4f6')
+                  }}>
                     {isFirstBedInRoom && (
                       <td 
                         style={{ 
-                          border: '1px solid black', 
-                          padding: '4px', 
-                          textAlign: 'center', 
+                          border: '1px solid #d1d5db',
+                          borderLeft: '3px solid #059669',
+                          padding: '4px',
+                          textAlign: 'center',
                           fontWeight: 'bold',
-                          backgroundColor: (room === '2.07' || room === '2.08' || room === '2.09') ? '#FFFF99' : '#FFFF99',
-                          color: 'black',
-                          verticalAlign: 'top'
+                          fontSize: '12px',
+                          background: (room === '2.07' || room === '2.08' || room === '2.09') 
+                            ? 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
+                            : 'linear-gradient(135deg, #06b6d4 0%, #67e8f9 100%)',
+                          color: (room === '2.07' || room === '2.08' || room === '2.09') ? '#7c2d12' : '#164e63',
+                          verticalAlign: 'middle',
+                          textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
                         }}
                         rowSpan={maxBeds}
                       >
-                        {room}
-                        {room === '2.07' && <div style={{ fontSize: '8px' }}>(leeftijdstwijfel)</div>}
-                        {room === '2.08' && <div style={{ fontSize: '8px' }}>(leeftijdstwijfel)</div>}
-                        {room === '2.09' && <div style={{ fontSize: '8px' }}>(leeftijdstwijfel)</div>}
-                        {room === '2.14' && <div style={{ fontSize: '8px' }}>(zonder LT)</div>}
-                        {room === '2.15' && <div style={{ fontSize: '8px' }}>(zonder LT)</div>}
-                        {room === '2.16' && <div style={{ fontSize: '8px' }}>(zonder LT)</div>}
-                        {room === '2.17' && <div style={{ fontSize: '8px' }}>(zonder LT)</div>}
-                        {room === '2.18' && <div style={{ fontSize: '8px' }}>(zonder LT)</div>}
-                        {room === '2.19' && <div style={{ fontSize: '8px' }}>(MED)</div>}
+                        <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{room}</div>
+                        {(room === '2.07' || room === '2.08' || room === '2.09') && 
+                          <div style={{ fontSize: '7px', marginTop: '2px', opacity: 0.9 }}>LEEFTIJDSTWIJFEL</div>}
                       </td>
                     )}
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'center', width: '30px' }}>
+                    <td style={{ 
+                      border: '1px solid #d1d5db',
+                      padding: '4px',
+                      textAlign: 'center',
+                      width: '30px',
+                      fontWeight: '600',
+                      fontSize: '10px',
+                      color: isEmpty ? '#9ca3af' : '#1f2937',
+                      backgroundColor: isEmpty ? 'transparent' : (resident ? '#ecfdf5' : 'transparent')
+                    }}>
                       {bedNumber}
                     </td>
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'left', width: '120px' }}>
-                      {resident?.lastName || ''}
+                    <td style={{ 
+                      border: '1px solid #d1d5db',
+                      padding: '4px',
+                      textAlign: 'left',
+                      width: '110px',
+                      fontWeight: resident ? '500' : 'normal',
+                      color: isEmpty ? '#9ca3af' : '#111827',
+                      fontStyle: isEmpty ? 'italic' : 'normal',
+                      fontSize: '8px'
+                    }}>
+                      {resident?.lastName || (isEmpty ? 'Vrij' : '')}
                     </td>
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'left', width: '120px' }}>
-                      {resident?.firstName || ''}
+                    <td style={{ 
+                      border: '1px solid #d1d5db',
+                      padding: '4px',
+                      textAlign: 'left',
+                      width: '110px',
+                      color: isEmpty ? '#9ca3af' : '#111827',
+                      fontStyle: isEmpty ? 'italic' : 'normal',
+                      fontSize: '8px'
+                    }}>
+                      {resident?.firstName || (isEmpty ? '-' : '')}
                     </td>
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'left', width: '80px' }}>
+                    <td style={{ 
+                      border: '1px solid #d1d5db',
+                      padding: '4px',
+                      textAlign: 'left',
+                      width: '80px',
+                      fontSize: '8px',
+                      color: isEmpty ? '#9ca3af' : '#374151'
+                    }}>
                       {resident?.nationality || ''}
                     </td>
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'left', width: '80px' }}>
+                    <td style={{ 
+                      border: '1px solid #d1d5db',
+                      padding: '4px',
+                      textAlign: 'center',
+                      width: '60px',
+                      fontSize: '8px',
+                      color: isEmpty ? '#9ca3af' : '#374151'
+                    }}>
                       {resident?.language || ''}
                     </td>
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'center', width: '40px' }}>
+                    <td style={{ 
+                      border: '1px solid #d1d5db',
+                      padding: '4px',
+                      textAlign: 'center',
+                      width: '40px',
+                      fontWeight: '500',
+                      fontSize: '8px',
+                      color: resident?.gender === 'M' ? '#1e40af' : (resident?.gender === 'F' || resident?.gender === 'V' ? '#be185d' : '#9ca3af')
+                    }}>
                       {resident?.gender || ''}
                     </td>
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'left', minWidth: '150px' }}>
-                      {resident?.roomRemarks || ''}
+                    <td style={{ 
+                      border: '1px solid #d1d5db',
+                      borderRight: '1px solid #a7f3d0',
+                      padding: '4px',
+                      textAlign: 'left',
+                      minWidth: '120px',
+                      fontSize: '8px',
+                      backgroundColor: resident?.roomRemarks ? '#fef3c7' : 'transparent',
+                      color: resident?.roomRemarks ? '#92400e' : '#6b7280',
+                      fontWeight: resident?.roomRemarks ? '500' : 'normal'
+                    }}>
+                      {stripDateFromRemarks(resident?.roomRemarks) || ''}
                     </td>
                   </tr>
                 );
@@ -754,40 +931,156 @@ export default function ZuidPage() {
             })}
           </tbody>
         </table>
+        
+        {/* Footer for page 1 */}
+        <div style={{
+          marginTop: '15px',
+          padding: '5px',
+          borderTop: '2px solid #e5e7eb',
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: '8px',
+          color: '#6b7280'
+        }}>
+          <div>Pagina 1 - Begane Grond</div>
+          <div style={{ fontStyle: 'italic' }}>OOC Steenokkerzeel Zuid</div>
+        </div>
       </div>
 
-      {/* First Floor Rooms - Page 2 */}
+      {/* First Floor Rooms - Page 2 (2.14-2.18) */}
       <div style={{ pageBreakBefore: 'always', breakBefore: 'always' }}>
-        <div style={{ textAlign: 'center', fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
-          OOC STEENOKKERZEEL
+        {/* Header with gradient background */}
+        <div style={{ 
+          background: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)',
+          padding: '10px',
+          borderRadius: '6px',
+          marginBottom: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ 
+            textAlign: 'center', 
+            fontSize: '16px', 
+            fontWeight: 'bold',
+            color: 'white',
+            letterSpacing: '1px',
+            textShadow: '1px 1px 2px rgba(0,0,0,0.3)'
+          }}>
+            OOC STEENOKKERZEEL - ZUID
+          </div>
+          <div style={{
+            textAlign: 'center',
+            fontSize: '10px',
+            color: '#fed7aa',
+            marginTop: '2px',
+            fontStyle: 'italic'
+          }}>
+            Bewonersoverzicht Eerste Verdieping - Kamers 2.14 t/m 2.18
+          </div>
         </div>
         
-        
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', marginTop: '20px' }}>
+        <table style={{ 
+          width: '100%', 
+          borderCollapse: 'separate',
+          borderSpacing: '0',
+          fontSize: '9px',
+          marginTop: '5px',
+          borderRadius: '4px',
+          overflow: 'hidden',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
+        }}>
           <thead>
-            <tr style={{ backgroundColor: '#FFFF99', border: '1px solid black' }}>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'left', fontWeight: 'bold' }}>
-                {new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            <tr style={{ 
+              background: 'linear-gradient(90deg, #701a75 0%, #c026d3 100%)',
+              color: 'white'
+            }}>
+              <th style={{ 
+                border: '1px solid #a21caf',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '10px',
+                letterSpacing: '0.5px'
+              }}>
+                <div style={{ fontWeight: 'bold', fontSize: '11px' }}>
+                  {new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                </div>
+                <div style={{ fontSize: '8px', opacity: 0.9, marginTop: '1px' }}>Kamer</div>
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                LOCK
+              <th style={{ 
+                border: '1px solid #a21caf',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'center',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
+                BED
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                NAAM
+              <th style={{ 
+                border: '1px solid #a21caf',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
+                ACHTERNAAM
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
+              <th style={{ 
+                border: '1px solid #a21caf',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
                 VOORNAAM
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                Nationaliteit
+              <th style={{ 
+                border: '1px solid #a21caf',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
+                NATIONALITEIT
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
+              <th style={{ 
+                border: '1px solid #a21caf',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'center',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
                 TAAL
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                Sexe
+              <th style={{ 
+                border: '1px solid #a21caf',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
+                padding: '6px 4px',
+                textAlign: 'center',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
+                GESLACHT
               </th>
-              <th style={{ border: '1px solid black', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
+              <th style={{ 
+                border: '1px solid #a21caf',
+                padding: '6px 4px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '9px',
+                letterSpacing: '0.5px'
+              }}>
                 OPMERKINGEN
               </th>
             </tr>
@@ -802,54 +1095,111 @@ export default function ZuidPage() {
                 const bedNumber = bedIndex + 1;
                 const resident = roomResidents.find(r => r.bedNumber === bedNumber);
                 const isFirstBedInRoom = bedNumber === 1;
+                const isEmpty = !resident;
                 
                 return (
-                  <tr key={`${room}-${bedNumber}`}>
+                  <tr key={`${room}-${bedNumber}`} style={{
+                    backgroundColor: isEmpty ? '#fdf4ff' : (bedIndex % 2 === 0 ? '#ffffff' : '#fdf2f8')
+                  }}>
                     {isFirstBedInRoom && (
                       <td 
                         style={{ 
-                          border: '1px solid black', 
-                          padding: '4px', 
-                          textAlign: 'center', 
+                          border: '1px solid #a21caf',
+                          borderLeft: '3px solid #c026d3',
+                          padding: '4px',
+                          textAlign: 'center',
                           fontWeight: 'bold',
-                          backgroundColor: (room === '2.07' || room === '2.08' || room === '2.09') ? '#FFFF99' : '#FFFF99',
-                          color: 'black',
-                          verticalAlign: 'top'
+                          fontSize: '12px',
+                          background: 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)',
+                          color: '#7c2d12',
+                          verticalAlign: 'middle',
+                          textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
                         }}
                         rowSpan={maxBeds}
                       >
-                        {room}
-                        {room === '2.07' && <div style={{ fontSize: '8px' }}>(leeftijdstwijfel)</div>}
-                        {room === '2.08' && <div style={{ fontSize: '8px' }}>(leeftijdstwijfel)</div>}
-                        {room === '2.09' && <div style={{ fontSize: '8px' }}>(leeftijdstwijfel)</div>}
-                        {room === '2.14' && <div style={{ fontSize: '8px' }}>(zonder LT)</div>}
-                        {room === '2.15' && <div style={{ fontSize: '8px' }}>(zonder LT)</div>}
-                        {room === '2.16' && <div style={{ fontSize: '8px' }}>(zonder LT)</div>}
-                        {room === '2.17' && <div style={{ fontSize: '8px' }}>(zonder LT)</div>}
-                        {room === '2.18' && <div style={{ fontSize: '8px' }}>(zonder LT)</div>}
-                        {room === '2.19' && <div style={{ fontSize: '8px' }}>(MED)</div>}
+                        <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{room}</div>
+                        {(room === '2.14' || room === '2.15' || room === '2.16' || room === '2.17' || room === '2.18') && 
+                          <div style={{ fontSize: '7px', marginTop: '2px', opacity: 0.9 }}>ZONDER LT</div>}
                       </td>
                     )}
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'center', width: '30px' }}>
+                    <td style={{ 
+                      border: '1px solid #a21caf',
+                      padding: '4px',
+                      textAlign: 'center',
+                      width: '30px',
+                      fontWeight: '600',
+                      fontSize: '10px',
+                      color: isEmpty ? '#9ca3af' : '#1f2937',
+                      backgroundColor: isEmpty ? 'transparent' : (resident ? '#fdf2f8' : 'transparent')
+                    }}>
                       {bedNumber}
                     </td>
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'left', width: '120px' }}>
-                      {resident?.lastName || ''}
+                    <td style={{ 
+                      border: '1px solid #a21caf',
+                      padding: '4px',
+                      textAlign: 'left',
+                      width: '110px',
+                      fontWeight: resident ? '500' : 'normal',
+                      color: isEmpty ? '#9ca3af' : '#111827',
+                      fontStyle: isEmpty ? 'italic' : 'normal',
+                      fontSize: '8px'
+                    }}>
+                      {resident?.lastName || (isEmpty ? 'Vrij' : '')}
                     </td>
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'left', width: '120px' }}>
-                      {resident?.firstName || ''}
+                    <td style={{ 
+                      border: '1px solid #a21caf',
+                      padding: '4px',
+                      textAlign: 'left',
+                      width: '110px',
+                      color: isEmpty ? '#9ca3af' : '#111827',
+                      fontStyle: isEmpty ? 'italic' : 'normal',
+                      fontSize: '8px'
+                    }}>
+                      {resident?.firstName || (isEmpty ? '-' : '')}
                     </td>
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'left', width: '80px' }}>
+                    <td style={{ 
+                      border: '1px solid #a21caf',
+                      padding: '4px',
+                      textAlign: 'left',
+                      width: '80px',
+                      fontSize: '8px',
+                      color: isEmpty ? '#9ca3af' : '#374151'
+                    }}>
                       {resident?.nationality || ''}
                     </td>
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'left', width: '80px' }}>
+                    <td style={{ 
+                      border: '1px solid #a21caf',
+                      padding: '4px',
+                      textAlign: 'center',
+                      width: '60px',
+                      fontSize: '8px',
+                      color: isEmpty ? '#9ca3af' : '#374151'
+                    }}>
                       {resident?.language || ''}
                     </td>
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'center', width: '40px' }}>
+                    <td style={{ 
+                      border: '1px solid #a21caf',
+                      padding: '4px',
+                      textAlign: 'center',
+                      width: '40px',
+                      fontWeight: '500',
+                      fontSize: '8px',
+                      color: resident?.gender === 'M' ? '#1e40af' : (resident?.gender === 'F' || resident?.gender === 'V' ? '#be185d' : '#9ca3af')
+                    }}>
                       {resident?.gender || ''}
                     </td>
-                    <td style={{ border: '1px solid black', padding: '4px', textAlign: 'left', minWidth: '150px' }}>
-                      {resident?.roomRemarks || ''}
+                    <td style={{ 
+                      border: '1px solid #a21caf',
+                      borderRight: '2px solid black !important',
+                      padding: '4px',
+                      textAlign: 'left',
+                      minWidth: '120px',
+                      fontSize: '8px',
+                      backgroundColor: resident?.roomRemarks ? '#fef3c7' : 'transparent',
+                      color: resident?.roomRemarks ? '#92400e' : '#6b7280',
+                      fontWeight: resident?.roomRemarks ? '500' : 'normal'
+                    }}>
+                      {stripDateFromRemarks(resident?.roomRemarks) || ''}
                     </td>
                   </tr>
                 );
@@ -857,6 +1207,20 @@ export default function ZuidPage() {
             })}
           </tbody>
         </table>
+        
+        {/* Footer for page 2 */}
+        <div style={{
+          marginTop: '15px',
+          padding: '5px',
+          borderTop: '2px solid #e5e7eb',
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: '8px',
+          color: '#6b7280'
+        }}>
+          <div>Pagina 2 - Eerste Verdieping</div>
+          <div style={{ fontStyle: 'italic' }}>OOC Steenokkerzeel Zuid</div>
+        </div>
       </div>
     </div>
     </>

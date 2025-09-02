@@ -225,46 +225,90 @@ export default function KeukenlijstPage() {
                       {resident.room}
                     </td>
                     <td className="px-3 py-3 text-sm text-gray-900 dark:text-gray-100">
-                      {editingRemarks[resident.id] !== undefined ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={editingRemarks[resident.id]}
-                            onChange={(e) => setEditingRemarks({
-                              ...editingRemarks,
-                              [resident.id]: e.target.value
-                            })}
-                            className="flex-1 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black dark:text-gray-100 bg-white dark:bg-gray-700"
-                            placeholder="Opmerking toevoegen..."
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => handleRemarksSave(resident.id)}
-                            className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                      {(() => {
+                        // Get day after tomorrow's date for filtering room remarks
+                        const today = new Date();
+                        const dayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
+                        const targetDate = dayAfterTomorrow.toISOString().split('T')[0];
+                        
+                        // Extract room-specific remarks for the target date (same logic as afspraken)
+                        let roomRemarkText = '';
+                        if (resident.roomRemarks && resident.roomRemarks.trim() !== '') {
+                          const remarkParts = resident.roomRemarks.split('|');
+                          if (remarkParts.length === 2) {
+                            const appointmentDate = remarkParts[0];
+                            const appointmentText = remarkParts[1];
+                            // Show only remarks for day after tomorrow
+                            if (appointmentDate === targetDate) {
+                              roomRemarkText = appointmentText;
+                            }
+                          }
+                        }
+                        
+                        // Check if this resident is being edited
+                        const isEditing = editingRemarks[resident.id] !== undefined;
+                        
+                        return isEditing ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={editingRemarks[resident.id]}
+                              onChange={(e) => setEditingRemarks({
+                                ...editingRemarks,
+                                [resident.id]: e.target.value
+                              })}
+                              className="flex-1 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black dark:text-gray-100 bg-white dark:bg-gray-700"
+                              placeholder="Opmerking toevoegen..."
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => {
+                                const newRemark = editingRemarks[resident.id] || '';
+                                const dayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
+                                const targetDate = dayAfterTomorrow.toISOString().split('T')[0];
+                                const roomRemarkData = newRemark ? `${targetDate}|${newRemark}` : '';
+                                updateInDataMatchIt(resident.id, { roomRemarks: roomRemarkData });
+                                
+                                // Remove from editing state
+                                const newEditing = { ...editingRemarks };
+                                delete newEditing[resident.id];
+                                setEditingRemarks(newEditing);
+                              }}
+                              className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newEditing = { ...editingRemarks };
+                                delete newEditing[resident.id];
+                                setEditingRemarks(newEditing);
+                              }}
+                              className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => {
+                              setEditingRemarks({
+                                ...editingRemarks,
+                                [resident.id]: roomRemarkText || ''
+                              });
+                            }}
+                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded min-h-[24px]"
                           >
-                            ✓
-                          </button>
-                          <button
-                            onClick={() => handleRemarksCancel(resident.id)}
-                            className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <div
-                          onClick={() => handleRemarksEdit(resident.id, resident.remarks || '')}
-                          className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-[24px]"
-                        >
-                          {resident.remarks ? (
-                            <span className="bg-yellow-200 px-2 py-1 text-xs font-medium rounded">
-                              {resident.remarks}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 text-xs">Klik om opmerking toe te voegen</span>
-                          )}
-                        </div>
-                      )}
+                            {roomRemarkText ? (
+                              <span className="bg-yellow-300 dark:bg-yellow-900 px-2 py-1 text-xs font-medium rounded text-blue-800 dark:text-blue-200">
+                                {roomRemarkText}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">Klik om opmerking toe te voegen</span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     {/* Ontbijt */}
                     <td className="px-3 py-3 text-center whitespace-nowrap text-sm text-gray-900 border-l border-gray-300">
@@ -346,7 +390,7 @@ export default function KeukenlijstPage() {
       </div>
 
       {/* Table optimized for single page */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '7px' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '7px', border: '2px solid black' }}>
         <thead>
           <tr style={{ backgroundColor: '#E6E6FA', color: 'black' }}>
             <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Badge</th>
@@ -368,8 +412,67 @@ export default function KeukenlijstPage() {
               <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', fontSize: '7px' }}>{resident.lastName}</td>
               <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', fontSize: '7px' }}>{resident.firstName}</td>
               <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '7px' }}>{resident.room}</td>
-              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', fontSize: '7px', backgroundColor: resident.remarks ? '#FFFF00' : 'transparent' }}>
-                {resident.remarks || ''}
+              <td style={{ 
+                border: '1px solid black', 
+                padding: '1px', 
+                textAlign: 'left', 
+                fontSize: '7px', 
+                backgroundColor: (() => {
+                  // Get day after tomorrow's date for filtering room remarks
+                  const today = new Date();
+                  const dayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
+                  const targetDate = dayAfterTomorrow.toISOString().split('T')[0];
+                  
+                  // Extract room-specific remarks for the target date
+                  if (resident.roomRemarks && resident.roomRemarks.trim() !== '') {
+                    const remarkParts = resident.roomRemarks.split('|');
+                    if (remarkParts.length === 2) {
+                      const appointmentDate = remarkParts[0];
+                      if (appointmentDate === targetDate) {
+                        return '#FDE047'; // Yellow background matching screen version (yellow-300)
+                      }
+                    }
+                  }
+                  return 'transparent';
+                })(),
+                color: (() => {
+                  // Get day after tomorrow's date for filtering room remarks
+                  const today = new Date();
+                  const dayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
+                  const targetDate = dayAfterTomorrow.toISOString().split('T')[0];
+                  
+                  // Check if has room remarks for target date
+                  if (resident.roomRemarks && resident.roomRemarks.trim() !== '') {
+                    const remarkParts = resident.roomRemarks.split('|');
+                    if (remarkParts.length === 2) {
+                      const appointmentDate = remarkParts[0];
+                      if (appointmentDate === targetDate) {
+                        return '#1E40AF'; // Blue text matching screen version (blue-800)
+                      }
+                    }
+                  }
+                  return 'black';
+                })()
+              }}>
+                {(() => {
+                  // Get day after tomorrow's date for filtering room remarks
+                  const today = new Date();
+                  const dayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
+                  const targetDate = dayAfterTomorrow.toISOString().split('T')[0];
+                  
+                  // Extract room-specific remarks for the target date
+                  if (resident.roomRemarks && resident.roomRemarks.trim() !== '') {
+                    const remarkParts = resident.roomRemarks.split('|');
+                    if (remarkParts.length === 2) {
+                      const appointmentDate = remarkParts[0];
+                      const appointmentText = remarkParts[1];
+                      if (appointmentDate === targetDate) {
+                        return appointmentText;
+                      }
+                    }
+                  }
+                  return '';
+                })()}
               </td>
               <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.ontbijt ? '✓' : ''}</td>
               <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.middag ? '✓' : ''}</td>

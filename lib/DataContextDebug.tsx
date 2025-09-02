@@ -89,7 +89,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logApiCall = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     const logMessage = `[${timestamp}] ${message}`;
-    console.log(`🔍 DEBUG: ${logMessage}`);
     setLastApiCall(logMessage);
     setApiCallHistory(prev => [...prev.slice(-9), logMessage]); // Keep last 10
   };
@@ -234,8 +233,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (isConnectedToDb) {
       try {
-        await dbOperations.updateResident(id, updates);
-        logApiCall(`✅ Resident ${id} updated in database`);
+        // Only send fields that the backend accepts; skip others (e.g., language)
+        const allowedKeys: Array<keyof ResidentData> = [
+          'badge','firstName','lastName','room','nationality','ovNumber','registerNumber',
+          'dateOfBirth','age','gender','referencePerson','dateIn','daysOfStay','status','remarks','roomRemarks'
+        ];
+        const serverUpdates: Partial<ResidentData> = {};
+        allowedKeys.forEach((key) => {
+          if (key in updates) {
+            // @ts-expect-error index access
+            serverUpdates[key] = updates[key];
+          }
+        });
+        if (Object.keys(serverUpdates).length === 0) {
+          logApiCall(`⚠️ Skipping DB update for ${id} - no server-accepted fields`);
+          return;
+        }
+        const result = await dbOperations.updateResident(id, serverUpdates);
+        if (result.success) {
+          logApiCall(`✅ Resident ${id} updated in database`);
+        } else {
+          logApiCall(`❌ Database update failed: ${result.error || 'Unknown error'}`);
+        }
       } catch (error) {
         logApiCall(`❌ Database update failed: ${error}`);
       }
@@ -326,13 +345,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     girls: {
       total: 18, // Default girls floor capacity
-      occupied: 0, // Simplified for now
+      occupied: dataMatchIt.filter(r => r.gender === 'F' || r.gender === 'V').length,
       get rate() { return this.total > 0 ? (this.occupied / this.total) * 100 : 0; }
     },
     
     minors: {
       total: 15, // Default minors floor capacity
-      occupied: 0, // Simplified for now
+      occupied: dataMatchIt.filter(r => r.age && r.age < 18).length,
       get rate() { return this.total > 0 ? (this.occupied / this.total) * 100 : 0; }
     }
   };

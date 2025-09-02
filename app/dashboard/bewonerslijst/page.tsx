@@ -280,7 +280,7 @@ function BewonerslijstPageContent() {
       </div>
 
       {/* Table */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8px' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8px', border: '1px solid black' }}>
         <thead>
           <tr style={{ backgroundColor: '#99CCFF', fontWeight: 'bold' }}>
             <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '40px' }}>Badge</th>
@@ -295,7 +295,7 @@ function BewonerslijstPageContent() {
             <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '30px' }}>Geslacht</th>
             <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '80px' }}>Referentiepersoon</th>
             <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '60px' }}>Aankomstdatum</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '40px' }}>Dagen verblijf</th>
+            <th style={{ border: '1px solid black', borderRight: '2px solid black !important', padding: '2px', textAlign: 'center', width: '40px' }}>Dagen verblijf</th>
           </tr>
         </thead>
         <tbody>
@@ -331,7 +331,7 @@ function BewonerslijstPageContent() {
               <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                 {formatDate(resident.dateIn)}
               </td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{resident.daysOfStay}</td>
+              <td style={{ border: '1px solid black', borderRight: '2px solid black !important', padding: '2px', textAlign: 'center' }}>{resident.daysOfStay}</td>
             </tr>
           ))}
         </tbody>

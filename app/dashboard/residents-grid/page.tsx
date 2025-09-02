@@ -76,8 +76,9 @@ export default function ResidentsGridPage() {
     
     // Add residents from dataMatchIt
     dataMatchIt.forEach(resident => {
-      if (!allResidents.has(resident.badge)) {
-        allResidents.set(resident.badge, {
+      const badgeKey = String(resident.badge);
+      if (!allResidents.has(badgeKey)) {
+        allResidents.set(badgeKey, {
           id: String(resident.id),
           badgeNumber: String(resident.badge),
           naam: resident.lastName || '',
@@ -93,8 +94,9 @@ export default function ResidentsGridPage() {
 
     // Add residents from bewonerslijst
     bewonerslijst.forEach(resident => {
-      if (!allResidents.has(resident.badge)) {
-        allResidents.set(resident.badge, {
+      const badgeKey = String(resident.badge);
+      if (!allResidents.has(badgeKey)) {
+        allResidents.set(badgeKey, {
           id: String(resident.id),
           badgeNumber: String(resident.badge),
           naam: resident.lastName || '',
@@ -167,8 +169,6 @@ export default function ResidentsGridPage() {
         }));
         
         console.log('✅ Image uploaded to DATABASE successfully');
-        // Show success notification
-        alert('✅ Image uploaded to database successfully!');
       } else {
         console.warn(`⚠️ Database not available - using localStorage for badge ${uploadingFor}`);
         
@@ -287,17 +287,29 @@ export default function ResidentsGridPage() {
     setLightboxImage(null);
   };
 
-  // Handle escape key to close lightbox
+  // Handle escape key to close lightbox or clear search
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && lightboxImage) {
-        closeLightbox();
+      if (event.key === 'Escape') {
+        if (lightboxImage) {
+          // First priority: close lightbox
+          closeLightbox();
+          event.preventDefault();
+          event.stopPropagation();
+        } else if (searchTerm) {
+          // Second priority: clear search if there's a search term
+          setSearchTerm('');
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        // If neither lightbox nor search, let the global handler handle it
+        // but don't prevent default to allow normal ESC behavior
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [lightboxImage]);
+    document.addEventListener('keydown', handleKeyDown, true); // Use capture phase
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [lightboxImage, searchTerm]);
 
   // Get status color and label
   const getStatusBadge = (status?: string) => {
@@ -316,26 +328,59 @@ export default function ResidentsGridPage() {
   // Calculate grid layout based on resident count
   const getGridClass = () => {
     const count = filteredResidents.length;
-    if (count <= 12) return 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6';
-    if (count <= 24) return 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8';
-    if (count <= 48) return 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10';
-    return 'grid-cols-5 sm:grid-cols-7 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-14';
+    // Base classes for screen display
+    let screenClasses = '';
+    if (count <= 12) screenClasses = 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6';
+    else if (count <= 24) screenClasses = 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8';
+    else if (count <= 48) screenClasses = 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10';
+    else screenClasses = 'grid-cols-5 sm:grid-cols-7 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-14';
+    
+    // Add print-specific class for 4 columns
+    return `${screenClasses} print:grid-cols-4`;
   };
 
   return (
     <DashboardLayout>
-      <div className="p-6 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-slate-900 min-h-screen">
-        {/* Header */}
-        <div className="mb-6">
+      <div className="p-6 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-slate-900 min-h-screen print:p-4 print:bg-white">
+        {/* Print Header - Only visible when printing */}
+        <div className="hidden print:block mb-8">
+          <div className="text-center border-b-2 border-gray-800 pb-4 mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              OOC STEENOKKERZEEL
+            </h1>
+            <h2 className="text-xl text-gray-700 mb-2">
+              Bezetting ({filteredResidents.length})
+            </h2>
+            <p className="text-sm text-gray-600">
+              {new Date().toLocaleDateString('nl-BE', { 
+                weekday: 'long',
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </p>
+          </div>
+        </div>
+
+        {/* Screen Header - Hidden when printing */}
+        <div className="mb-6 print:hidden">
           <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 border dark:border-gray-700">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Grid3X3 className="h-7 w-7 text-blue-600 dark:text-blue-400" />
-                  Residents Grid
+                  Bewoners Fotolijst
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Visual overview of all {residents.length} residents
+                  Visueel overzicht van alle {residents.length} bewoners
+                </p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-2">
+                  {new Date().toLocaleDateString('nl-BE', { 
+                    weekday: 'long',
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
                 </p>
               </div>
               
@@ -345,32 +390,20 @@ export default function ResidentsGridPage() {
                   <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                     {filteredResidents.length}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Active</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-gray-400 dark:text-gray-500">
-                    {70 - residents.length}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Available</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                    {Math.round((residents.length / 70) * 100)}%
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Capacity</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Actief</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Search Bar and Upload Controls */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        {/* Search Bar and Upload Controls - Hidden when printing */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between print:hidden">
           <div className="relative max-w-md flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by badge, name, or room..."
+              placeholder="Zoek op badge, naam of kamer..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -381,7 +414,7 @@ export default function ResidentsGridPage() {
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
             <div className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-200">
               <Camera className="h-4 w-4" />
-              <span>Click on any resident card to upload their photo</span>
+              <span>Klik op een bewoner kaart om een foto te uploaden</span>
             </div>
           </div>
         </div>
@@ -398,9 +431,11 @@ export default function ResidentsGridPage() {
         />
 
         {/* Residents Grid */}
-        <div className={`grid ${getGridClass()} gap-3 auto-rows-fr`}>
-          {filteredResidents.map((resident) => {
+        <div className={`grid ${getGridClass()} gap-3 auto-rows-fr print:gap-2 print:mb-4`}>
+          {filteredResidents.map((resident, index) => {
             const statusBadge = getStatusBadge(resident.status);
+            // Add page break after every 12th item (3 rows × 4 columns)
+            const shouldPageBreak = (index + 1) % 12 === 0 && index !== filteredResidents.length - 1;
             return (
               <div
                 key={resident.id}
@@ -410,7 +445,7 @@ export default function ResidentsGridPage() {
                     triggerImageUpload(resident.badgeNumber);
                   }
                 }}
-                className={`group relative bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 overflow-hidden transform hover:scale-105 ${!resident.photoUrl ? 'cursor-pointer' : 'cursor-default'}`}
+                className={`group relative bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 overflow-hidden transform hover:scale-105 ${!resident.photoUrl ? 'cursor-pointer' : 'cursor-default'} ${shouldPageBreak ? 'print:break-after-page' : ''}`}
               >
                 {/* Status Badge */}
                 {statusBadge && (
@@ -525,15 +560,15 @@ export default function ResidentsGridPage() {
           ))}
         </div>
 
-        {/* Footer Info */}
-        <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+        {/* Footer Info - Hidden when printing */}
+        <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400 print:hidden">
           <div>
-            Showing {filteredResidents.length} of {residents.length} residents • 
-            Capacity: {residents.length}/70 ({Math.round((residents.length / 70) * 100)}%)
+            Tonen {filteredResidents.length} van {residents.length} bewoners • 
+            Capaciteit: {residents.length}/70 ({Math.round((residents.length / 70) * 100)}%)
           </div>
           <div className="mt-2 text-xs">
             <span className="inline-flex items-center px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-              ⚠️ Storage: localStorage (Database not deployed yet)
+              ⚠️ Opslag: localStorage (Database nog niet ingezet)
             </span>
           </div>
         </div>
@@ -569,17 +604,20 @@ export default function ResidentsGridPage() {
                 </div>
               </div>
 
-              {/* Image Container */}
-              <div className="relative max-w-4xl max-h-full w-full h-full flex items-center justify-center">
-                <img
-                  src={lightboxImage.url}
-                  alt={`${lightboxImage.resident.voornaam} ${lightboxImage.resident.naam}`}
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                  onClick={(e) => e.stopPropagation()}
-                />
+              {/* Image and Info Container */}
+              <div className="max-w-4xl w-full h-full flex flex-col items-center justify-center p-4">
+                {/* Image */}
+                <div className="flex-1 flex items-center justify-center mb-2">
+                  <img
+                    src={lightboxImage.url}
+                    alt={`${lightboxImage.resident.voornaam} ${lightboxImage.resident.naam}`}
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
                 
-                {/* Resident Info Overlay */}
-                <div className="absolute bottom-4 left-4 bg-black bg-opacity-80 text-white rounded-lg p-4 backdrop-blur-sm">
+                {/* Resident Info Below Image */}
+                <div className="bg-black bg-opacity-80 text-white rounded-lg p-4 backdrop-blur-sm text-center">
                   <div className="text-2xl font-bold text-blue-400 mb-1">
                     #{lightboxImage.resident.badgeNumber}
                   </div>

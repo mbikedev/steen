@@ -39,6 +39,37 @@ export interface ResidentData {
   updatedAt?: string;
 }
 
+// Whitelist of fields that the PHP backend accepts for resident updates
+const RESIDENT_UPDATE_ALLOWED_FIELDS: Array<keyof ResidentData> = [
+  'badge',
+  'firstName',
+  'lastName',
+  'room',
+  'nationality',
+  'ovNumber',
+  'registerNumber',
+  'dateOfBirth',
+  'age',
+  'gender',
+  'referencePerson',
+  'dateIn',
+  'daysOfStay',
+  'status',
+  'remarks',
+  'roomRemarks',
+];
+
+function filterResidentUpdates(updates: Partial<ResidentData>): Partial<ResidentData> {
+  const filtered: Partial<ResidentData> = {};
+  for (const key of RESIDENT_UPDATE_ALLOWED_FIELDS) {
+    if (key in updates) {
+      // @ts-expect-error index access
+      filtered[key] = updates[key];
+    }
+  }
+  return filtered;
+}
+
 // Helper function for API calls
 async function apiCall<T = any>(
   endpoint: string,
@@ -151,9 +182,14 @@ export const residentsApi = {
 
   // Update resident
   async update(id: number, updates: Partial<ResidentData>): Promise<ApiResponse<ResidentData>> {
+    const filtered = filterResidentUpdates(updates);
+    if (Object.keys(filtered).length === 0) {
+      // Avoid making a failing API call when there are no server-accepted fields
+      return { success: false, error: 'No fields to update' };
+    }
     return apiCall<ResidentData>(`?endpoint=residents&id=${id}`, {
       method: 'PUT',
-      body: JSON.stringify(updates),
+      body: JSON.stringify(filtered),
     });
   },
 

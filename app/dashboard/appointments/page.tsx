@@ -13,11 +13,11 @@ export default function AfsprakenPage() {
 
   useEffect(() => {
     setIsClient(true);
-    // Set default date to tomorrow (in local timezone)
+    // Set default date to day after tomorrow (in local timezone)
     const today = new Date();
-    const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-    setSelectedDate(tomorrowStr);
+    const dayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
+    const dayAfterTomorrowStr = dayAfterTomorrow.toISOString().split('T')[0];
+    setSelectedDate(dayAfterTomorrowStr);
   }, []);
 
   // Get all remarks from Noord and Zuid data
@@ -133,7 +133,6 @@ export default function AfsprakenPage() {
     });
     
     console.log(`📊 Migration complete: ${updated} appointments updated`);
-    alert(`Migration complete: ${updated} appointments updated to tomorrow's date`);
   };
 
   // Auto cleanup and migration when data is loaded
@@ -170,9 +169,36 @@ export default function AfsprakenPage() {
     return date.toLocaleDateString('nl-NL');
   };
 
+  // For Opmerkingen per Bewoner: display date + 1 day instead of actual
+  const getShortFormattedDatePlusOne = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day) + 1);
+    return date.toLocaleDateString('nl-NL');
+  };
+
   return (
-    <DashboardLayout>
-      <div className="p-6 bg-white dark:bg-gray-800 min-h-screen transition-colors">
+    <>
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 15mm;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+        }
+        @media screen {
+          .print-only { display: none !important; }
+        }
+      `}</style>
+
+      <DashboardLayout className="no-print">
+        <div className="p-6 bg-white dark:bg-gray-800 min-h-screen transition-colors">
         {/* Header */}
         <div className="mb-8">
           <div className="text-center mb-6">
@@ -209,54 +235,8 @@ export default function AfsprakenPage() {
                 <Clock className="h-5 w-5 text-blue-400 mr-2" />
                 <div className="text-sm text-blue-700 dark:text-blue-300">
                   <p><strong>Belangrijk:</strong> Afspraken worden automatisch opgeruimd na afloop van de dag.</p>
-                  <p>Standaard worden afspraken voor <strong>morgen</strong> getoond.</p>
+                  <p>Standaard worden afspraken voor <strong>overmorgen</strong> getoond.</p>
                 </div>
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => {
-                    // First show all data for debugging
-                    console.log('🔍 DEBUG: All residents with roomRemarks:');
-                    [...noordData, ...zuidData].forEach(resident => {
-                      if (resident.roomRemarks) {
-                        console.log('  Resident:', resident.firstName, resident.lastName);
-                        console.log('  Room:', resident.room);
-                        console.log('  RoomRemarks:', JSON.stringify(resident.roomRemarks));
-                        console.log('  Type:', typeof resident.roomRemarks);
-                        console.log('  Length:', resident.roomRemarks.length);
-                        console.log('  ---');
-                      }
-                    });
-                    
-                    migrateTodaysAppointments();
-                    setTimeout(() => window.location.reload(), 3000);
-                  }}
-                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                >
-                  Debug & Update
-                </button>
-                <button
-                  onClick={() => {
-                    // Clear the appointment completely and let user recreate it properly
-                    const selah = [...noordData, ...zuidData].find(r => 
-                      r.firstName?.includes('Selah') || r.lastName?.includes('Abdela') || r.name?.includes('Selah') || r.badge === 25189
-                    );
-                    
-                    if (selah) {
-                      console.log('🗑️ Clearing Selah appointment completely');
-                      updateInDataMatchIt(selah.id, { roomRemarks: '' });
-                      alert('Cleared Selah appointment. Please recreate it on the Data Match-IT page with tomorrow\'s date.');
-                      setTimeout(() => {
-                        window.open('/dashboard/data-match-it', '_blank');
-                      }, 1000);
-                    } else {
-                      alert('Selah not found!');
-                    }
-                  }}
-                  className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
-                >
-                  Clear & Recreate
-                </button>
               </div>
             </div>
           </div>
@@ -321,7 +301,7 @@ export default function AfsprakenPage() {
                           </span>
                           {item.appointmentDate && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              {getShortFormattedDate(item.appointmentDate)}
+                              {getShortFormattedDatePlusOne(item.appointmentDate)}
                             </span>
                           )}
                           <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -333,7 +313,9 @@ export default function AfsprakenPage() {
                         <div className="bg-gray-50 dark:bg-gray-700 rounded-md p-3">
                           <div className="flex items-start">
                             <MessageSquare className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
-                            <p className="text-sm text-gray-700 dark:text-gray-300">{item.remarks}</p>
+                            <span className="inline-block text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 bg-yellow-100 dark:bg-yellow-800/40 px-2 py-1 rounded">
+                              {item.remarks}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -368,7 +350,70 @@ export default function AfsprakenPage() {
             </div>
           </div>
         </div>
+        </div>
+      </DashboardLayout>
+
+      {/* Print-only layout */}
+      <div className="print-only">
+        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+          <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '0.3px' }}>Afspraken voor:</div>
+          <div style={{ fontSize: '16px', color: '#111', marginTop: '6px', fontWeight: 600 }}>
+            {selectedDate ? (() => {
+              const [y, m, d] = selectedDate.split('-');
+              const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+              return date.toLocaleDateString('nl-BE', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+              });
+            })() : ''}
+          </div>
+          <div style={{ height: '1px', backgroundColor: '#000', opacity: 0.1, marginTop: '10px' }} />
+        </div>
+
+        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: '11px', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden' as unknown as undefined }}>
+          <thead>
+            <tr style={{ backgroundColor: '#f2f4f7' }}>
+              <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd', padding: '8px', fontSize: '12px' }}>Gebouw</th>
+              <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd', padding: '8px', fontSize: '12px' }}>Kamer</th>
+              <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd', padding: '8px', fontSize: '12px' }}>Bed</th>
+              <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd', padding: '8px', fontSize: '12px' }}>Badge</th>
+              <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd', padding: '8px', fontSize: '12px' }}>Naam</th>
+              <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd', padding: '8px', fontSize: '12px' }}>Opmerking</th>
+              <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd', padding: '8px', fontSize: '12px' }}>Datum</th>
+            </tr>
+          </thead>
+          <tbody>
+            {remarksData.map((item, idx) => (
+              <tr key={`${item.id}-${item.building}-print`} style={{ backgroundColor: idx % 2 ? '#fbfbfb' : 'transparent' }}>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    letterSpacing: '0.3px',
+                    textTransform: 'uppercase',
+                    backgroundColor: item.building === 'Noord' ? '#e6f0ff' : '#ffeede',
+                    color: item.building === 'Noord' ? '#1e3a8a' : '#9a3412'
+                  }}>
+                    {item.building}
+                  </span>
+                </td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{item.room}</td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{item.bedNumber || ''}</td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>#{item.badge}</td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee', fontWeight: 600 }}>{item.name}</td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>
+                  <span style={{ backgroundColor: '#fff8c5', padding: '2px 6px', borderRadius: '6px', fontWeight: 700 }}>
+                    {item.remarks}
+                  </span>
+                </td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{item.appointmentDate ? getShortFormattedDatePlusOne(item.appointmentDate) : ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
