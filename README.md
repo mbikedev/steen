@@ -4,13 +4,16 @@ A comprehensive management system for the Open Orientation Center (OOC) Steenokk
 
 ## Overview
 
-This is a Next.js 15.5 application with Supabase backend, designed to streamline the management of asylum center operations including:
-- Resident registration and tracking
+This is a Next.js 15.5 application with dual backend support (PHP/MySQL and Supabase), designed to streamline the management of asylum center operations including:
+- Resident registration and tracking with photo management
 - Bed and room management across multiple buildings (Noord and Zuid)
 - Meal scheduling and dietary requirements
 - Document management with multi-format support
 - Real-time occupancy monitoring
 - Permission and leave tracking
+- Appointment scheduling system
+- Administrative document management
+- Resident grid view with photo galleries
 - Data synchronization and reporting
 
 ## Features
@@ -39,6 +42,9 @@ This is a Next.js 15.5 application with Supabase backend, designed to streamline
 - **Permissielijst**: Leave and permission tracking
 - **Data Match-IT**: Data synchronization and matching
 - **Toewijzingen**: Staff assignment management with visual status indicators
+- **Appointments**: Appointment scheduling and tracking system
+- **Administrative Documents**: Centralized document management system
+- **Residents Grid**: Visual grid display with photo management (2-14 columns, up to 70 residents)
 
 #### 📊 **Dashboard Analytics**
 - Real-time occupancy statistics
@@ -70,10 +76,12 @@ This is a Next.js 15.5 application with Supabase backend, designed to streamline
 - **Notifications**: Sonner for toast messages
 
 ### Backend & Database
-- **Backend**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth with SSR support
+- **Primary Backend**: PHP 8.x with MySQL (Hostinger deployment)
+- **Secondary Backend**: Supabase (PostgreSQL) - fallback support
+- **Authentication**: Dual auth system (API key for PHP, Supabase Auth)
 - **Real-time**: Supabase real-time subscriptions
-- **File Storage**: Supabase Storage
+- **File Storage**: Local filesystem for photos, Supabase Storage for documents
+- **API**: RESTful PHP API with CORS support
 
 ### Key Dependencies
 - `@supabase/supabase-js` (2.56): Database and auth client
@@ -91,8 +99,16 @@ This is a Next.js 15.5 application with Supabase backend, designed to streamline
 
 ```
 asylum-center-dashboard/
+├── api/                      # PHP Backend
+│   └── php/                 # PHP API files
+│       ├── config.example.php # Configuration template
+│       ├── index.php         # API entry point
+│       ├── residents.php     # Residents endpoints
+│       ├── resident-photos.php # Photo management
+│       └── uploads/          # Photo storage
 ├── app/                      # Next.js app directory
-│   ├── api/                  # API routes
+│   ├── api/                  # Next.js API routes
+│   │   ├── config-status/    # Config validation
 │   │   └── env/             # Environment endpoints
 │   ├── components/           # Shared components
 │   │   ├── layout/          # Layout components
@@ -106,19 +122,21 @@ asylum-center-dashboard/
 │   │   ├── AddResidentModal.tsx
 │   │   ├── EditResidentModal.tsx
 │   │   ├── ViewResidentModal.tsx
+│   │   ├── ResidentDocumentsModal.tsx
 │   │   ├── UploadDocModal.tsx
 │   │   └── theme-provider.tsx
 │   ├── dashboard/            # Dashboard pages
+│   │   ├── administrative-documents/ # Document management
+│   │   ├── appointments/     # Appointment scheduling
 │   │   ├── bed-management/   # Bed allocation system
 │   │   ├── bewonerslijst/    # Resident list
-│   │   ├── keukenlijst/      # Kitchen/meal list
-│   │   ├── permissielijst/   # Permission tracking
 │   │   ├── data-match-it/    # Data synchronization
-│   │   ├── toewijzingen/     # Staff assignments
-│   │   ├── accommodations/   # Room management
-│   │   ├── appointments/     # Appointment scheduling
-│   │   ├── residents/        # Resident management
+│   │   ├── keukenlijst/      # Kitchen/meal list
 │   │   ├── noord/            # Noord building view
+│   │   ├── permissielijst/   # Permission tracking
+│   │   ├── residents/        # Resident management
+│   │   ├── residents-grid/   # Photo grid view
+│   │   ├── toewijzingen/     # Staff assignments
 │   │   ├── zuid/             # Zuid building view
 │   │   └── page.tsx          # Main dashboard
 │   ├── login/                # Authentication page
@@ -128,16 +146,17 @@ asylum-center-dashboard/
 │   └── ui/                  # Extended UI library
 ├── lib/                      # Utility functions
 │   ├── supabase/            # Supabase client configuration
+│   ├── api-service.ts       # API service layer
 │   ├── DataContext.tsx      # Global data context
+│   ├── DataContextDebug.tsx # Debug context
 │   ├── bedConfig.ts         # Bed configuration
 │   └── utils.ts             # Helper functions
-├── supabase/                 # Database configuration
-│   ├── schema.sql           # Database schema
-│   └── seed-data.sql        # Initial data
-├── middleware.ts             # Auth middleware
 ├── components.json           # Shadcn/ui configuration
 ├── tailwind.config.js        # Tailwind configuration
-└── postcss.config.mjs        # PostCSS configuration
+├── postcss.config.mjs        # PostCSS configuration
+├── SECURITY_SETUP.md         # Security configuration guide
+├── DEPLOYMENT_STEPS.md       # Deployment instructions
+└── HOSTINGER_DEPLOYMENT.md   # Hostinger-specific setup
 ```
 
 ## Database Schema
@@ -166,8 +185,8 @@ asylum-center-dashboard/
 
 1. **Clone the repository**
 ```bash
-git clone [repository-url]
-cd asylum-center-dashboard
+git clone https://github.com/mbikedev/steen.git
+cd steen
 ```
 
 2. **Install dependencies**
@@ -178,16 +197,31 @@ npm install
 3. **Configure environment variables**
 Create a `.env.local` file with:
 ```env
+# PHP Backend (Primary)
+NEXT_PUBLIC_API_URL=http://localhost:8080/api/php
+NEXT_PUBLIC_API_KEY=your_secure_api_key_here
+
+# Supabase (Fallback/Legacy)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-4. **Set up the database**
-- Create a new Supabase project
-- Run the SQL scripts in `/supabase/schema.sql`
-- Optionally run `/supabase/seed-data.sql` for sample data
+4. **Set up PHP backend**
+- Copy `api/php/config.example.php` to `api/php/config.php`
+- Update database credentials in `config.php`
+- Ensure PHP 8.x and MySQL are installed
+- Start PHP server:
+```bash
+./start-php-backend.sh
+# Or manually:
+php -S localhost:8080 -t api
+```
 
-5. **Run the development server**
+5. **Set up the database**
+- For MySQL: Import schema from migration files
+- For Supabase: Run SQL scripts in `/supabase/` directory
+
+6. **Run the development server**
 ```bash
 npm run dev
 ```
@@ -304,7 +338,50 @@ Please follow the existing code style and conventions. Ensure all new features i
 
 ## Recent Updates
 
-### Toewijzingen Page Enhancements (Latest)
+### Latest Changes (September 2025)
+
+#### 🔒 **Security Enhancements**
+- Removed all hardcoded credentials from repository
+- Implemented secure configuration with environment variables
+- Added comprehensive `.gitignore` for sensitive files
+- Created `config.example.php` template for safe configuration
+- Resolved GitGuardian security alerts
+
+#### 📸 **Residents Grid Page**
+- New photo grid view supporting 2-14 columns and up to 70 residents
+- Image upload system with database persistence
+- Lightbox viewer for full-screen photo viewing
+- Photo deletion with confirmation dialogs
+- Support for all image formats (JPG, PNG, GIF, etc.)
+
+#### 📄 **Administrative Documents Page**
+- New centralized document management system
+- Support for multiple file formats (PDF, Excel, Word, Images)
+- Secure document storage and retrieval
+- User-friendly upload interface
+
+#### 🗓️ **Appointments System**
+- Complete appointment scheduling interface
+- Calendar view for appointment management
+- Integration with resident data
+
+#### 🔧 **Backend Infrastructure**
+- Dual backend support (PHP/MySQL primary, Supabase fallback)
+- RESTful PHP API with CORS configuration
+- Automatic database table creation
+- Comprehensive error handling
+- API key authentication system
+
+#### 🎨 **UI/UX Improvements**
+- Removed "system" theme option for clarity
+- Fixed TypeScript errors across all components
+- Improved form validation and error handling
+- Enhanced responsive design for mobile devices
+- Optimized bundle size and performance
+
+### Previous Updates
+
+#### Toewijzingen Page Enhancements
 - **Visual Status Indicators**: When assigning resident types (meerderjarig, leeftijdstwijfel, transfer), the system now displays only color-coded indicators:
   - Red: Meerderjarig (adult)
   - Gray: Leeftijdstwijfel (age doubt)
