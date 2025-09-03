@@ -206,8 +206,34 @@ function moveResidentToOut($db) {
         // Commit transaction
         $db->commit();
         
-        $newOutId = $db->lastInsertId();
-        getOutResident($db, $newOutId);
+        // Return success with the moved resident data
+        sendJsonResponse([
+            'success' => true,
+            'message' => 'Resident successfully moved to OUT',
+            'data' => formatOutResident([
+                'id' => $db->lastInsertId(),
+                'original_id' => $resident['id'],
+                'badge' => $resident['badge'],
+                'first_name' => $resident['first_name'],
+                'last_name' => $resident['last_name'],
+                'room' => $resident['room'],
+                'nationality' => $resident['nationality'],
+                'ov_number' => $resident['ov_number'],
+                'register_number' => $resident['register_number'],
+                'date_of_birth' => $resident['date_of_birth'],
+                'age' => $resident['age'],
+                'gender' => $resident['gender'],
+                'reference_person' => $resident['reference_person'],
+                'date_in' => $resident['date_in'],
+                'days_of_stay' => $resident['days_of_stay'],
+                'status' => 'OUT',
+                'remarks' => $resident['remarks'],
+                'room_remarks' => $resident['room_remarks'],
+                'date_out' => date('Y-m-d H:i:s'),
+                'original_created_at' => $resident['created_at'],
+                'original_updated_at' => $resident['updated_at']
+            ])
+        ]);
         
     } catch (Exception $e) {
         $db->rollBack();

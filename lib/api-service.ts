@@ -76,33 +76,52 @@ async function apiCall<T = any>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   try {
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'X-Api-Key': API_KEY,
-      ...options.headers,
+      ...(options.headers as Record<string, string> | undefined),
     };
 
     // Only set Content-Type to application/json if no Content-Type is specified
     // and the body is not FormData (which needs multipart/form-data)
-    if (!options.headers || !('Content-Type' in options.headers)) {
+    if (!options.headers || !(options.headers as any)['Content-Type']) {
       if (!(options.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json';
       }
     }
 
-    const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
+    // Handle URL construction properly
+    let url = API_BASE_URL;
+    if (endpoint) {
+      // If API_BASE_URL already ends with index.php, don't add a slash
+      if (API_BASE_URL.endsWith('.php')) {
+        url = `${API_BASE_URL}${endpoint}`;
+      } else {
+        url = `${API_BASE_URL}/${endpoint}`;
+      }
+    }
+    
+    console.log('🌐 API Call URL:', url);
+    console.log('📤 Request Method:', options.method || 'GET');
+    if (options.body) {
+      console.log('📨 Request Body:', options.body);
+    }
+    
+    const response = await fetch(url, {
       ...options,
       headers,
     });
 
     if (!response.ok) {
       // Try to get error details from response
-      let errorMessage = `HTTP error! status: ${response.status}`;
+      let errorMessage = `HTTP ${response.status}`;
+      let errorPayload: any = undefined;
       
       // Clone the response so we can read it multiple times if needed
       const responseClone = response.clone();
       
       try {
         const errorData = await response.json();
+        errorPayload = errorData;
         errorMessage = errorData.error || errorData.message || errorMessage;
         console.error('🚨 API Error Details:', errorData);
       } catch (e) {
@@ -130,7 +149,13 @@ async function apiCall<T = any>(
           console.error('🚨 Could not read error response:', textError);
         }
       }
-      throw new Error(errorMessage);
+      // Do not throw; return a consistent ApiResponse so callers can handle gracefully
+      return {
+        success: false,
+        error: errorMessage,
+        // Include payload if any for debugging callers
+        data: errorPayload,
+      } as ApiResponse<any>;
     }
 
     // Check if response has content
@@ -196,10 +221,13 @@ export const outResidentsApi = {
 
   // Move resident from main table to OUT table
   async moveToOut(residentId: number): Promise<ApiResponse<ResidentData>> {
-    return apiCall<ResidentData>('?endpoint=out-residents', {
+    console.log('🚀 Calling moveToOut API with residentId:', residentId);
+    const result = await apiCall<ResidentData>('?endpoint=out-residents', {
       method: 'POST',
       body: JSON.stringify({ residentId }),
     });
+    console.log('📦 moveToOut API response:', result);
+    return result;
   },
 
   // Delete OUT resident permanently

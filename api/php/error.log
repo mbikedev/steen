@@ -41,3 +41,39 @@ Stack trace:
 [02-Sep-2025 13:30:48 Europe/Brussels] Database connection test failed: Database connection failed
 [02-Sep-2025 13:30:51 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
 [02-Sep-2025 13:30:51 Europe/Brussels] [Staff Assignments API] Get staff assignments error: Database connection failed
+[03-Sep-2025 10:56:23 Europe/Brussels] PHP Warning:  Constant API_ACCESS already defined in /Users/mbike/Documents/Werk/steen/api/php/residents.php on line 7
+[03-Sep-2025 10:56:23 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[03-Sep-2025 10:56:23 Europe/Brussels] PHP Fatal error:  Uncaught Exception: Database connection failed in /Users/mbike/Documents/Werk/steen/api/php/config.php:53
+Stack trace:
+#0 /Users/mbike/Documents/Werk/steen/api/php/config.php(59): Database->__construct()
+#1 /Users/mbike/Documents/Werk/steen/api/php/residents.php(18): Database::getInstance()
+#2 /Users/mbike/Documents/Werk/steen/api/php/index.php(17): include('/Users/mbike/Do...')
+#3 {main}
+  thrown in /Users/mbike/Documents/Werk/steen/api/php/config.php on line 53
+[03-Sep-2025 10:56:23 Europe/Brussels] PHP Warning:  Constant API_ACCESS already defined in /Users/mbike/Documents/Werk/steen/api/php/residents.php on line 7
+[03-Sep-2025 10:56:23 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[03-Sep-2025 10:56:23 Europe/Brussels] PHP Fatal error:  Uncaught Exception: Database connection failed in /Users/mbike/Documents/Werk/steen/api/php/config.php:53
+Stack trace:
+#0 /Users/mbike/Documents/Werk/steen/api/php/config.php(59): Database->__construct()
+#1 /Users/mbike/Documents/Werk/steen/api/php/residents.php(18): Database::getInstance()
+#2 /Users/mbike/Documents/Werk/steen/api/php/index.php(17): include('/Users/mbike/Do...')
+#3 {main}
+  thrown in /Users/mbike/Documents/Werk/steen/api/php/config.php on line 53
+[03-Sep-2025 10:56:23 Europe/Brussels] PHP Warning:  Constant API_ACCESS already defined in /Users/mbike/Documents/Werk/steen/api/php/residents.php on line 7
+[03-Sep-2025 10:56:23 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[03-Sep-2025 10:56:23 Europe/Brussels] PHP Fatal error:  Uncaught Exception: Database connection failed in /Users/mbike/Documents/Werk/steen/api/php/config.php:53
+Stack trace:
+#0 /Users/mbike/Documents/Werk/steen/api/php/config.php(59): Database->__construct()
+#1 /Users/mbike/Documents/Werk/steen/api/php/residents.php(18): Database::getInstance()
+#2 /Users/mbike/Documents/Werk/steen/api/php/index.php(17): include('/Users/mbike/Do...')
+#3 {main}
+  thrown in /Users/mbike/Documents/Werk/steen/api/php/config.php on line 53
+[03-Sep-2025 10:56:39 Europe/Brussels] PHP Warning:  Constant API_ACCESS already defined in /Users/mbike/Documents/Werk/steen/api/php/residents.php on line 7
+[03-Sep-2025 10:56:39 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[03-Sep-2025 10:56:39 Europe/Brussels] PHP Fatal error:  Uncaught Exception: Database connection failed in /Users/mbike/Documents/Werk/steen/api/php/config.php:53
+Stack trace:
+#0 /Users/mbike/Documents/Werk/steen/api/php/config.php(59): Database->__construct()
+#1 /Users/mbike/Documents/Werk/steen/api/php/residents.php(18): Database::getInstance()
+#2 /Users/mbike/Documents/Werk/steen/api/php/index.php(17): include('/Users/mbike/Do...')
+#3 {main}
+  thrown in /Users/mbike/Documents/Werk/steen/api/php/config.php on line 53

@@ -68,6 +68,7 @@ switch ($request) {
                 'recent-activities' => 'index.php?endpoint=recent-activities',
                 'auth' => 'index.php?endpoint=auth',
                 'staff-assignments' => 'index.php?endpoint=staff-assignments',
+                'out-residents' => 'index.php?endpoint=out-residents',
                 'test' => 'index.php?endpoint=test'
             ],
             'timestamp' => date('Y-m-d H:i:s')

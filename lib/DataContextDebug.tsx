@@ -120,22 +120,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               logApiCall('ℹ️ No residents found in database');
             }
             
-            // Load OUT residents from localStorage (temporary approach)
-            logApiCall('🔄 Loading OUT residents from localStorage...');
-            const savedOutResidents = localStorage.getItem('out-residents-history');
-            if (savedOutResidents) {
-              try {
-                const parsedOutResidents = JSON.parse(savedOutResidents);
-                setOutResidents(parsedOutResidents);
-                logApiCall(`✅ Loaded ${parsedOutResidents.length} OUT residents from localStorage`);
-              } catch (e) {
-                logApiCall('❌ Failed to parse OUT residents from localStorage');
-                setOutResidents([]);
-              }
-            } else {
-              logApiCall('ℹ️ No OUT residents found in localStorage');
-              setOutResidents([]);
-            }
+            // Load OUT residents from database
+            await syncOutResidents();
           } catch (error) {
             logApiCall(`❌ Database sync failed: ${error}`);
           }
@@ -175,17 +161,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Sync OUT residents (from localStorage - temporary approach)
+  // Sync OUT residents from database
   const syncOutResidents = async () => {
     try {
-      logApiCall('🔄 Syncing OUT residents from localStorage...');
-      const savedOutResidents = localStorage.getItem('out-residents-history');
-      if (savedOutResidents) {
-        const parsedOutResidents = JSON.parse(savedOutResidents);
-        setOutResidents(parsedOutResidents);
-        logApiCall(`✅ Loaded ${parsedOutResidents.length} OUT residents from localStorage`);
+      if (!isConnectedToDb) {
+        logApiCall('⚠️ Cannot sync OUT residents - not connected to database');
+        return;
+      }
+      
+      logApiCall('🔄 Syncing OUT residents from database...');
+      const result = await outResidentsApi.getAll();
+      
+      if (result.success && result.data) {
+        setOutResidents(result.data);
+        logApiCall(`✅ Loaded ${result.data.length} OUT residents from database`);
       } else {
-        logApiCall('ℹ️ No OUT residents found in localStorage');
+        logApiCall('ℹ️ No OUT residents found in database');
         setOutResidents([]);
       }
     } catch (error) {
@@ -336,46 +327,46 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logApiCall(`🔄 Moving resident ${resident.firstName} ${resident.lastName} to OUT and deleting from all lists`);
     console.log(`🔄 Moving resident ${resident.firstName} ${resident.lastName} to OUT and deleting from all lists`);
     
-    // Temporary approach: use localStorage for OUT residents and delete from main table
     try {
-      // First save resident to localStorage OUT history with OUT status
-      const outResident = { ...resident, status: 'OUT' };
-      setOutResidents(prev => {
-        const filtered = prev.filter(r => r.id !== id);
-        const newOutResidents = [...filtered, outResident];
-        // Save to localStorage as backup
-        localStorage.setItem('out-residents-history', JSON.stringify(newOutResidents));
-        return newOutResidents;
-      });
-      
-      // Remove from local state (all lists)
-      setDataMatchIt(prev => {
-        setUndoStack(currentStack => [...currentStack, prev]);
-        setRedoStack([]);
-        return prev.filter(r => r.id !== id);
-      });
-
-      // Try to delete from database if connected
       if (isConnectedToDb) {
-        try {
-          console.log('🔄 Deleting resident from database with ID:', id);
-          const result = await dbOperations.deleteResident(id);
-          console.log('Delete result:', result);
+        // Use the OUT residents API to move resident to OUT table
+        console.log('🔄 Moving resident to OUT table in database with ID:', id);
+        const result = await outResidentsApi.moveToOut(id);
+        
+        if (result.success) {
+          logApiCall(`✅ Resident ${resident.firstName} ${resident.lastName} moved to OUT table in database`);
+          console.log(`✅ Resident ${resident.firstName} ${resident.lastName} moved to OUT table in database`);
           
-          if (result.success) {
-            logApiCall(`✅ Resident ${resident.firstName} ${resident.lastName} deleted from database and moved to OUT`);
-            console.log(`✅ Resident ${resident.firstName} ${resident.lastName} deleted from database and moved to OUT`);
-          } else {
-            logApiCall(`⚠️ Database delete failed but resident moved to OUT locally: ${result.error}`);
-            console.warn(`⚠️ Database delete failed but resident moved to OUT locally: ${result.error}`);
-          }
-        } catch (error) {
-          logApiCall(`⚠️ Database delete failed but resident moved to OUT locally: ${error}`);
-          console.warn(`⚠️ Database delete failed but resident moved to OUT locally: ${error}`);
+          // Update local state - remove from main list
+          setDataMatchIt(prev => {
+            setUndoStack(currentStack => [...currentStack, prev]);
+            setRedoStack([]);
+            return prev.filter(r => r.id !== id);
+          });
+          
+          // Reload OUT residents list to include the newly moved resident
+          await syncOutResidents();
+        } else {
+          logApiCall(`❌ Failed to move resident to OUT: ${result.error}`);
+          console.error(`❌ Failed to move resident to OUT: ${result.error}`);
         }
       } else {
-        logApiCall('✅ Resident moved to OUT (database not connected)');
-        console.log('✅ Resident moved to OUT (database not connected)');
+        // Fallback: If not connected to database, just update local state
+        logApiCall('⚠️ Cannot move to OUT - database not connected');
+        console.warn('⚠️ Cannot move to OUT - database not connected');
+        
+        // Still update local state for UI consistency
+        const outResident = { ...resident, status: 'OUT' };
+        setOutResidents(prev => {
+          const filtered = prev.filter(r => r.id !== id);
+          return [...filtered, outResident];
+        });
+        
+        setDataMatchIt(prev => {
+          setUndoStack(currentStack => [...currentStack, prev]);
+          setRedoStack([]);
+          return prev.filter(r => r.id !== id);
+        });
       }
     } catch (error) {
       logApiCall(`❌ OUT move failed: ${error}`);
