@@ -21,6 +21,26 @@ switch ($request) {
         include 'resident-photos.php';
         break;
     
+    case 'dashboard-stats':
+        include 'dashboard-stats.php';
+        break;
+    
+    case 'recent-activities':
+        include 'recent-activities.php';
+        break;
+    
+    case 'auth':
+        include 'auth.php';
+        break;
+    
+    case 'staff-assignments':
+        include 'staff-assignments.php';
+        break;
+    
+    case 'out-residents':
+        include 'out-residents.php';
+        break;
+    
     case 'test':
         // Simple PHP test
         if (isset($_GET['db'])) {
@@ -44,6 +64,10 @@ switch ($request) {
                 'test-connection' => 'index.php?endpoint=test-connection',
                 'residents' => 'index.php?endpoint=residents',
                 'resident-photos' => 'index.php?endpoint=resident-photos',
+                'dashboard-stats' => 'index.php?endpoint=dashboard-stats',
+                'recent-activities' => 'index.php?endpoint=recent-activities',
+                'auth' => 'index.php?endpoint=auth',
+                'staff-assignments' => 'index.php?endpoint=staff-assignments',
                 'test' => 'index.php?endpoint=test'
             ],
             'timestamp' => date('Y-m-d H:i:s')

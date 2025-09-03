@@ -107,6 +107,14 @@ export default function ZuidPage() {
     setEditingRemarks(newEditing);
   };
 
+  const handleRemarksDelete = (residentId: number) => {
+    updateInDataMatchIt(residentId, { roomRemarks: '' });
+    // Ensure any editing state is cleared
+    const newEditing = { ...editingRemarks };
+    delete newEditing[residentId];
+    setEditingRemarks(newEditing);
+  };
+
   const handleLanguageEdit = (residentId: number, currentLanguage: string) => {
     setEditingLanguage({
       ...editingLanguage,
@@ -405,8 +413,17 @@ export default function ZuidPage() {
                                   className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-[24px]"
                                 >
                                   {resident.roomRemarks ? (
-                                    <span className="bg-yellow-200 px-2 py-1 text-xs font-medium rounded">
-                                      {resident.roomRemarks}
+                                    <span className="inline-flex items-center gap-2">
+                                      <span className="bg-yellow-200 px-2 py-1 text-xs font-medium rounded">
+                                        {stripDateFromRemarks(resident.roomRemarks)}
+                                      </span>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleRemarksDelete(resident.id); }}
+                                        className="px-2 py-0.5 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700"
+                                        title="Verwijder opmerking"
+                                      >
+                                        ✕
+                                      </button>
                                     </span>
                                   ) : (
                                     <span className="text-gray-400 text-xs">Klik om opmerking toe te voegen</span>
@@ -584,8 +601,17 @@ export default function ZuidPage() {
                                   className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-[24px]"
                                 >
                                   {resident.roomRemarks ? (
-                                    <span className="bg-yellow-200 px-2 py-1 text-xs font-medium rounded">
-                                      {resident.roomRemarks}
+                                    <span className="inline-flex items-center gap-2">
+                                      <span className="bg-yellow-200 px-2 py-1 text-xs font-medium rounded">
+                                        {stripDateFromRemarks(resident.roomRemarks)}
+                                      </span>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleRemarksDelete(resident.id); }}
+                                        className="px-2 py-0.5 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700"
+                                        title="Verwijder opmerking"
+                                      >
+                                        ✕
+                                      </button>
                                     </span>
                                   ) : (
                                     <span className="text-gray-400 text-xs">Klik om opmerking toe te voegen</span>

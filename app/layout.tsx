@@ -4,6 +4,7 @@ import './globals.css';
 import { ThemeProvider } from './components/theme-provider';
 import { Toaster } from 'sonner';
 import { DataProvider } from "../lib/DataContextDebug";
+import { AuthProvider } from "../lib/AuthContext";
 
 const rozhaOne = Rozha_One({ 
   subsets: ['latin'],
@@ -33,10 +34,12 @@ export default function RootLayout({
     <html lang="nl" suppressHydrationWarning>
       <body className={`${montserrat.variable} ${rozhaOne.variable}`}>
         <ThemeProvider>
-          <DataProvider>
-            {children}
-            <Toaster />
-          </DataProvider>
+          <AuthProvider>
+            <DataProvider>
+              {children}
+              <Toaster />
+            </DataProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

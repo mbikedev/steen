@@ -7,7 +7,6 @@ import { Search, UserPlus, Trash2, Clipboard, Upload, Undo, Redo, RefreshCw, Che
 import { useData } from "../../../lib/DataContextDebug";
 import AddUserModal from '../../components/AddUserModal';
 import { formatDate, formatDateTime } from '../../../lib/utils';
-import { testDatabaseConnection } from '../../../lib/api-service';
 import * as XLSX from 'xlsx';
 
 // Helper function to calculate days of stay from arrival date
@@ -1273,48 +1272,6 @@ function DataMatchItPageContent() {
                 Gebruiker Toevoegen
               </button>
 
-              {/* Database Test Button */}
-              <button 
-                onClick={() => {
-                  console.log('🔍 Running database connection test...');
-                  testDatabaseConnection();
-                }}
-                className="px-4 py-2 bg-purple-600 dark:bg-purple-700 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-800 flex items-center gap-2"
-              >
-                🔍 DB Test
-              </button>
-
-              {/* Test Add Resident Button */}
-              <button 
-                onClick={async () => {
-                  console.log('🧪 Testing adding resident to database...');
-                  const testResident = {
-                    id: Date.now() + Math.random(),
-                    firstName: 'Test',
-                    lastName: 'Person',
-                    badge: `TEST${Date.now()}`,
-                    room: '101',
-                    nationality: 'Dutch',
-                    age: 25,
-                    gender: 'M',
-                    status: 'active',
-                    dateOfBirth: '1999-01-01',
-                    name: 'Test Person',
-                    ovNumber: '',
-                    registerNumber: '',
-                    referencePerson: '',
-                    dateIn: new Date().toISOString().split('T')[0],
-                    daysOfStay: 1
-                  };
-                  
-                  console.log('🔄 About to add test resident:', testResident);
-                  await addToDataMatchIt(testResident);
-                  console.log('✅ Test resident add function completed');
-                }}
-                className="px-4 py-2 bg-orange-600 dark:bg-orange-700 text-white rounded-lg hover:bg-orange-700 dark:hover:bg-orange-800 flex items-center gap-2"
-              >
-                🧪 Test Add
-              </button>
             </div>
           </div>
         </div>
@@ -1458,18 +1415,6 @@ function DataMatchItPageContent() {
                 className="text-xs text-gray-400 hover:text-gray-600 underline"
               >
                 {showDebugPanel ? 'Verberg debug' : 'Toon debug'}
-              </button>
-              <button
-                onClick={() => testDatabaseConnection()}
-                className="text-xs text-blue-400 hover:text-blue-600 underline ml-2"
-              >
-                Test Database
-              </button>
-              <button
-                onClick={() => window.open('/dashboard/db-test', '_blank')}
-                className="text-xs text-green-400 hover:text-green-600 underline ml-2"
-              >
-                Open DB Test Page
               </button>
             </div>
           </div>

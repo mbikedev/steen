@@ -6,3 +6,38 @@ Stack trace:
 #2 /Users/mbike/Documents/Werk/steen/api/php/index.php(21): include('/Users/mbike/Do...')
 #3 {main}
   thrown in /Users/mbike/Documents/Werk/steen/api/php/config.php on line 53
+[02-Sep-2025 13:28:12 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:28:12 Europe/Brussels] Database connection test failed: Database connection failed
+[02-Sep-2025 13:28:12 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:28:12 Europe/Brussels] Database connection test failed: Database connection failed
+[02-Sep-2025 13:28:14 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:28:14 Europe/Brussels] [Staff Assignments API] Get staff assignments error: Database connection failed
+[02-Sep-2025 13:28:15 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:28:15 Europe/Brussels] [Staff Assignments API] Get staff assignments error: Database connection failed
+[02-Sep-2025 13:28:16 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:28:16 Europe/Brussels] [Staff Assignments API] Get staff assignments error: Database connection failed
+[02-Sep-2025 13:28:54 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:28:54 Europe/Brussels] Database connection test failed: Database connection failed
+[02-Sep-2025 13:28:56 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:28:56 Europe/Brussels] [Staff Assignments API] Get staff assignments error: Database connection failed
+[02-Sep-2025 13:29:20 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:29:20 Europe/Brussels] PHP Warning:  Undefined variable $db in /Users/mbike/Documents/Werk/steen/api/php/staff-assignments.php on line 307
+[02-Sep-2025 13:29:20 Europe/Brussels] PHP Fatal error:  Uncaught Error: Call to a member function rollback() on null in /Users/mbike/Documents/Werk/steen/api/php/staff-assignments.php:307
+Stack trace:
+#0 /Users/mbike/Documents/Werk/steen/api/php/staff-assignments.php(115): handleBulkSave(Array)
+#1 /Users/mbike/Documents/Werk/steen/api/php/staff-assignments.php(15): handleCreateStaffAssignment()
+#2 /Users/mbike/Documents/Werk/steen/api/php/index.php(37): include('/Users/mbike/Do...')
+#3 {main}
+  thrown in /Users/mbike/Documents/Werk/steen/api/php/staff-assignments.php on line 307
+[02-Sep-2025 13:30:25 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:30:25 Europe/Brussels] Database connection test failed: Database connection failed
+[02-Sep-2025 13:30:26 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:30:26 Europe/Brussels] Database connection test failed: Database connection failed
+[02-Sep-2025 13:30:28 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:30:28 Europe/Brussels] [Staff Assignments API] Get staff assignments error: Database connection failed
+[02-Sep-2025 13:30:29 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:30:29 Europe/Brussels] [Staff Assignments API] Get staff assignments error: Database connection failed
+[02-Sep-2025 13:30:48 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:30:48 Europe/Brussels] Database connection test failed: Database connection failed
+[02-Sep-2025 13:30:51 Europe/Brussels] Database connection failed: SQLSTATE[HY000] [2002] No such file or directory
+[02-Sep-2025 13:30:51 Europe/Brussels] [Staff Assignments API] Get staff assignments error: Database connection failed

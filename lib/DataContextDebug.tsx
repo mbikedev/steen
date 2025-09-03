@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ResidentData, getBewonerslijstData, getKeukenlijstData, getNoordData, getZuidData } from './excelUtils';
 import { BedOccupancy, ALL_ROOMS, getRoomConfig, CAPACITY } from './bedConfig';
-import { dbOperations, testDatabaseConnection } from './api-service';
+import { dbOperations, testDatabaseConnection, outResidentsApi } from './api-service';
 
 interface DataContextType {
   // Data-Match-It is the primary source
@@ -13,7 +13,12 @@ interface DataContextType {
   addMultipleToDataMatchIt: (residents: ResidentData[]) => Promise<void>;
   updateInDataMatchIt: (id: number, updates: Partial<ResidentData>) => void;
   deleteFromDataMatchIt: (id: number) => void;
+  moveToOutAndDelete: (id: number) => Promise<void>;
   clearAllData: () => void;
+  
+  // OUT residents
+  outResidents: ResidentData[];
+  syncOutResidents: () => Promise<void>;
   
   // Debug info
   isConnectedToDb: boolean;
@@ -76,6 +81,7 @@ export const useData = () => {
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [dataMatchIt, setDataMatchIt] = useState<ResidentData[]>([]);
+  const [outResidents, setOutResidents] = useState<ResidentData[]>([]);
   const [staffAssignmentsState, setStaffAssignmentsState] = useState<{ [residentName: string]: string }>({});
   const [ageVerificationStatusState, setAgeVerificationStatusState] = useState<{ [badge: string]: 'Meerderjarig' | 'Minderjarig' | null }>({});
   const [isInitialized, setIsInitialized] = useState(false);
@@ -113,6 +119,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else {
               logApiCall('ℹ️ No residents found in database');
             }
+            
+            // Load OUT residents from localStorage (temporary approach)
+            logApiCall('🔄 Loading OUT residents from localStorage...');
+            const savedOutResidents = localStorage.getItem('out-residents-history');
+            if (savedOutResidents) {
+              try {
+                const parsedOutResidents = JSON.parse(savedOutResidents);
+                setOutResidents(parsedOutResidents);
+                logApiCall(`✅ Loaded ${parsedOutResidents.length} OUT residents from localStorage`);
+              } catch (e) {
+                logApiCall('❌ Failed to parse OUT residents from localStorage');
+                setOutResidents([]);
+              }
+            } else {
+              logApiCall('ℹ️ No OUT residents found in localStorage');
+              setOutResidents([]);
+            }
           } catch (error) {
             logApiCall(`❌ Database sync failed: ${error}`);
           }
@@ -144,8 +167,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         logApiCall('ℹ️ No residents found in database');
       }
+      
+      // Also sync OUT residents
+      await syncOutResidents();
     } catch (error) {
       logApiCall(`❌ Database sync failed: ${error}`);
+    }
+  };
+
+  // Sync OUT residents (from localStorage - temporary approach)
+  const syncOutResidents = async () => {
+    try {
+      logApiCall('🔄 Syncing OUT residents from localStorage...');
+      const savedOutResidents = localStorage.getItem('out-residents-history');
+      if (savedOutResidents) {
+        const parsedOutResidents = JSON.parse(savedOutResidents);
+        setOutResidents(parsedOutResidents);
+        logApiCall(`✅ Loaded ${parsedOutResidents.length} OUT residents from localStorage`);
+      } else {
+        logApiCall('ℹ️ No OUT residents found in localStorage');
+        setOutResidents([]);
+      }
+    } catch (error) {
+      logApiCall(`❌ OUT residents sync failed: ${error}`);
+      setOutResidents([]);
     }
   };
 
@@ -280,7 +325,65 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Compute derived data (same as original)
+  const moveToOutAndDelete = async (id: number) => {
+    const resident = dataMatchIt.find(r => r.id === id);
+    if (!resident) {
+      logApiCall(`❌ Resident ${id} not found for OUT move`);
+      console.error(`❌ Resident ${id} not found for OUT move`);
+      return;
+    }
+
+    logApiCall(`🔄 Moving resident ${resident.firstName} ${resident.lastName} to OUT and deleting from all lists`);
+    console.log(`🔄 Moving resident ${resident.firstName} ${resident.lastName} to OUT and deleting from all lists`);
+    
+    // Temporary approach: use localStorage for OUT residents and delete from main table
+    try {
+      // First save resident to localStorage OUT history with OUT status
+      const outResident = { ...resident, status: 'OUT' };
+      setOutResidents(prev => {
+        const filtered = prev.filter(r => r.id !== id);
+        const newOutResidents = [...filtered, outResident];
+        // Save to localStorage as backup
+        localStorage.setItem('out-residents-history', JSON.stringify(newOutResidents));
+        return newOutResidents;
+      });
+      
+      // Remove from local state (all lists)
+      setDataMatchIt(prev => {
+        setUndoStack(currentStack => [...currentStack, prev]);
+        setRedoStack([]);
+        return prev.filter(r => r.id !== id);
+      });
+
+      // Try to delete from database if connected
+      if (isConnectedToDb) {
+        try {
+          console.log('🔄 Deleting resident from database with ID:', id);
+          const result = await dbOperations.deleteResident(id);
+          console.log('Delete result:', result);
+          
+          if (result.success) {
+            logApiCall(`✅ Resident ${resident.firstName} ${resident.lastName} deleted from database and moved to OUT`);
+            console.log(`✅ Resident ${resident.firstName} ${resident.lastName} deleted from database and moved to OUT`);
+          } else {
+            logApiCall(`⚠️ Database delete failed but resident moved to OUT locally: ${result.error}`);
+            console.warn(`⚠️ Database delete failed but resident moved to OUT locally: ${result.error}`);
+          }
+        } catch (error) {
+          logApiCall(`⚠️ Database delete failed but resident moved to OUT locally: ${error}`);
+          console.warn(`⚠️ Database delete failed but resident moved to OUT locally: ${error}`);
+        }
+      } else {
+        logApiCall('✅ Resident moved to OUT (database not connected)');
+        console.log('✅ Resident moved to OUT (database not connected)');
+      }
+    } catch (error) {
+      logApiCall(`❌ OUT move failed: ${error}`);
+      console.error(`❌ OUT move failed: ${error}`);
+    }
+  };
+
+  // Compute derived data - OUT residents are already excluded from dataMatchIt
   const bewonerslijst = dataMatchIt;
   const keukenlijst = dataMatchIt.map(resident => ({...resident, kitchenSchedule: 'Week A', mealPreference: 'Halal'}));
   const noordData = dataMatchIt.filter(resident => resident.room?.startsWith('1'));
@@ -289,7 +392,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Calculate bed occupancy - include all rooms from config
   const bedOccupancy: BedOccupancy[] = [];
   
-  // Create a simple occupancy calculation
+  // Create a simple occupancy calculation - OUT residents already excluded
   const roomOccupancy = dataMatchIt.reduce((acc, resident) => {
     if (resident.room) {
       if (!acc[resident.room]) {
@@ -457,7 +560,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addMultipleToDataMatchIt,
     updateInDataMatchIt,
     deleteFromDataMatchIt,
+    moveToOutAndDelete,
     clearAllData,
+    outResidents,
+    syncOutResidents,
     isConnectedToDb,
     lastApiCall,
     apiCallHistory,

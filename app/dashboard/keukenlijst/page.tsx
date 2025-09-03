@@ -226,25 +226,6 @@ export default function KeukenlijstPage() {
                     </td>
                     <td className="px-3 py-3 text-sm text-gray-900 dark:text-gray-100">
                       {(() => {
-                        // Get day after tomorrow's date for filtering room remarks
-                        const today = new Date();
-                        const dayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
-                        const targetDate = dayAfterTomorrow.toISOString().split('T')[0];
-                        
-                        // Extract room-specific remarks for the target date (same logic as afspraken)
-                        let roomRemarkText = '';
-                        if (resident.roomRemarks && resident.roomRemarks.trim() !== '') {
-                          const remarkParts = resident.roomRemarks.split('|');
-                          if (remarkParts.length === 2) {
-                            const appointmentDate = remarkParts[0];
-                            const appointmentText = remarkParts[1];
-                            // Show only remarks for day after tomorrow
-                            if (appointmentDate === targetDate) {
-                              roomRemarkText = appointmentText;
-                            }
-                          }
-                        }
-                        
                         // Check if this resident is being edited
                         const isEditing = editingRemarks[resident.id] !== undefined;
                         
@@ -263,11 +244,7 @@ export default function KeukenlijstPage() {
                             />
                             <button
                               onClick={() => {
-                                const newRemark = editingRemarks[resident.id] || '';
-                                const dayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
-                                const targetDate = dayAfterTomorrow.toISOString().split('T')[0];
-                                const roomRemarkData = newRemark ? `${targetDate}|${newRemark}` : '';
-                                updateInDataMatchIt(resident.id, { roomRemarks: roomRemarkData });
+                                handleRemarksSave(resident.id);
                                 
                                 // Remove from editing state
                                 const newEditing = { ...editingRemarks };
@@ -294,14 +271,14 @@ export default function KeukenlijstPage() {
                             onClick={() => {
                               setEditingRemarks({
                                 ...editingRemarks,
-                                [resident.id]: roomRemarkText || ''
+                                [resident.id]: resident.remarks || ''
                               });
                             }}
                             className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded min-h-[24px]"
                           >
-                            {roomRemarkText ? (
+                            {resident.remarks ? (
                               <span className="bg-yellow-300 dark:bg-yellow-900 px-2 py-1 text-xs font-medium rounded text-blue-800 dark:text-blue-200">
-                                {roomRemarkText}
+                                {resident.remarks}
                               </span>
                             ) : (
                               <span className="text-gray-400 text-xs">Klik om opmerking toe te voegen</span>
@@ -417,62 +394,10 @@ export default function KeukenlijstPage() {
                 padding: '1px', 
                 textAlign: 'left', 
                 fontSize: '7px', 
-                backgroundColor: (() => {
-                  // Get day after tomorrow's date for filtering room remarks
-                  const today = new Date();
-                  const dayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
-                  const targetDate = dayAfterTomorrow.toISOString().split('T')[0];
-                  
-                  // Extract room-specific remarks for the target date
-                  if (resident.roomRemarks && resident.roomRemarks.trim() !== '') {
-                    const remarkParts = resident.roomRemarks.split('|');
-                    if (remarkParts.length === 2) {
-                      const appointmentDate = remarkParts[0];
-                      if (appointmentDate === targetDate) {
-                        return '#FDE047'; // Yellow background matching screen version (yellow-300)
-                      }
-                    }
-                  }
-                  return 'transparent';
-                })(),
-                color: (() => {
-                  // Get day after tomorrow's date for filtering room remarks
-                  const today = new Date();
-                  const dayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
-                  const targetDate = dayAfterTomorrow.toISOString().split('T')[0];
-                  
-                  // Check if has room remarks for target date
-                  if (resident.roomRemarks && resident.roomRemarks.trim() !== '') {
-                    const remarkParts = resident.roomRemarks.split('|');
-                    if (remarkParts.length === 2) {
-                      const appointmentDate = remarkParts[0];
-                      if (appointmentDate === targetDate) {
-                        return '#1E40AF'; // Blue text matching screen version (blue-800)
-                      }
-                    }
-                  }
-                  return 'black';
-                })()
+                backgroundColor: resident.remarks ? '#FDE047' : 'transparent',
+                color: resident.remarks ? '#1E40AF' : 'black'
               }}>
-                {(() => {
-                  // Get day after tomorrow's date for filtering room remarks
-                  const today = new Date();
-                  const dayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
-                  const targetDate = dayAfterTomorrow.toISOString().split('T')[0];
-                  
-                  // Extract room-specific remarks for the target date
-                  if (resident.roomRemarks && resident.roomRemarks.trim() !== '') {
-                    const remarkParts = resident.roomRemarks.split('|');
-                    if (remarkParts.length === 2) {
-                      const appointmentDate = remarkParts[0];
-                      const appointmentText = remarkParts[1];
-                      if (appointmentDate === targetDate) {
-                        return appointmentText;
-                      }
-                    }
-                  }
-                  return '';
-                })()}
+                {resident.remarks || '-'}
               </td>
               <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.ontbijt ? '✓' : ''}</td>
               <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.middag ? '✓' : ''}</td>

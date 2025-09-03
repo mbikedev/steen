@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { Calendar, MapPin, Users, MessageSquare, Clock } from 'lucide-react';
+import { Calendar, MapPin, Users, MessageSquare, Clock, Trash2 } from 'lucide-react';
 import { useData } from "../../../lib/DataContextDebug";
 import { formatDate } from '../../../lib/utils';
 
@@ -148,6 +148,11 @@ export default function AfsprakenPage() {
   const addAppointment = (residentId: number, appointmentText: string) => {
     const appointmentData = `${selectedDate}|${appointmentText}`;
     updateInDataMatchIt(residentId, { roomRemarks: appointmentData });
+  };
+
+  // Function to delete appointment
+  const deleteAppointment = (residentId: number) => {
+    updateInDataMatchIt(residentId, { roomRemarks: '' });
   };
 
   // Get formatted dates
@@ -318,6 +323,21 @@ export default function AfsprakenPage() {
                             </span>
                           </div>
                         </div>
+                      </div>
+                      <div className="flex-shrink-0 ml-4">
+                        <button
+                          onClick={() => {
+                            if (window.confirm('Weet je zeker dat je deze afspraak wilt verwijderen?')) {
+                              // Extract resident ID from the item id (format: "residentId-room-date")
+                              const residentId = parseInt(item.id.split('-')[0]);
+                              deleteAppointment(residentId);
+                            }
+                          }}
+                          className="inline-flex items-center p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors duration-200"
+                          title="Afspraak verwijderen"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   </div>

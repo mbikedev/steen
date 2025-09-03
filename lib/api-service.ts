@@ -97,15 +97,38 @@ async function apiCall<T = any>(
     if (!response.ok) {
       // Try to get error details from response
       let errorMessage = `HTTP error! status: ${response.status}`;
+      
+      // Clone the response so we can read it multiple times if needed
+      const responseClone = response.clone();
+      
       try {
         const errorData = await response.json();
         errorMessage = errorData.error || errorData.message || errorMessage;
         console.error('🚨 API Error Details:', errorData);
       } catch (e) {
-        // Response might not be JSON
-        const errorText = await response.text();
-        console.error('🚨 API Error Response:', errorText);
-        if (errorText) errorMessage = errorText;
+        // Response might not be JSON, try reading as text
+        try {
+          const errorText = await responseClone.text();
+          if (errorText && errorText.trim() !== '') {
+            console.error('🚨 API Error Response:', errorText);
+            // Only use error text if it's not HTML (like error pages)
+            if (!errorText.includes('<!DOCTYPE') && !errorText.includes('<html')) {
+              errorMessage = errorText;
+            }
+          } else {
+            console.warn('⚠️ Empty error response from server');
+            // Provide more context based on status code
+            if (response.status === 404) {
+              errorMessage = 'API endpoint not found. The server endpoint may not be deployed.';
+            } else if (response.status === 500) {
+              errorMessage = 'Server error. Please try again later.';
+            } else if (response.status === 403) {
+              errorMessage = 'Access forbidden. Check API permissions.';
+            }
+          }
+        } catch (textError) {
+          console.error('🚨 Could not read error response:', textError);
+        }
       }
       throw new Error(errorMessage);
     }
@@ -139,8 +162,12 @@ async function apiCall<T = any>(
       return data;
     } catch (jsonError) {
       console.error('Failed to parse JSON:', jsonError);
-      const text = await response.text();
-      console.log('Response that failed to parse:', text.substring(0, 500));
+      // Can't read the text since body is already consumed
+      console.log('Response headers:', {
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length'),
+        status: response.status
+      });
       return {
         success: false,
         error: 'Failed to parse server response'
@@ -154,6 +181,34 @@ async function apiCall<T = any>(
     };
   }
 }
+
+// OUT Residents API
+export const outResidentsApi = {
+  // Get all OUT residents
+  async getAll(): Promise<ApiResponse<ResidentData[]>> {
+    return apiCall<ResidentData[]>('?endpoint=out-residents');
+  },
+
+  // Get single OUT resident
+  async getById(id: number): Promise<ApiResponse<ResidentData>> {
+    return apiCall<ResidentData>(`?endpoint=out-residents&id=${id}`);
+  },
+
+  // Move resident from main table to OUT table
+  async moveToOut(residentId: number): Promise<ApiResponse<ResidentData>> {
+    return apiCall<ResidentData>('?endpoint=out-residents', {
+      method: 'POST',
+      body: JSON.stringify({ residentId }),
+    });
+  },
+
+  // Delete OUT resident permanently
+  async delete(id: number): Promise<ApiResponse> {
+    return apiCall(`?endpoint=out-residents&id=${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
 
 // Residents API
 export const residentsApi = {
@@ -235,30 +290,89 @@ export const roomsApi = {
 
 // Staff Assignments API (Toewijzingen)
 export const staffAssignmentsApi = {
-  // Get all assignments
+  // Get all assignments for a specific date
   async getAll(date?: string): Promise<ApiResponse> {
-    const endpoint = date ? `staff-assignments.php?date=${date}` : 'staff-assignments.php';
+    const endpoint = date 
+      ? `?endpoint=staff-assignments&date=${date}` 
+      : '?endpoint=staff-assignments';
     return apiCall(endpoint);
   },
 
-  // Create or update assignment
-  async upsert(assignment: {
-    residentId: number;
-    staffName: string;
-    assignmentType?: string;
-    colorCode?: string;
-    position?: { row: number; col: number };
+  // Create new assignment
+  async create(assignment: {
+    resident_id: number;
+    staff_name: string;
+    assignment_date: string;
+    assignment_type?: string;
+    color_code?: string;
+    position_row?: number;
+    position_col?: number;
+    notes?: string;
   }): Promise<ApiResponse> {
-    return apiCall('staff-assignments.php', {
+    return apiCall('?endpoint=staff-assignments', {
       method: 'POST',
       body: JSON.stringify(assignment),
     });
   },
 
-  // Delete assignment
+  // Update existing assignment
+  async update(id: number, updates: {
+    staff_name?: string;
+    assignment_date?: string;
+    assignment_type?: string;
+    color_code?: string;
+    position_row?: number;
+    position_col?: number;
+    notes?: string;
+    status?: string;
+  }): Promise<ApiResponse> {
+    return apiCall('?endpoint=staff-assignments', {
+      method: 'PUT',
+      body: JSON.stringify({ id, ...updates }),
+    });
+  },
+
+  // Delete assignment (soft delete)
   async delete(id: number): Promise<ApiResponse> {
-    return apiCall(`staff-assignments.php?id=${id}`, {
+    return apiCall(`?endpoint=staff-assignments&id=${id}`, {
       method: 'DELETE',
+    });
+  },
+
+  // Bulk save assignments from table data
+  async saveBulk(tableData: Array<Array<{text: string; color: string; type: string}>>, 
+                 assignmentDate: string, 
+                 staffNames: string[]): Promise<ApiResponse> {
+    const assignments: any[] = [];
+    
+    // Convert table data to assignment records
+    tableData.forEach((row, rowIndex) => {
+      row.forEach((cell, colIndex) => {
+        if (cell.text.trim() && colIndex < staffNames.length) {
+          // Try to find resident by name
+          const residentName = cell.text.trim();
+          
+          assignments.push({
+            resident_name: residentName,
+            staff_name: staffNames[colIndex],
+            assignment_date: assignmentDate,
+            assignment_type: cell.color === 'red' ? 'meerderjarig' : 
+                           cell.color === 'blue' ? 'transfer' : 'regular',
+            color_code: cell.color,
+            position_row: rowIndex,
+            position_col: colIndex,
+            notes: cell.type
+          });
+        }
+      });
+    });
+
+    return apiCall('?endpoint=staff-assignments', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        action: 'bulk_save',
+        assignments: assignments 
+      }),
     });
   },
 };
@@ -512,6 +626,7 @@ export async function testDatabaseConnection(): Promise<boolean> {
 
 export default {
   residents: residentsApi,
+  outResidents: outResidentsApi,
   rooms: roomsApi,
   staffAssignments: staffAssignmentsApi,
   mealSchedules: mealSchedulesApi,

@@ -286,14 +286,14 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                   <h2 className="text-2xl font-bold">
                     {resident.firstName} {resident.lastName}
                   </h2>
-                  <div className="flex items-center space-x-4 mt-1 text-blue-100">
-                    <span className="flex items-center">
+                  <div className="flex items-center space-x-4 mt-1">
+                    <span className="flex items-center bg-white/20 backdrop-blur-sm px-3 py-1 rounded-lg text-white">
                       <Hash className="w-4 h-4 mr-1" />
-                      Badge: {resident.badge}
+                      Badge: <span className="text-yellow-300 font-semibold ml-1">{resident.badge}</span>
                     </span>
-                    <span className="flex items-center">
+                    <span className="flex items-center bg-white/20 backdrop-blur-sm px-3 py-1 rounded-lg text-white">
                       <MapPin className="w-4 h-4 mr-1" />
-                      Kamer: {resident.room || 'Niet toegewezen'}
+                      Kamer: <span className="text-green-300 font-semibold ml-1">{resident.room || 'Niet toegewezen'}</span>
                     </span>
                   </div>
                 </div>
@@ -330,110 +330,11 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
               >
                 Documenten ({documents.length})
               </button>
-              <button
-                onClick={() => setActiveTab('required')}
-                className={`py-3 border-b-2 transition-colors ${
-                  activeTab === 'required'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Verplichte Documenten
-              </button>
             </div>
           </div>
 
           {/* Content */}
           <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
-            {activeTab === 'required' && (
-              <div>
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-                  Verplichte Documenten Checklist
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Fedasil Documents */}
-                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-                    <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-3">
-                      Fedasil Documenten
-                    </h4>
-                    <div className="space-y-2">
-                      <label className="flex items-center space-x-2">
-                        <input type="checkbox" 
-                          checked={documents.some(d => d.documentType === 'bijlage26')}
-                          readOnly
-                          className="rounded text-purple-600"
-                        />
-                        <span className={documents.some(d => d.documentType === 'bijlage26') ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}>
-                          Bijlage 26
-                        </span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input type="checkbox"
-                          checked={documents.some(d => d.documentType === 'toewijzing')}
-                          readOnly
-                          className="rounded text-purple-600"
-                        />
-                        <span className={documents.some(d => d.documentType === 'toewijzing') ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}>
-                          Toewijzing
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Identity Documents */}
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">
-                      Identiteitsdocumenten
-                    </h4>
-                    <div className="space-y-2">
-                      <label className="flex items-center space-x-2">
-                        <input type="checkbox"
-                          checked={documents.some(d => d.documentType === 'passport')}
-                          readOnly
-                          className="rounded text-blue-600"
-                        />
-                        <span className={documents.some(d => d.documentType === 'passport') ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}>
-                          Paspoort
-                        </span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input type="checkbox"
-                          checked={documents.some(d => d.documentType === 'geboorteakte')}
-                          readOnly
-                          className="rounded text-blue-600"
-                        />
-                        <span className={documents.some(d => d.documentType === 'geboorteakte') ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}>
-                          Geboorte Akte
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Document Summary */}
-                <div className="mt-6 bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                        Documentenvolledigheid Status
-                      </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {documents.filter(d => ['bijlage26', 'toewijzing', 'passport', 'geboorteakte'].includes(d.documentType || '')).length} van 4 verplichte documenten geüpload
-                      </p>
-                    </div>
-                    <div className="text-3xl font-bold text-blue-600">
-                      {Math.round((documents.filter(d => ['bijlage26', 'toewijzing', 'passport', 'geboorteakte'].includes(d.documentType || '')).length / 4) * 100)}%
-                    </div>
-                  </div>
-                  <div className="mt-3 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${(documents.filter(d => ['bijlage26', 'toewijzing', 'passport', 'geboorteakte'].includes(d.documentType || '')).length / 4) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
 
             {activeTab === 'overview' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

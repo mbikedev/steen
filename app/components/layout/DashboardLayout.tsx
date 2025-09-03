@@ -26,11 +26,13 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useData } from "../../../lib/DataContextDebug";
+import { useAuth } from "../../../lib/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "../ui/dropdown-menu";
 
 interface DashboardLayoutProps {
@@ -69,6 +71,7 @@ export default function DashboardLayout({ children, className }: DashboardLayout
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { bewonerslijst, dataMatchIt } = useData();
+  const { user, logout } = useAuth();
   
   // Memoize combined residents data and deduplicate by badge to prevent duplicate keys
   const allResidents = useMemo(() => {
@@ -124,7 +127,7 @@ export default function DashboardLayout({ children, className }: DashboardLayout
   
   // Auto-expand Data-Match-It dropdown when on related page
   useEffect(() => {
-    if (pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst') {
+    if (pathname === '/dashboard/data-match-it' || pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst') {
       setDataMatchItOpen(true);
     }
     if (pathname === '/dashboard/noord' || pathname === '/dashboard/zuid') {
@@ -230,18 +233,29 @@ export default function DashboardLayout({ children, className }: DashboardLayout
             
             {/* Data-Match-It Dropdown */}
             <div className="space-y-1">
-              <button
-                onClick={() => setDataMatchItOpen(!dataMatchItOpen)}
-                className={`group flex items-center w-full px-2 py-2 text-sm font-medium rounded-md transition-colors ${
-                  pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst'
-                    ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
-                }`}
-              >
-                <Users className="mr-3 h-5 w-5" />
-                DATA-MATCH-IT
-                <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${dataMatchItOpen ? 'rotate-180' : ''}`} />
-              </button>
+              <div className="flex items-center">
+                <Link
+                  href="/dashboard/data-match-it"
+                  className={`group flex items-center flex-1 px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                    pathname === '/dashboard/data-match-it' || pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst'
+                      ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                  }`}
+                >
+                  <Users className="mr-3 h-5 w-5" />
+                  DATA-MATCH-IT
+                </Link>
+                <button
+                  onClick={() => setDataMatchItOpen(!dataMatchItOpen)}
+                  className={`p-2 text-sm rounded-md transition-colors ${
+                    pathname === '/dashboard/data-match-it' || pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst'
+                      ? 'text-blue-900 dark:text-blue-100'
+                      : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
+                  }`}
+                >
+                  <ChevronDown className={`h-4 w-4 transition-transform ${dataMatchItOpen ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
               {dataMatchItOpen && (
                 <div className="ml-6 space-y-1">
                   {dataMatchItItems.map((item) => {
@@ -361,18 +375,29 @@ export default function DashboardLayout({ children, className }: DashboardLayout
             
             {/* Data-Match-It Dropdown */}
             <div className="space-y-2">
-              <button
-                onClick={() => setDataMatchItOpen(!dataMatchItOpen)}
-                className={`group flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
-                  pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
-                }`}
-              >
-                <Users className={`mr-3 h-5 w-5 transition-colors ${pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst' ? 'text-white' : 'text-current'}`} />
-                DATA-MATCH-IT
-                <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${dataMatchItOpen ? 'rotate-180' : ''} ${pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst' ? 'text-white' : 'text-current'}`} />
-              </button>
+              <div className="flex items-center">
+                <Link
+                  href="/dashboard/data-match-it"
+                  className={`group flex items-center flex-1 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                    pathname === '/dashboard/data-match-it' || pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
+                  }`}
+                >
+                  <Users className={`mr-3 h-5 w-5 transition-colors ${pathname === '/dashboard/data-match-it' || pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst' ? 'text-white' : 'text-current'}`} />
+                  DATA-MATCH-IT
+                </Link>
+                <button
+                  onClick={() => setDataMatchItOpen(!dataMatchItOpen)}
+                  className={`p-2.5 text-sm rounded-xl transition-all duration-200 ${
+                    pathname === '/dashboard/data-match-it' || pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst'
+                      ? 'text-white'
+                      : 'text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white'
+                  }`}
+                >
+                  <ChevronDown className={`h-4 w-4 transition-transform ${dataMatchItOpen ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
               {dataMatchItOpen && (
                 <div className="ml-6 space-y-1">
                   {dataMatchItItems.map((item) => {
@@ -528,36 +553,43 @@ export default function DashboardLayout({ children, className }: DashboardLayout
             </div>
             <div className="flex items-center space-x-3">
               {mounted && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="relative p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105">
-                      {theme === 'dark' ? (
-                        <Moon className="h-5 w-5 text-blue-500" />
-                      ) : (
-                        <Sun className="h-5 w-5 text-yellow-500" />
-                      )}
-                      <span className="sr-only">Toggle theme</span>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-36">
-                    <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer">
-                      <Sun className="mr-2 h-4 w-4" />
-                      Light
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer">
-                      <Moon className="mr-2 h-4 w-4" />
-                      Dark
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <button 
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="relative p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105"
+                >
+                  {theme === 'dark' ? (
+                    <Moon className="h-5 w-5 text-blue-500" />
+                  ) : (
+                    <Sun className="h-5 w-5 text-yellow-500" />
+                  )}
+                  <span className="sr-only">Toggle theme</span>
+                </button>
               )}
               <button className="relative p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200">
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-gradient-to-r from-red-400 to-pink-500 ring-2 ring-white dark:ring-gray-800 animate-pulse" />
               </button>
-              <button className="flex items-center text-sm text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200">
-                <UserCircle className="h-7 w-7" />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center text-sm text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200">
+                    <UserCircle className="h-7 w-7" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {user?.name || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {user?.email || 'user@example.com'}
+                    </p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => logout()} className="cursor-pointer text-red-600 dark:text-red-400">
+                    Uitloggen
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

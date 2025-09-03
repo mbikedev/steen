@@ -5,6 +5,7 @@ import { Home, Search, Save, X, Edit2, Upload, FileText, Trash2 } from 'lucide-r
 import { useRouter } from 'next/navigation';
 import { useData } from "../../../lib/DataContextDebug";
 import * as XLSX from 'xlsx';
+import { staffAssignmentsApi } from "../../../lib/api-service";
 
 export default function ToewijzingenPage() {
   const router = useRouter();
@@ -18,6 +19,11 @@ export default function ToewijzingenPage() {
   const [uploadStatus, setUploadStatus] = useState<{type: 'success' | 'error' | 'info' | null, message: string}>({type: null, message: ''});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedCell, setSelectedCell] = useState<{row: number, col: number} | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<{type: 'success' | 'error' | null, message: string}>({type: null, message: ''});
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Create template structure matching the PDF exactly
   const getDefaultTableData = () => {
@@ -58,6 +64,15 @@ export default function ToewijzingenPage() {
   // Initialize with default data, load from localStorage after mount
   const [bottomData, setBottomData] = useState(getDefaultBottomData);
 
+  // Cleanup auto-save timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, []);
+
   // Handle hydration and load saved data
   useEffect(() => {
     setIsMounted(true);
@@ -87,6 +102,8 @@ export default function ToewijzingenPage() {
     } catch (error) {
       console.error('Error loading saved data:', error);
     }
+
+    // Load from database will be called after functions are defined
   }, []);
 
   // Ensure table has the desired number of rows/columns even if old data is loaded
@@ -342,7 +359,8 @@ export default function ToewijzingenPage() {
       const workbook = XLSX.read(data, { 
         type: 'array',
         cellText: false,
-        cellDates: true
+        cellDates: true,
+        cellStyles: true // Enable reading of cell styles including colors
       });
       
       console.log('📊 Excel workbook loaded:', { 
@@ -370,7 +388,7 @@ export default function ToewijzingenPage() {
       const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
       console.log('📋 Sheet range:', range);
       
-      // Extract all data including empty cells
+      // Extract all data including empty cells and colors
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
         header: 1, 
         raw: false,
@@ -378,14 +396,144 @@ export default function ToewijzingenPage() {
         range: range
       });
 
+      // Extract cell colors and styles
+      const cellColors: { [key: string]: string } = {};
+      const sheetRange = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+      
+      console.log('🔍 Debugging cell styles extraction...');
+      let cellsWithStyles = 0;
+      let totalCells = 0;
+      
+      for (let row = sheetRange.s.r; row <= sheetRange.e.r; row++) {
+        for (let col = sheetRange.s.c; col <= sheetRange.e.c; col++) {
+          const cellRef = XLSX.utils.encode_cell({ c: col, r: row });
+          const cell = worksheet[cellRef];
+          totalCells++;
+          
+          if (cell) {
+            console.log(`Cell ${cellRef}:`, {
+              value: cell.v,
+              hasStyles: !!cell.s,
+              styles: cell.s,
+              fill: cell.s?.fill
+            });
+            
+            if (cell.s) cellsWithStyles++;
+          }
+          
+          if (cell && cell.s) {
+            let bgColor = 'white';
+            
+            // Check different ways Excel stores colors
+            if (cell.s.fill && cell.s.fill.bgColor) {
+              const fill = cell.s.fill;
+              // RGB color
+              if (fill.bgColor.rgb) {
+                bgColor = `#${fill.bgColor.rgb}`;
+              } else if (fill.bgColor.indexed !== undefined) {
+                // Indexed color - map common Excel colors
+                const colorMap: { [key: number]: string } = {
+                  2: '#FFFFFF', // white
+                  3: '#FF0000', // red
+                  4: '#00FF00', // green
+                  5: '#0000FF', // blue
+                  6: '#FFFF00', // yellow
+                  7: '#FF00FF', // magenta
+                  8: '#00FFFF', // cyan
+                  9: '#800000', // maroon
+                  10: '#008000', // dark green
+                  11: '#000080', // navy
+                  12: '#808000', // olive
+                  13: '#800080', // purple
+                  14: '#008080', // teal
+                  15: '#C0C0C0', // silver
+                  16: '#808080', // gray
+                  17: '#9999FF', // light blue
+                  18: '#993366', // dark pink
+                  19: '#FFFFCC', // light yellow
+                  20: '#CCFFFF', // light cyan
+                  21: '#660066', // dark purple
+                  22: '#FF8080', // light red
+                  23: '#0066CC', // medium blue
+                  24: '#CCCCFF', // very light blue
+                  25: '#000080', // dark blue
+                  26: '#FF00FF', // bright magenta
+                  27: '#FFFF00', // bright yellow
+                  28: '#00FFFF', // bright cyan
+                  29: '#800080', // dark magenta
+                  30: '#800000', // dark red
+                  31: '#008080', // dark cyan
+                  32: '#0000FF', // bright blue
+                  33: '#00CCFF', // sky blue
+                  34: '#CCFFFF', // pale cyan
+                  35: '#CCFFCC', // pale green
+                  36: '#FFFF99', // pale yellow
+                  37: '#99CCFF', // light blue
+                  38: '#FF99CC', // light pink
+                  39: '#CC99FF', // light purple
+                  40: '#FFCC99', // light orange
+                  41: '#3366FF', // medium blue
+                  42: '#33CCCC', // medium cyan
+                  43: '#99CC00', // lime green
+                  44: '#FFCC00', // orange
+                  45: '#FF9900', // dark orange
+                  46: '#FF6600', // red orange
+                  47: '#666699', // blue gray
+                  48: '#969696', // medium gray
+                  49: '#003366', // dark blue
+                  50: '#339966', // dark green
+                  51: '#003300', // very dark green
+                  52: '#333300', // very dark yellow
+                  53: '#993300', // dark red orange
+                  54: '#993366', // dark pink
+                  55: '#333399', // dark blue
+                  56: '#333333'  // very dark gray
+                };
+                bgColor = colorMap[fill.bgColor.indexed] || 'white';
+              }
+            } else if (cell.s.fill && cell.s.fill.fgColor) {
+              // Foreground color used as background in some Excel formats
+              const fill = cell.s.fill;
+              if (fill.fgColor.rgb) {
+                // Remove alpha channel if present (first 2 chars in 8-char hex)
+                const rgb = fill.fgColor.rgb;
+                bgColor = rgb.length === 8 ? `#${rgb.substring(2)}` : `#${rgb}`;
+              } else if (fill.fgColor.indexed !== undefined) {
+                const colorMap: { [key: number]: string } = {
+                  2: '#FFFFFF', 3: '#FF0000', 4: '#00FF00', 5: '#0000FF', 6: '#FFFF00',
+                  7: '#FF00FF', 8: '#00FFFF', 9: '#800000', 10: '#008000', 11: '#000080',
+                  12: '#808000', 13: '#800080', 14: '#008080', 15: '#C0C0C0', 16: '#808080',
+                  17: '#9999FF', 18: '#993366', 19: '#FFFFCC', 20: '#CCFFFF', 21: '#660066',
+                  22: '#FF8080', 23: '#0066CC', 24: '#CCCCFF'
+                };
+                bgColor = colorMap[fill.fgColor.indexed] || 'white';
+              }
+            }
+            
+            // Only store non-white colors
+            if (bgColor !== 'white' && bgColor !== '#FFFFFF') {
+              cellColors[cellRef] = bgColor;
+            }
+          }
+        }
+      }
+      
+      console.log('📊 Style extraction summary:', {
+        totalCells,
+        cellsWithStyles,
+        colorsExtracted: Object.keys(cellColors).length,
+        extractedColors: cellColors
+      });
+
       console.log('📊 Excel raw data:', { 
         totalRows: jsonData.length,
         firstFewRows: jsonData.slice(0, 3),
-        lastFewRows: jsonData.slice(-3)
+        lastFewRows: jsonData.slice(-3),
+        cellColors: Object.keys(cellColors).length > 0 ? cellColors : 'No colors found'
       });
       
-      // Parse Excel data into table format
-      const parsedData = parseExcelToToewijzingen(jsonData as string[][]);
+      // Parse Excel data into table format with colors
+      const parsedData = parseExcelToToewijzingen(jsonData as string[][], cellColors, worksheet);
       
       if (parsedData && parsedData.length > 0) {
         setTableData(parsedData);
@@ -395,6 +543,9 @@ export default function ToewijzingenPage() {
           message: `✅ Excel bestand ingeladen: ${parsedData.length} rijen, ${parsedData[0]?.length || 0} kolommen, ${filledCells} cellen met data`
         });
         console.log('✅ Table data updated from Excel');
+        
+        // Trigger auto-save after file upload
+        triggerAutoSave();
       } else {
         throw new Error('Geen geldige data gevonden in Excel bestand');
       }
@@ -498,8 +649,11 @@ export default function ToewijzingenPage() {
   };
 
   // Parse Excel data to Toewijzingen table format
-  const parseExcelToToewijzingen = (data: string[][]) => {
-    console.log('🔄 Parsing Excel data to Toewijzingen format...', { totalRows: data.length });
+  const parseExcelToToewijzingen = (data: string[][], cellColors: { [key: string]: string } = {}, worksheet?: any) => {
+    console.log('🔄 Parsing Excel data to Toewijzingen format...', { 
+      totalRows: data.length, 
+      colorsFound: Object.keys(cellColors).length 
+    });
     
     if (!data || data.length === 0) {
       throw new Error('Geen data gevonden in Excel bestand');
@@ -549,31 +703,65 @@ export default function ToewijzingenPage() {
           if (colIndex < templateCols) { // Always process within template columns
             const cellText = cell ? cell.toString().trim() : '';
             
-            // Only process non-empty cells
-            if (cellText) {
-              // Check if this is a resident name and if they're marked as Meerderjarig
-              let cellColor = 'white';
-              if (cellText && ageVerificationStatus) {
-                const resident = dataMatchIt.find(r => {
-                  const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
-                  const reversedName = `${r.lastName} ${r.firstName}`.toLowerCase();
-                  const textLower = cellText.toLowerCase();
-                  return fullName === textLower || reversedName === textLower || 
-                         fullName.includes(textLower) || reversedName.includes(textLower) ||
-                         textLower.includes(fullName) || textLower.includes(reversedName);
-                });
-                
-                if (resident && ageVerificationStatus[resident.badge.toString()] === 'Meerderjarig') {
-                  cellColor = 'red';
-                }
-              }
-              
-              newTableData[rowIndex][colIndex] = {
-                text: cellText,
-                color: cellColor,
-                type: ''
-              };
+            // Process both empty and filled cells to preserve colors from Excel
+            
+            // Get Excel cell reference accounting for potential header row offset
+            const actualRowIndex = dataRows === data ? rowIndex : rowIndex + 1; // Adjust if we skipped header
+            const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: actualRowIndex });
+            
+            // Start with imported color from Excel, default to white
+            let cellColor = cellColors[cellRef] || 'white';
+            
+            // Convert hex colors to CSS color names for consistency with existing logic
+            const colorMapping: { [key: string]: string } = {
+              '#FF0000': 'red',
+              '#FF8080': 'red',
+              '#FFCCCC': 'red',
+              '#00FF00': 'green',
+              '#00CC00': 'green',
+              '#CCFFCC': 'green',
+              '#0000FF': 'blue',
+              '#0080FF': 'blue',
+              '#CCCCFF': 'blue',
+              '#FFFF00': 'yellow',
+              '#FFFFCC': 'yellow',
+              '#FF9900': 'orange',
+              '#FFCC99': 'orange',
+              '#800080': 'purple',
+              '#CC99FF': 'purple',
+              '#808080': 'gray',
+              '#C0C0C0': 'gray',
+              '#CCCCCC': 'gray',
+              '#FFFFFF': 'white'
+            };
+            
+            // Convert hex color to named color if available
+            if (cellColor && cellColor.startsWith('#')) {
+              cellColor = colorMapping[cellColor.toUpperCase()] || cellColor;
             }
+            
+            // Only override with age verification status if no color was imported from Excel
+            if (cellText && (cellColor === 'white' || cellColor === '#FFFFFF') && ageVerificationStatus) {
+              const resident = dataMatchIt.find(r => {
+                const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
+                const reversedName = `${r.lastName} ${r.firstName}`.toLowerCase();
+                const textLower = cellText.toLowerCase();
+                return fullName === textLower || reversedName === textLower || 
+                       fullName.includes(textLower) || reversedName.includes(textLower) ||
+                       textLower.includes(fullName) || textLower.includes(reversedName);
+              });
+              
+              if (resident && ageVerificationStatus[resident.badge.toString()] === 'Meerderjarig') {
+                cellColor = 'red';
+              }
+            }
+            
+            // Always set the cell data, even for empty cells to preserve colors
+            newTableData[rowIndex][colIndex] = {
+              text: cellText,
+              color: cellColor,
+              type: ''
+            };
           }
         });
       }
@@ -673,6 +861,273 @@ export default function ToewijzingenPage() {
     }
   }, [tableData, isMounted]);
 
+  // Auto-save function with debouncing
+  const triggerAutoSave = () => {
+    if (!autoSaveEnabled) return;
+    
+    // Clear existing timer
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    
+    // Set new timer for auto-save (2 seconds debounce)
+    autoSaveTimerRef.current = setTimeout(() => {
+      handleSaveToDatabase(true); // true indicates auto-save
+    }, 2000);
+  };
+
+  // Save assignments to database
+  const handleSaveToDatabase = async (isAutoSave = false) => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    if (!isAutoSave) {
+      setSaveStatus({type: null, message: ''});
+    }
+    
+    try {
+      console.log('💾 Saving toewijzingen to database...');
+      
+      // Get current date for assignments
+      const assignmentDate = new Date().toISOString().split('T')[0];
+      
+      // Get staff names from staffColumns
+      const staffNames = staffColumns.map(col => col.name);
+      
+      console.log('📋 Table data to save:', { 
+        rows: tableData.length, 
+        cols: tableData[0]?.length,
+        staffNames: staffNames.length 
+      });
+      
+      // Count non-empty assignments
+      let assignmentCount = 0;
+      tableData.forEach((row) => {
+        row.forEach((cell) => {
+          if (cell.text.trim()) {
+            assignmentCount++;
+          }
+        });
+      });
+
+      console.log(`📊 Found ${assignmentCount} assignments to save`);
+
+      // Try API first, but provide fallback
+      try {
+        const result = await staffAssignmentsApi.saveBulk(tableData, assignmentDate, staffNames);
+        
+        if (result.success) {
+          // Check if we got proper response data
+          if (result.data && typeof result.data === 'object' && 'successful' in result.data) {
+            // Real database save worked
+            setSaveStatus({
+              type: 'success', 
+              message: isAutoSave 
+                ? `✅ Auto-saved: ${result.data.successful} assignments`
+                : `✅ Saved to database: ${result.data.successful} assignments`
+            });
+            setLastAutoSave(new Date());
+            console.log('✅ Database save successful:', result.data);
+            
+            if (result.data.errors > 0) {
+              console.warn('⚠️ Some assignments had errors:', result.data.error_details);
+            }
+          } else {
+            // API responded success but wrong format - likely missing endpoint
+            console.warn('⚠️ API responded but with wrong format. Endpoint may not be deployed:', result);
+            throw new Error('API endpoint not properly deployed - falling back to localStorage');
+          }
+        } else {
+          throw new Error(result.message || 'API call failed');
+        }
+      } catch (apiError) {
+        console.warn('⚠️ Database API not available, using localStorage backup:', apiError);
+        
+        // Fallback: enhanced localStorage save with database-like structure
+        const assignmentData = {
+          assignments: [],
+          assignmentDate,
+          savedAt: new Date().toISOString(),
+          metadata: {
+            totalAssignments: assignmentCount,
+            staffNames: staffNames,
+            tableStructure: {
+              rows: tableData.length,
+              cols: tableData[0]?.length
+            }
+          }
+        };
+
+        // Convert table data to assignment-like structure
+        tableData.forEach((row, rowIndex) => {
+          row.forEach((cell, colIndex) => {
+            if (cell.text.trim() && colIndex < staffNames.length) {
+              assignmentData.assignments.push({
+                id: `${rowIndex}-${colIndex}-${Date.now()}`,
+                resident_name: cell.text.trim(),
+                staff_name: staffNames[colIndex],
+                assignment_date: assignmentDate,
+                assignment_type: cell.color === 'red' ? 'meerderjarig' : 
+                               cell.color === 'blue' ? 'transfer' : 'regular',
+                color_code: cell.color,
+                position_row: rowIndex,
+                position_col: colIndex,
+                notes: cell.type,
+                created_at: new Date().toISOString()
+              });
+            }
+          });
+        });
+
+        // Save to localStorage with database-like key
+        localStorage.setItem('toewijzingen_database_backup', JSON.stringify(assignmentData));
+        
+        setSaveStatus({
+          type: 'success',
+          message: isAutoSave 
+            ? `✅ Auto-saved locally: ${assignmentCount} assignments`
+            : `✅ Saved locally: ${assignmentCount} assignments (Database unavailable, using backup storage)`
+        });
+        setLastAutoSave(new Date());
+        
+        console.log('📁 Saved to localStorage backup:', assignmentData);
+      }
+      
+    } catch (error) {
+      console.error('❌ Save error:', error);
+      // Only show error message for manual saves, not auto-saves
+      if (!isAutoSave) {
+        setSaveStatus({
+          type: 'error',
+          message: `❌ Save failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+      } else {
+        // For auto-save, just log the error silently
+        console.log('Auto-save failed silently, will retry on next change');
+      }
+    } finally {
+      setIsSaving(false);
+      // Clear status after 5 seconds
+      if (!isAutoSave) {
+        setTimeout(() => setSaveStatus({type: null, message: ''}), 5000);
+      }
+    }
+  };
+
+  // Load assignments from database
+  const handleLoadFromDatabase = async () => {
+    try {
+      console.log('📥 Loading toewijzingen from database...');
+      setSaveStatus({type: null, message: 'Loading from database...'});
+      
+      const assignmentDate = new Date().toISOString().split('T')[0];
+      
+      try {
+        // Try API first
+        const result = await staffAssignmentsApi.getAll(assignmentDate);
+        
+        if (result.success && result.data?.assignments) {
+          // Convert database assignments back to table format
+          const newTableData = getDefaultTableData();
+          const staffNames = staffColumns.map(col => col.name);
+          
+          result.data.assignments.forEach((assignment: any) => {
+            const staffIndex = staffNames.findIndex(name => name === assignment.staff_name);
+            const row = assignment.position_row;
+            const col = assignment.position_col;
+            
+            if (staffIndex !== -1 && row !== null && col !== null && 
+                row < newTableData.length && col < newTableData[0].length) {
+              newTableData[row][col] = {
+                text: `${assignment.first_name} ${assignment.last_name}`.trim(),
+                color: assignment.color_code || 'white',
+                type: assignment.assignment_type || ''
+              };
+            }
+          });
+          
+          setTableData(newTableData);
+          setSaveStatus({
+            type: 'success',
+            message: `✅ Loaded ${result.data.assignments.length} assignments from database`
+          });
+          console.log('✅ Database load successful:', result.data);
+          
+        } else {
+          throw new Error('No assignments found in database');
+        }
+      } catch (apiError) {
+        console.warn('⚠️ Database API not available, trying localStorage backup:', apiError);
+        
+        // Fallback: try to load from localStorage backup
+        const backupData = localStorage.getItem('toewijzingen_database_backup');
+        
+        if (backupData) {
+          const parsed = JSON.parse(backupData);
+          console.log('📁 Found localStorage backup:', parsed);
+          
+          // Convert backup assignments back to table format
+          const newTableData = getDefaultTableData();
+          const staffNames = staffColumns.map(col => col.name);
+          
+          parsed.assignments.forEach((assignment: any) => {
+            const row = assignment.position_row;
+            const col = assignment.position_col;
+            
+            if (row !== null && col !== null && 
+                row < newTableData.length && col < newTableData[0].length) {
+              newTableData[row][col] = {
+                text: assignment.resident_name || '',
+                color: assignment.color_code || 'white',
+                type: assignment.assignment_type || ''
+              };
+            }
+          });
+          
+          setTableData(newTableData);
+          setSaveStatus({
+            type: 'success',
+            message: `✅ Loaded ${parsed.assignments.length} assignments from local backup (Database unavailable)`
+          });
+          console.log('✅ Backup load successful');
+          
+        } else {
+          setSaveStatus({
+            type: 'error',
+            message: '❌ No assignments found in database or local backup'
+          });
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ Load error:', error);
+      setSaveStatus({
+        type: 'error',
+        message: `❌ Load failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    } finally {
+      // Clear status after 5 seconds
+      setTimeout(() => setSaveStatus({type: null, message: ''}), 5000);
+    }
+  };
+
+  // Auto-load from database when component is ready - DISABLED
+  // Commenting out auto-load to prevent overwriting local data
+  // Users can manually load from DB if needed
+  // useEffect(() => {
+  //   if (isMounted) {
+  //     // Try to load latest data from database after a delay
+  //     const timeoutId = setTimeout(() => {
+  //       if (navigator.onLine) {
+  //         console.log('🔄 Auto-loading from database...');
+  //         handleLoadFromDatabase();
+  //       }
+  //     }, 2000); // Load from DB after 2 second delay
+  //     
+  //     return () => clearTimeout(timeoutId);
+  //   }
+  // }, [isMounted]);
+
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem('toewijzingen_staffColumns', JSON.stringify(staffColumns));
@@ -748,6 +1203,9 @@ export default function ToewijzingenPage() {
       setTableData(newData);
       
       console.log('TableData updated, new data length:', newData.length);
+      
+      // Trigger auto-save after cell change
+      triggerAutoSave();
 
       // Handle adding resident to IB column
       if (editValue.trim() && editingCell.col < dynamicStaffColumns.length) {
@@ -876,6 +1334,9 @@ export default function ToewijzingenPage() {
     
     setTableData(newData);
     console.log('✅ Cell deleted and table updated');
+    
+    // Trigger auto-save after delete
+    triggerAutoSave();
   };
 
   // Clear all cell contents while preserving template structure
@@ -902,6 +1363,9 @@ export default function ToewijzingenPage() {
       localStorage.removeItem('toewijzingen_bottomData');
       
       console.log('✅ All cells cleared, localStorage cleared, and template structure restored');
+      
+      // Trigger auto-save after clear all
+      triggerAutoSave();
     }
   };
 
@@ -920,6 +1384,9 @@ export default function ToewijzingenPage() {
     const newStaff = [...staffColumns];
     newStaff[index][field] = value as string;
     setStaffColumns(newStaff);
+    
+    // Trigger auto-save after staff change
+    triggerAutoSave();
   };
 
   // Handle bottom section editing - each cell belongs to its referentiepersoon group
@@ -927,6 +1394,9 @@ export default function ToewijzingenPage() {
     const newData = { ...bottomData };
     newData[section][index] = value;
     setBottomData(newData);
+    
+    // Trigger auto-save after bottom data change
+    triggerAutoSave();
   };
 
   // Get cell background class based on PDF color attributions
@@ -960,7 +1430,7 @@ export default function ToewijzingenPage() {
       }
     }
     
-    // Use PDF color attributions
+    // Use imported Excel colors or PDF color attributions
     switch(color.toLowerCase()) {
       case 'red': 
         return 'bg-red-500 text-white hover:bg-red-600 transition-colors duration-200';
@@ -968,6 +1438,14 @@ export default function ToewijzingenPage() {
         return 'bg-gray-500 text-white hover:bg-gray-600 transition-colors duration-200';
       case 'blue': 
         return 'bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200';
+      case 'green':
+        return 'bg-green-500 text-white hover:bg-green-600 transition-colors duration-200';
+      case 'yellow':
+        return 'bg-yellow-400 text-black hover:bg-yellow-500 transition-colors duration-200';
+      case 'orange':
+        return 'bg-orange-500 text-white hover:bg-orange-600 transition-colors duration-200';
+      case 'purple':
+        return 'bg-purple-500 text-white hover:bg-purple-600 transition-colors duration-200';
       case 'white':
       default: 
         return 'bg-white dark:bg-gray-800 text-black dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200';
@@ -981,11 +1459,8 @@ export default function ToewijzingenPage() {
   };
 
   // Calculate dynamic resident count per column
-  // Only count rows 2-11 (indices 2-11 in the tableData array)
   const getColumnResidentCount = (colIndex: number) => {
-    return tableData.reduce((count, row, rowIndex) => {
-      // Only count rows 2-11 (skip rows 0, 1, and anything after 11)
-      if (rowIndex < 2 || rowIndex > 11) return count;
+    return tableData.reduce((count, row) => {
       return count + (row[colIndex]?.text?.trim() ? 1 : 0);
     }, 0);
   };
@@ -1001,10 +1476,10 @@ export default function ToewijzingenPage() {
   const dynamicStaffColumns = getDynamicStaffColumns();
 
   // Total residents - count all residents in IB columns (columns 0-8)
-  // Only count rows 2-11 (indices 2-11, skipping rows 0 and 1)
+  // Skip first 2 rows as they are headers
   const total = tableData.reduce((totalCount, row, rowIndex) => {
-    // Only count rows 2-11 (skip rows 0, 1, and anything after 11)
-    if (rowIndex < 2 || rowIndex > 11) return totalCount;
+    // Skip header rows (index 0 and 1)
+    if (rowIndex < 2) return totalCount;
     
     // Count residents in columns 0-8 (the 9 IB columns)
     const rowCount = row.slice(0, 9).reduce((count, cell) => {
@@ -1065,6 +1540,28 @@ export default function ToewijzingenPage() {
               </button>
             </div>
 
+            {/* Auto-save Status */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-600">
+              {isSaving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">Auto-saving...</span>
+                </>
+              ) : lastAutoSave ? (
+                <>
+                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    Auto-saved {new Date(lastAutoSave).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">Auto-save active</span>
+                </>
+              )}
+            </div>
+
             {/* Delete Buttons */}
             <div className="flex gap-2">
               <button
@@ -1104,6 +1601,16 @@ export default function ToewijzingenPage() {
           </div>
         )}
 
+        {/* Save Status - only show errors */}
+        {saveStatus.message && saveStatus.type === 'error' && (
+          <div className="mb-4 p-3 rounded-xl backdrop-blur-md shadow-xl border animate-slideIn bg-gradient-to-r from-red-100/90 to-rose-100/90 dark:from-red-900/50 dark:to-rose-900/50 text-red-700 dark:text-red-300 border-red-300/50">
+            <div className="flex items-center gap-2">
+              <Save className="h-4 w-4" />
+              <span className="text-sm font-medium">{saveStatus.message}</span>
+            </div>
+          </div>
+        )}
+
         {/* Centered date */}
         <div className="mb-4 flex justify-center">
           <div className="px-5 py-1.5 bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 rounded-full shadow-lg backdrop-blur-sm border border-white/20">
@@ -1126,55 +1633,16 @@ export default function ToewijzingenPage() {
         {/* Main table */}
         <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-300 dark:border-gray-700 hover:shadow-3xl transition-shadow duration-300">
           <table className="border-collapse w-full">
-            <thead>
-              {/* Annotations row - only show for specific columns that have notes */}
-              <tr>
-                <td className="border-0 px-2 py-1"></td>
-                {dynamicStaffColumns.map((staff, idx) => (
-                  <td key={idx} className="border-0 px-2 py-1">
-                    {/* Only show annotation input for columns that should have notes */}
-                    {(['Kris B', 'Evelien', 'Kirsten', 'Monica'].includes(staff.name)) ? (
-                      <input
-                        type="text"
-                        value={staff.annotation}
-                        onChange={(e) => handleStaffEdit(idx, 'annotation', e.target.value)}
-                        className="w-full text-[10px] text-center bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded"
-                        placeholder="..."
-                      />
-                    ) : (
-                      <div className="text-[10px] text-center text-gray-400">-</div>
-                    )}
-                  </td>
-                ))}
-              </tr>
-              {/* Count row */}
-              
-              {/* Staff names row */}
-              <tr>
-                <td className="border-2 border-black dark:border-gray-300 px-2 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-400 text-sm font-bold text-center text-black shadow-inner">IB&apos;s</td>
-                {dynamicStaffColumns.map((staff, idx) => (
-                  <td key={idx} className="border-2 border-black dark:border-gray-300 px-2 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-400 shadow-inner">
-                    <input
-                      type="text"
-                      value={staff.name}
-                      onChange={(e) => handleStaffEdit(idx, 'name', e.target.value)}
-                      className="w-full text-sm font-bold text-center bg-transparent border-0 focus:ring-2 focus:ring-purple-500 rounded-lg text-black placeholder-gray-600"
-                    />
-                  </td>
-                ))}
-              </tr>
-              
-            </thead>
             <tbody>
-              {tableData.map((row, rowIndex) => rowIndex === 1 ? null : (
+              {tableData.map((row, rowIndex) => (
                 <tr key={rowIndex} className={searchTerm && !row.some(cell => isVisible(cell.text)) ? 'hidden' : ''}>
-                  <td className="border-2 border-black dark:border-gray-300 px-2 py-1 text-xs font-bold text-center bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-black dark:text-gray-300">
-                    {rowIndex <= 1 ? '' : rowIndex - 1}
+                  <td className={`border-2 border-black dark:border-gray-300 px-2 py-1 ${rowIndex === 1 ? 'text-base' : 'text-xs'} font-bold text-center bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-black dark:text-gray-300`}>
+                    {rowIndex === 0 ? 'Aantal' : rowIndex === 1 ? "IB's" : rowIndex - 1}
                   </td>
                   {row.map((cell, colIndex) => (
                     <td 
                       key={colIndex}
-                      className={`border-2 border-black dark:border-gray-300 px-1 py-1 text-xs cursor-pointer relative text-center group transition-all duration-200 hover:z-10 hover:transform hover:scale-105 ${getCellClass(cell.text, cell.type, cell.color)} ${
+                      className={`border-2 border-black dark:border-gray-300 px-1 py-1 ${rowIndex === 1 ? 'text-base font-bold' : 'text-xs'} cursor-pointer relative text-center group transition-all duration-200 hover:z-10 hover:transform hover:scale-105 ${getCellClass(cell.text, cell.type, cell.color)} ${
                         selectedCell?.row === rowIndex && selectedCell?.col === colIndex ? 'ring-2 ring-purple-500 ring-inset shadow-lg' : ''
                       }`}
                       onClick={() => handleCellClick(rowIndex, colIndex, cell.text, cell.type)}
@@ -1192,7 +1660,7 @@ export default function ToewijzingenPage() {
                               if (e.key === 'Enter') handleSaveCell();
                               if (e.key === 'Escape') handleCancelEdit();
                             }}
-                            className="w-full px-1 py-0 text-xs bg-white text-black border border-gray-300 rounded text-center"
+                            className={`w-full px-1 py-0 ${rowIndex === 1 ? 'text-base font-bold' : 'text-xs'} bg-white text-black border border-gray-300 rounded text-center`}
                             placeholder="Bewoner naam..."
                             autoFocus
                           />
@@ -1217,7 +1685,7 @@ export default function ToewijzingenPage() {
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center group w-full h-full relative">
-                          <span className={`text-center ${!isVisible(cell.text) ? 'opacity-30' : ''}`}>{cell.text}</span>
+                          <span className={`text-center ${!isVisible(cell.text) ? 'opacity-30' : ''} ${rowIndex === 1 ? 'font-bold' : ''}`}>{cell.text}</span>
                           {cell.text && (
                             <>
                               <Edit2 className="h-3 w-3 opacity-0 group-hover:opacity-50 absolute top-1 right-1" />
