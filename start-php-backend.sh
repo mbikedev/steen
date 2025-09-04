@@ -1,47 +1,49 @@
 #!/bin/bash
+# start-php-backend.sh - Starts the PHP backend server with a router
 
-# Start PHP Backend Server for Local Development
-# This script starts a PHP development server for testing the API locally
+# --- Configuration ---
+PORT=8080
+HOST=localhost
+DOC_ROOT="./api/php"
+ROUTER="router.php"
 
-echo "🚀 Starting PHP Backend Server..."
+# --- Color Codes ---
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# --- Main Logic ---
+echo -e "${GREEN}🚀 Starting PHP Backend Server...${NC}"
 echo "================================"
 
-# Check if PHP is installed
-if ! command -v php &> /dev/null; then
-    echo "❌ PHP is not installed. Please install PHP first."
-    echo "   On macOS: brew install php"
-    echo "   On Ubuntu: sudo apt-get install php"
+# 1. Check for PHP installation
+if ! command -v php &> /dev/null
+then
+    echo -e "${RED}❌ PHP is not installed. Please install PHP first.${NC}"
+    echo -e "   On macOS: ${YELLOW}brew install php${NC}"
+    echo -e "   On Ubuntu: ${YELLOW}sudo apt-get install php${NC}"
     exit 1
 fi
 
-# Check PHP version
-PHP_VERSION=$(php -v | head -n 1)
-echo "✅ Found $PHP_VERSION"
+# 2. Check if the document root exists
+if [ ! -d "$DOC_ROOT" ]; then
+    echo -e "${RED}❌ Document root not found at '$DOC_ROOT'${NC}"
+    exit 1
+fi
 
-# Navigate to API directory
-cd api/php
+# 3. Check if the router script exists
+if [ ! -f "$DOC_ROOT/$ROUTER" ]; then
+    echo -e "${RED}❌ Router script not found at '$DOC_ROOT/$ROUTER'${NC}"
+    exit 1
+fi
 
-# Update config.php for local development if needed
-echo ""
-echo "📝 Configuration Notes:"
-echo "   - Make sure to update api/php/config.php with your local MySQL credentials"
-echo "   - Or use the default development settings"
-echo ""
+# 4. Start the PHP server
+echo -e "✅ PHP found: $(php -v | head -n 1)"
+echo -e "✅ Document Root: ${YELLOW}$DOC_ROOT${NC}"
+echo -e "✅ Router Script: ${YELLOW}$ROUTER${NC}"
+echo -e "--------------------------------"
+echo -e "${GREEN}🌍 Server listening on http://$HOST:$PORT${NC}"
+echo "   Press Ctrl+C to stop."
 
-# Start PHP development server
-echo "🌐 Starting server on http://localhost:8000"
-echo "   API will be available at: http://localhost:8000/api/php/"
-echo ""
-echo "📋 Available endpoints:"
-echo "   - GET  http://localhost:8000/test-connection.php"
-echo "   - GET  http://localhost:8000/residents.php"
-echo "   - POST http://localhost:8000/residents.php"
-echo "   - PUT  http://localhost:8000/residents.php?id=1"
-echo "   - DELETE http://localhost:8000/residents.php?id=1"
-echo ""
-echo "Press Ctrl+C to stop the server"
-echo "================================"
-
-# Start the server from the project root, serving the api directory
-cd ../..
-php -S localhost:8000 -t .
+php -S "$HOST:$PORT" -t "$DOC_ROOT" "$DOC_ROOT/$ROUTER"

@@ -4,7 +4,7 @@
  */
 
 // Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-domain.com/api/php';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/php';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || 'your_secure_api_key_here';
 
 // Types
@@ -131,7 +131,7 @@ async function apiCall<T = any>(
           if (errorText && errorText.trim() !== '') {
             console.error('🚨 API Error Response:', errorText);
             // Only use error text if it's not HTML (like error pages)
-            if (!errorText.includes('<!DOCTYPE') && !errorText.includes('<html')) {
+            if (!errorText.includes('<!DOCTYPE') && !errorText.includes('<html>')) {
               errorMessage = errorText;
             }
           } else {
@@ -211,7 +211,7 @@ async function apiCall<T = any>(
 export const outResidentsApi = {
   // Get all OUT residents
   async getAll(): Promise<ApiResponse<ResidentData[]>> {
-    return apiCall<ResidentData[]>('?endpoint=out-residents');
+    return apiCall<ResidentData[]>(`?endpoint=out-residents`);
   },
 
   // Get single OUT resident
@@ -222,7 +222,7 @@ export const outResidentsApi = {
   // Move resident from main table to OUT table
   async moveToOut(residentId: number): Promise<ApiResponse<ResidentData>> {
     console.log('🚀 Calling moveToOut API with residentId:', residentId);
-    const result = await apiCall<ResidentData>('?endpoint=out-residents', {
+    const result = await apiCall<ResidentData>(`?endpoint=out-residents`, {
       method: 'POST',
       body: JSON.stringify({ residentId }),
     });
