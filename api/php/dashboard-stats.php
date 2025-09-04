@@ -21,6 +21,7 @@ try {
     
     // Get current date for calculations
     $today = date('Y-m-d');
+    $yesterday = date('Y-m-d', strtotime('-1 day'));
     $weekStart = date('Y-m-d', strtotime('monday this week'));
     $weekEnd = date('Y-m-d', strtotime('sunday this week'));
     
@@ -32,6 +33,11 @@ try {
     $stmt = $db->prepare("SELECT COUNT(*) as total FROM residents WHERE DATE(check_in) = ? AND status = 'active'");
     $stmt->execute([$today]);
     $todayCheckIns = $stmt->fetch()['total'];
+
+    // Get yesterday's check-ins for trend calculation
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM residents WHERE DATE(check_in) = ?");
+    $stmt->execute([$yesterday]);
+    $yesterdayCheckIns = $stmt->fetch()['total'];
     
     // Get today's check-outs
     $stmt = $db->prepare("SELECT COUNT(*) as total FROM residents WHERE DATE(check_out) = ? AND status = 'inactive'");
@@ -43,53 +49,64 @@ try {
     $stmt = $db->query("SELECT COUNT(*) as occupied FROM residents WHERE status = 'active' AND room IS NOT NULL");
     $occupiedBeds = $stmt->fetch()['occupied'];
     $availableBeds = $totalBeds - $occupiedBeds;
-    $occupancyRate = ($occupiedBeds / $totalBeds) * 100;
-    
-    // Get Noord building stats (36 beds total, 18 for girls on first floor)
+    $occupancyRate = $totalBeds > 0 ? ($occupiedBeds / $totalBeds) * 100 : 0;
+
+    // --- Corrected Trend Calculations ---
+
+    // Calculate daily check-in trend vs yesterday
+    $checkInTrend = $yesterdayCheckIns > 0 
+        ? (($todayCheckIns - $yesterdayCheckIns) / $yesterdayCheckIns) * 100 
+        : ($todayCheckIns > 0 ? 100 : 0);
+
+    // Calculate occupancy trend vs yesterday
+    $occupiedBedsYesterday = $occupiedBeds - $todayCheckIns + $todayCheckOuts;
+    $occupancyRateYesterday = $totalBeds > 0 ? ($occupiedBedsYesterday / $totalBeds) * 100 : 0;
+    $occupancyTrend = $occupancyRateYesterday > 0
+        ? (($occupancyRate - $occupancyRateYesterday) / $occupancyRateYesterday) * 100
+        : ($occupancyRate > 0 ? 100 : 0);
+
+    // --- Building Specific Stats (No changes needed here) ---
+
+    // Get Noord building stats
     $stmt = $db->query("SELECT COUNT(*) as total FROM residents WHERE status = 'active' AND room LIKE 'Noord%'");
     $noordOccupied = $stmt->fetch()['total'];
     $noordTotal = 36;
-    $noordRate = ($noordOccupied / $noordTotal) * 100;
+    $noordRate = $noordTotal > 0 ? ($noordOccupied / $noordTotal) * 100 : 0;
     
     // Get girls section stats (Noord first floor)
-    $stmt = $db->query("SELECT COUNT(*) as total FROM residents WHERE status = 'active' AND room LIKE 'Noord%' AND room LIKE '%1%' AND gender = 'F'");
+    $stmt = $db->query("SELECT COUNT(*) as total FROM residents WHERE status = 'active' AND room LIKE 'Noord%1%' AND gender = 'F'");
     $girlsOccupied = $stmt->fetch()['total'];
     $girlsTotal = 18;
-    $girlsRate = ($girlsOccupied / $girlsTotal) * 100;
+    $girlsRate = $girlsTotal > 0 ? ($girlsOccupied / $girlsTotal) * 100 : 0;
     
-    // Get Zuid building stats (33 beds total, 15 for minors on first floor)
+    // Get Zuid building stats
     $stmt = $db->query("SELECT COUNT(*) as total FROM residents WHERE status = 'active' AND room LIKE 'Zuid%'");
     $zuidOccupied = $stmt->fetch()['total'];
     $zuidTotal = 33;
-    $zuidRate = ($zuidOccupied / $zuidTotal) * 100;
+    $zuidRate = $zuidTotal > 0 ? ($zuidOccupied / $zuidTotal) * 100 : 0;
     
     // Get minors section stats (Zuid first floor)
-    $stmt = $db->query("SELECT COUNT(*) as total FROM residents WHERE status = 'active' AND room LIKE 'Zuid%' AND room LIKE '%1%' AND age < 18");
+    $stmt = $db->query("SELECT COUNT(*) as total FROM residents WHERE status = 'active' AND room LIKE 'Zuid%1%' AND age < 18");
     $minorsOccupied = $stmt->fetch()['total'];
     $minorsTotal = 15;
-    $minorsRate = ($minorsOccupied / $minorsTotal) * 100;
+    $minorsRate = $minorsTotal > 0 ? ($minorsOccupied / $minorsTotal) * 100 : 0;
     
-    // Get weekly statistics for trend calculation
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM residents WHERE DATE(check_in) BETWEEN ? AND ? AND status = 'active'");
+    // Weekly stats for other parts of the dashboard
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM residents WHERE DATE(check_in) BETWEEN ? AND ?");
     $stmt->execute([$weekStart, $weekEnd]);
     $weeklyCheckIns = $stmt->fetch()['total'];
     
-    // Get previous week for comparison
     $prevWeekStart = date('Y-m-d', strtotime('-1 week', strtotime($weekStart)));
     $prevWeekEnd = date('Y-m-d', strtotime('-1 week', strtotime($weekEnd)));
     $stmt->execute([$prevWeekStart, $prevWeekEnd]);
     $prevWeeklyCheckIns = $stmt->fetch()['total'];
+    $weeklyCheckInTrend = $prevWeeklyCheckIns > 0 ? (($weeklyCheckIns - $prevWeeklyCheckIns) / $prevWeeklyCheckIns) * 100 : ($weeklyCheckIns > 0 ? 100 : 0);
     
-    // Calculate trends
-    $checkInTrend = $prevWeeklyCheckIns > 0 ? (($weeklyCheckIns - $prevWeeklyCheckIns) / $prevWeeklyCheckIns) * 100 : 0;
-    
-    // Get pending documents count (simulated - you can replace with actual query)
+    // Simulated data for other cards
     $pendingDocuments = rand(5, 15);
-    
-    // Get upcoming appointments this week (simulated - replace with actual query if appointments table exists)
     $upcomingAppointments = rand(3, 12);
     
-    // Quick stats for dashboard
+    // --- Updated Quick Stats with Corrected Data ---
     $quickStats = [
         [
             'label' => 'Nieuwe Bewoners Vandaag',
@@ -115,13 +132,13 @@ try {
         [
             'label' => 'Bezettingsgraad',
             'value' => round($occupancyRate),
-            'change' => 2.4, // Simulated
-            'trend' => 'up',
+            'change' => round($occupancyTrend, 1),
+            'trend' => $occupancyTrend >= 0 ? 'up' : 'down',
             'color' => 'orange'
         ]
     ];
     
-    // Prepare response
+    // Prepare JSON response
     $response = [
         'success' => true,
         'timestamp' => date('c'),
@@ -166,8 +183,8 @@ try {
             'checkIns' => [
                 'current' => $weeklyCheckIns,
                 'previous' => $prevWeeklyCheckIns,
-                'change' => round($checkInTrend, 1),
-                'direction' => $checkInTrend >= 0 ? 'up' : 'down'
+                'change' => round($weeklyCheckInTrend, 1),
+                'direction' => $weeklyCheckInTrend >= 0 ? 'up' : 'down'
             ]
         ]
     ];

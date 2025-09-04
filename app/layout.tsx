@@ -3,7 +3,7 @@ import { Rozha_One, Montserrat } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from './components/theme-provider';
 import { Toaster } from 'sonner';
-import { DataProvider } from "../lib/DataContextDebug";
+import { DataProvider } from "../lib/DataContextWithAPI";
 import { AuthProvider } from "../lib/AuthContext";
 
 const rozhaOne = Rozha_One({ 

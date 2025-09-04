@@ -6,21 +6,17 @@ import Link from 'next/link';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import AddResidentModal from '../components/AddResidentModal';
 import UploadDocModal from '../components/UploadDocModal';
-import { useData } from "../../lib/DataContextDebug";
+import { useData } from "../../lib/DataContextWithAPI"; 
 import { useAuth, withAuth } from "../../lib/AuthContext";
-import { formatDateWithDay } from '../../lib/utils';
+import { formatDateWithDay, getISOWeek } from '../../lib/utils';
 import { 
   Users, 
   Building2, 
   TrendingUp, 
-  AlertCircle, 
   Calendar,
-  ClipboardList,
   FileText,
   UserCheck,
   Grid3X3,
-  ChefHat,
-  MapPin,
   Activity,
   Clock,
   ArrowUpRight,
@@ -28,13 +24,10 @@ import {
   Bed,
   UserPlus,
   FileUp,
-  BarChart3,
-  PieChart,
-  Target,
-  Bell
+  Target
 } from 'lucide-react';
 
-// Type definitions
+// Type definitions remain the same...
 interface QuickStat {
   label: string;
   value: number;
@@ -58,60 +51,32 @@ function DashboardPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
-  const [quickStats, setQuickStats] = useState<QuickStat[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { bewonerslijst, occupancyStats, dataMatchIt } = useData();
+  const [displayStats, setDisplayStats] = useState<QuickStat[]>([]);
+  
+  const { dashboardStats, loading } = useData();
   const { user } = useAuth();
   const router = useRouter();
-  
-  // Get actual resident count from Bewonerslijst data
-  const totalResidents = bewonerslijst.length;
-  
-  // Calculate additional statistics
-  const todayCheckIns = bewonerslijst.filter(r => {
-    const checkIn = new Date(r.checkIn);
-    const today = new Date();
-    return checkIn.toDateString() === today.toDateString();
-  }).length;
-  
-  const upcomingAppointments = 0; // No appointments currently
 
   useEffect(() => {
-    // Simulate loading data
-    const loadDashboardData = async () => {
-      setLoading(true);
+    if (dashboardStats && dashboardStats.quickStats) {
+      const iconMapping: { [key: string]: React.ReactNode } = {
+        'Nieuwe Bewoners Vandaag': <UserPlus className="h-5 w-5" />,
+        'Documenten in Behandeling': <FileText className="h-5 w-5" />,
+        'Afspraken Deze Week': <Calendar className="h-5 w-5" />,
+        'Bezettingsgraad': <TrendingUp className="h-5 w-5" />
+      };
+
+      const updatedStats = dashboardStats.quickStats.map((stat: any) => ({
+        ...stat,
+        icon: iconMapping[stat.label] || <Activity className="h-5 w-5" />,
+      }));
       
-      // Set quick stats
-      setQuickStats([
-        {
-          label: 'Nieuwe Bewoners Vandaag',
-          value: todayCheckIns,
-          change: 12.5,
-          trend: 'up',
-          icon: <UserPlus className="h-5 w-5" />,
-          color: 'emerald'
-        },
-        {
-          label: 'Afspraken Deze Week',
-          value: upcomingAppointments,
-          change: upcomingAppointments > 0 ? 8.1 : 0,
-          trend: upcomingAppointments > 0 ? 'up' : 'down',
-          icon: <Calendar className="h-5 w-5" />,
-          color: 'purple'
-        },
-        {
-          label: 'Bezettingsgraad',
-          value: Math.round(occupancyStats.occupancyRate),
-          change: 2.4,
-          trend: 'up',
-          icon: <TrendingUp className="h-5 w-5" />,
-          color: 'orange'
-        }
-      ]);
-      
-      // Set recent activities
-      setRecentActivities([
-        {
+      setDisplayStats(updatedStats);
+    }
+
+    // Keep recent activities simulation for now, can be replaced with API data later
+    setRecentActivities([
+      {
           id: '1',
           type: 'checkin',
           title: 'Nieuwe Bewoner',
@@ -129,31 +94,8 @@ function DashboardPage() {
           icon: <FileUp className="h-4 w-4" />,
           color: 'bg-blue-500'
         },
-        {
-          id: '3',
-          type: 'appointment',
-          title: 'Afspraak Gepland',
-          description: 'Medische controle voor 3 bewoners',
-          time: '1 uur geleden',
-          icon: <Calendar className="h-4 w-4" />,
-          color: 'bg-purple-500'
-        },
-        {
-          id: '4',
-          type: 'checkout',
-          title: 'Bewoner Vertrokken',
-          description: 'John D. uitgecheckt uit Zuid K205',
-          time: '2 uur geleden',
-          icon: <Users className="h-4 w-4" />,
-          color: 'bg-orange-500'
-        }
-      ]);
-      
-      setLoading(false);
-    };
-    
-    loadDashboardData();
-  }, [todayCheckIns, occupancyStats.occupancyRate, upcomingAppointments]);
+    ]);
+  }, [dashboardStats]);
 
   const handleAddResident = (newResident: any) => {
     console.log('New resident added:', newResident);
@@ -218,57 +160,52 @@ function DashboardPage() {
       bgColor: 'from-teal-50 to-cyan-100 dark:from-teal-950/50 dark:to-cyan-950/50'
     }
   ];
+  
+  if (loading || !dashboardStats) {
+    return (
+        <DashboardLayout>
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+            </div>
+        </DashboardLayout>
+    );
+  }
+
+  const { occupancy } = dashboardStats;
 
   return (
     <DashboardLayout>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950 p-6">
-        {/* Hero Header with Welcome Message */}
+        {/* Hero Header */}
         <div className="mb-8 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 dark:from-blue-500/20 dark:to-purple-500/20 rounded-3xl"></div>
-          <div className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-3xl p-8 border border-white/50 dark:border-gray-700/50 shadow-2xl">
+        <div 
+          className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-3xl p-8 border border-white/50 dark:border-gray-700/50 shadow-2xl"
+          style={{ backgroundImage: 'url(/images/feda.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}
+        >
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-              <div className="flex items-center">
-                <div className="relative mr-6">
-                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 w-4 h-16 rounded-full shadow-lg"></div>
-                  <div className="absolute top-0 left-0 bg-gradient-to-r from-blue-400 to-purple-400 w-4 h-8 rounded-full animate-pulse"></div>
-                </div>
-                <div>
+              <div>
                   <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-700 via-purple-600 to-indigo-700 dark:from-blue-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent leading-tight">
                     Welkom Terug{user?.name ? `, ${user.name}` : ''}!
                   </h1>
                   <p className="mt-3 text-lg text-gray-600 dark:text-gray-300 font-medium">
                     OOC Steenokkerzeel Management Dashboard
                   </p>
-                  <div className="mt-3 flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-sm text-green-600 dark:text-green-400 font-semibold">Systeem Actief</span>
-                    </div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">|</span>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      <Clock className="inline h-3 w-3 mr-1" />
-                      {new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </div>
               </div>
-              <div className="flex flex-col items-end">
-                <div className="text-right bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-indigo-900/50 dark:to-blue-900/50 rounded-2xl p-6 border border-indigo-200/50 dark:border-indigo-700/50">
+              <div className="text-right bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-indigo-900/50 dark:to-blue-900/50 rounded-2xl p-6 border border-indigo-200/50 dark:border-indigo-700/50">
                   <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">
                     {formatDateWithDay(new Date())}
                   </p>
                   <p className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold mt-1">
-                    Week {Math.ceil((new Date().getDate()) / 7)}
+                    Week {getISOWeek(new Date())}
                   </p>
-                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Quick Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {quickStats.map((stat, index) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {displayStats.map((stat, index) => (
             <div key={index} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-2xl transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
@@ -320,16 +257,16 @@ function DashboardPage() {
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Totale Bezetting</span>
                       <span className="text-sm font-bold text-gray-900 dark:text-white">
-                        {occupancyStats.occupiedBeds} / {occupancyStats.totalBeds}
+                        {occupancy.total.occupied} / {occupancy.total.beds}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
                       <div 
                         className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500 flex items-center justify-center"
-                        style={{ width: `${occupancyStats.occupancyRate}%` }}
+                        style={{ width: `${occupancy.total.rate}%` }}
                       >
                         <span className="text-xs text-white font-bold px-2">
-                          {occupancyStats.occupancyRate.toFixed(1)}%
+                          {occupancy.total.rate.toFixed(1)}%
                         </span>
                       </div>
                     </div>
@@ -340,17 +277,17 @@ function DashboardPage() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Noord Gebouw</span>
                       <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                        {occupancyStats.noord.occupied}/{occupancyStats.noord.total}
+                        {occupancy.noord.occupied}/{occupancy.noord.total}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                       <div 
                         className="bg-blue-500 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${occupancyStats.noord.rate}%` }}
+                        style={{ width: `${occupancy.noord.rate}%` }}
                       />
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Vrouwen: {occupancyStats.girls.occupied}/{occupancyStats.girls.total}
+                      Vrouwen: {occupancy.girls.occupied}/{occupancy.girls.total}
                     </p>
                   </div>
                   
@@ -359,17 +296,17 @@ function DashboardPage() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Zuid Gebouw</span>
                       <span className="text-sm font-bold text-orange-600 dark:text-orange-400">
-                        {occupancyStats.zuid.occupied}/{occupancyStats.zuid.total}
+                        {occupancy.zuid.occupied}/{occupancy.zuid.total}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                       <div 
                         className="bg-orange-500 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${occupancyStats.zuid.rate}%` }}
+                        style={{ width: `${occupancy.zuid.rate}%` }}
                       />
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Minderjarigen: {occupancyStats.minors.occupied}/{occupancyStats.minors.total}
+                      Minderjarigen: {occupancy.minors.occupied}/{occupancy.minors.total}
                     </p>
                   </div>
                 </div>
@@ -399,7 +336,7 @@ function DashboardPage() {
           
           {/* Recent Activities */}
           <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden h-full">
+             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden h-full">
               <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-600/50 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Activity className="h-5 w-5 text-purple-600 dark:text-purple-400" />
