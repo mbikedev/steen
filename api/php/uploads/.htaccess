@@ -1,0 +1,29 @@
+# Allow access to uploaded files
+<Files "*">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+# Prevent execution of PHP files in uploads directory
+<Files "*.php">
+    Order Deny,Allow
+    Deny from all
+</Files>
+
+# Set proper MIME types for images
+<IfModule mod_mime.c>
+    AddType image/jpeg .jpg .jpeg
+    AddType image/png .png
+    AddType image/gif .gif
+    AddType image/webp .webp
+    AddType image/bmp .bmp
+    AddType image/tiff .tiff .tif
+    AddType image/avif .avif
+</IfModule>
+
+# Enable CORS for images
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type"
+</IfModule>
