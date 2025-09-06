@@ -1,0 +1,12 @@
+Column Name,Type,Default Value,Primary,Not Null,Unique
+id,uuid,uuid_generate_v4(),TRUE,TRUE,TRUE
+first_name,text,,FALSE,TRUE,FALSE
+last_name,text,,FALSE,TRUE,FALSE
+date_of_birth,date,,FALSE,FALSE,FALSE
+gender,text,,FALSE,FALSE,FALSE
+phone,text,,FALSE,FALSE,FALSE
+email,text,,FALSE,FALSE,FALSE
+status,text,'active',FALSE,FALSE,FALSE
+admission_date,date,,FALSE,FALSE,FALSE
+created_at,timestamptz,now(),FALSE,FALSE,FALSE
+updated_at,timestamptz,now(),FALSE,FALSE,FALSE
