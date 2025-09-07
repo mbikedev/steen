@@ -233,14 +233,14 @@ function DashboardPage() {
         <div className="mb-8 relative overflow-hidden">
         <div 
           className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-3xl p-8 border border-white/50 dark:border-gray-700/50 shadow-2xl"
-          style={{ backgroundImage: 'url(/images/feda.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}
+          style={{ backgroundImage: 'url(/images/steenok.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}
         >
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-700 via-purple-600 to-indigo-700 dark:from-blue-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent leading-tight">
+                  <h1 className="text-4xl font-bold text-white">
                     Welkom Terug{user?.name ? `, ${user.name}` : ''}!
                   </h1>
-                  <p className="mt-3 text-lg text-gray-600 dark:text-gray-300 font-medium">
+                  <p className="mt-3 text-lg text-white dark:text-gray-300 font-medium">
                     OOC Steenokkerzeel Management Dashboard
                   </p>
               </div>
