@@ -82,7 +82,6 @@ export default function ToewijzingenPage() {
       try {
         // Try to load from database using current assignment date
         const assignmentDate = new Date().toISOString().split('T')[0]; // Today's date as default
-        console.log('🔍 Attempting to load data from database for date:', assignmentDate);
         
         const result = await toewijzingenGridApi.loadGrid(assignmentDate);
         
@@ -90,7 +89,6 @@ export default function ToewijzingenPage() {
           const { gridData, staffData } = result.data;
           
           if (gridData.length > 0 || staffData.length > 0) {
-            console.log('📥 Loading data from database:', { gridCells: gridData.length, staffRecords: staffData.length });
             
             // Convert database data back to table format
             const newTableData = getDefaultTableData();
@@ -124,7 +122,6 @@ export default function ToewijzingenPage() {
               setStaffColumns(newStaffColumns);
             }
             
-            console.log('✅ Successfully loaded data from database');
             return;
           }
         }
@@ -138,21 +135,18 @@ export default function ToewijzingenPage() {
         if (savedTableData) {
           const parsed = JSON.parse(savedTableData);
           setTableData(parsed);
-          console.log('📥 Loaded table data from localStorage');
         }
 
         const savedStaffColumns = localStorage.getItem('toewijzingen_staffColumns');
         if (savedStaffColumns) {
           const parsed = JSON.parse(savedStaffColumns);
           setStaffColumns(parsed);
-          console.log('📥 Loaded staff columns from localStorage');
         }
 
         const savedBottomData = localStorage.getItem('toewijzingen_bottomData');
         if (savedBottomData) {
           const parsed = JSON.parse(savedBottomData);
           setBottomData(parsed);
-          console.log('📥 Loaded bottom data from localStorage');
         }
       } catch (error) {
         console.error('Error loading saved data:', error);
@@ -226,7 +220,6 @@ export default function ToewijzingenPage() {
       });
     });
     
-    console.log('📋 Current Toewijzingen assignments:', assignments);
     return assignments;
   };
 
@@ -277,7 +270,6 @@ export default function ToewijzingenPage() {
 
   // Function to sync referentiepersoon based on Toewijzingen assignments
   const syncReferentiepersoonWithToewijzingen = (assignments: { [residentName: string]: string }) => {
-    console.log('🔄 Starting referentiepersoon sync...');
     
     let changesCount = 0;
     const updatedData = dataMatchIt.map(resident => {
@@ -316,7 +308,6 @@ export default function ToewijzingenPage() {
           
           if (allWordsMatch && reverseMatch && assignmentWords.length >= 2) {
             assignedStaff = staffName;
-            console.log(`🔍 Fuzzy match found: "${assignmentName}" matches "${fullName}" (word-based matching)`);
             break;
           }
         }
@@ -339,27 +330,19 @@ export default function ToewijzingenPage() {
           
           if (bestMatch.similarity > 0.85) {
             assignedStaff = bestMatch.staff;
-            console.log(`🔍 Similarity match found: "${bestMatch.name}" matches "${fullName}" (${(bestMatch.similarity * 100).toFixed(1)}% similarity)`);
           }
         }
       }
       
-      // Debug logging for specific case
-      if (fullName.includes('Gerish') || fullName.includes('Faniel') || fullName.includes('Habtay')) {
-        console.log(`🔍 Debugging Gerish: fullName="${fullName}", reversedName="${reversedName}", assignedStaff="${assignedStaff}", currentRef="${resident.referencePerson}"`);
-        console.log('🔍 Available assignments:', Object.keys(assignments));
-      }
       
       // If assigned staff is different from current referentiepersoon, update it
       if (assignedStaff && assignedStaff !== resident.referencePerson) {
-        console.log(`🔄 Updating ${fullName}: "${resident.referencePerson}" → "${assignedStaff}"`);
         changesCount++;
         return { ...resident, referencePerson: assignedStaff };
       }
       
       // If resident is not in Toewijzingen but has a referentiepersoon, clear it
       if (!assignedStaff && resident.referencePerson) {
-        console.log(`🔄 Clearing referentiepersoon for ${fullName} (not in Toewijzingen)`);
         changesCount++;
         return { ...resident, referencePerson: '' };
       }
@@ -368,10 +351,8 @@ export default function ToewijzingenPage() {
     });
 
     if (changesCount > 0) {
-      console.log(`✅ Sync completed: ${changesCount} referentiepersoon changes applied`);
       setDataMatchIt(updatedData);
     } else {
-      console.log('✅ Sync completed: No changes needed, data is already synchronized');
     }
   };
 
@@ -380,7 +361,6 @@ export default function ToewijzingenPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log('📁 File selected:', file.name, 'Type:', file.type);
     setIsUploading(true);
     setUploadStatus({type: 'info', message: `Bestand "${file.name}" wordt ingelezen...`});
 
@@ -421,11 +401,6 @@ export default function ToewijzingenPage() {
         cellStyles: true // Enable reading of cell styles including colors
       });
       
-      console.log('📊 Excel workbook loaded:', { 
-        sheetNames: workbook.SheetNames, 
-        totalSheets: workbook.SheetNames.length 
-      });
-      
       // Try to find the most appropriate sheet
       let targetSheet = workbook.SheetNames[0]; // Default to first sheet
       
@@ -438,13 +413,11 @@ export default function ToewijzingenPage() {
         }
       }
       
-      console.log('🎯 Using sheet:', targetSheet);
       
       const worksheet = workbook.Sheets[targetSheet];
       
       // Get sheet range to understand the data structure
       const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
-      console.log('📋 Sheet range:', range);
       
       // Extract all data including empty cells and colors
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
@@ -458,7 +431,6 @@ export default function ToewijzingenPage() {
       const cellColors: { [key: string]: string } = {};
       const sheetRange = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
       
-      console.log('🔍 Debugging cell styles extraction...');
       let cellsWithStyles = 0;
       let totalCells = 0;
       
@@ -469,13 +441,6 @@ export default function ToewijzingenPage() {
           totalCells++;
           
           if (cell) {
-            console.log(`Cell ${cellRef}:`, {
-              value: cell.v,
-              hasStyles: !!cell.s,
-              styles: cell.s,
-              fill: cell.s?.fill
-            });
-            
             if (cell.s) cellsWithStyles++;
           }
           
@@ -576,20 +541,6 @@ export default function ToewijzingenPage() {
         }
       }
       
-      console.log('📊 Style extraction summary:', {
-        totalCells,
-        cellsWithStyles,
-        colorsExtracted: Object.keys(cellColors).length,
-        extractedColors: cellColors
-      });
-
-      console.log('📊 Excel raw data:', { 
-        totalRows: jsonData.length,
-        firstFewRows: jsonData.slice(0, 3),
-        lastFewRows: jsonData.slice(-3),
-        cellColors: Object.keys(cellColors).length > 0 ? cellColors : 'No colors found'
-      });
-      
       // Parse Excel data into table format with colors
       const parsedData = parseExcelToToewijzingen(jsonData as string[][], cellColors, worksheet);
       
@@ -600,7 +551,6 @@ export default function ToewijzingenPage() {
           type: 'success', 
           message: `✅ Excel bestand ingeladen: ${parsedData.length} rijen, ${parsedData[0]?.length || 0} kolommen, ${filledCells} cellen met data`
         });
-        console.log('✅ Table data updated from Excel');
         
         // Trigger auto-save after file upload
         triggerAutoSave();
@@ -621,7 +571,6 @@ export default function ToewijzingenPage() {
     try {
       // Convert PDF to text using browser's capabilities
       const text = await extractTextFromPDF(file);
-      console.log('📄 PDF text extracted:', text.substring(0, 200) + '...');
       
       // Parse PDF text data
       const lines = text.split('\n').filter(line => line.trim());
@@ -630,7 +579,6 @@ export default function ToewijzingenPage() {
       if (parsedData.length > 0) {
         setTableData(parsedData);
         setUploadStatus({type: 'success', message: `✅ PDF bestand ingeladen: ${parsedData.length} rijen`});
-        console.log('✅ Table data updated from PDF');
       } else {
         throw new Error('Geen geldige data gevonden in PDF bestand');
       }
@@ -691,7 +639,6 @@ export default function ToewijzingenPage() {
   // Handle text/CSV files
   const handleTextFile = async (file: File) => {
     const text = await file.text();
-    console.log('📄 Text data loaded:', text.substring(0, 200) + '...');
     
     // Parse CSV/text data
     const lines = text.split('\n').filter(line => line.trim());
@@ -700,7 +647,6 @@ export default function ToewijzingenPage() {
     if (parsedData.length > 0) {
       setTableData(parsedData);
       setUploadStatus({type: 'success', message: `✅ Tekstbestand ingeladen: ${parsedData.length} rijen`});
-      console.log('✅ Table data updated from text file');
     } else {
       throw new Error('Geen geldige data gevonden in tekstbestand');
     }
@@ -708,11 +654,6 @@ export default function ToewijzingenPage() {
 
   // Parse Excel data to Toewijzingen table format
   const parseExcelToToewijzingen = (data: string[][], cellColors: { [key: string]: string } = {}, worksheet?: any) => {
-    console.log('🔄 Parsing Excel data to Toewijzingen format...', { 
-      totalRows: data.length, 
-      colorsFound: Object.keys(cellColors).length 
-    });
-    
     if (!data || data.length === 0) {
       throw new Error('Geen data gevonden in Excel bestand');
     }
@@ -720,13 +661,6 @@ export default function ToewijzingenPage() {
     // Always maintain the template structure: now 13 rows, 9 columns
     const templateRows = 13;
     const templateCols = 9;
-    
-    console.log('📊 Excel file dimensions:', { 
-      templateRows, 
-      templateCols, 
-      actualDataRows: data.length,
-      willFitToTemplate: true 
-    });
     
     // Check if first row looks like headers (contains mostly text)
     let dataRows = data;
@@ -741,10 +675,8 @@ export default function ToewijzingenPage() {
       );
       
       if (hasTextHeaders) {
-        console.log('📋 Detected header row, skipping first row');
         dataRows = data.slice(1);
       } else {
-        console.log('📋 No header row detected, using all rows');
         dataRows = data;
       }
     }
@@ -825,21 +757,13 @@ export default function ToewijzingenPage() {
       }
     });
     
-    // Debug output with actual content preview
     const filledCells = newTableData.flat().filter(cell => cell.text);
-    console.log('✅ Parsed Excel data:', { 
-      outputRows: newTableData.length, 
-      outputCols: newTableData[0]?.length,
-      filledCells: filledCells.length,
-      sampleData: filledCells.slice(0, 10).map(cell => cell.text)
-    });
     
     return newTableData;
   };
 
   // Parse text/CSV data to Toewijzingen table format
   const parseTextToToewijzingen = (lines: string[]) => {
-    console.log('🔄 Parsing text data to Toewijzingen format...', { totalLines: lines.length });
     
     if (!lines || lines.length === 0) {
       throw new Error('Geen data gevonden in tekstbestand');
@@ -848,13 +772,6 @@ export default function ToewijzingenPage() {
     // Always maintain the template structure: now 13 rows, 9 columns
     const templateRows = 13;
     const templateCols = 9;
-    
-    console.log('📄 Text file dimensions:', { 
-      templateRows, 
-      templateCols, 
-      actualLines: lines.length,
-      willFitToTemplate: true 
-    });
     
     // Create template structure - always 10x9
     const newTableData = Array(templateRows).fill(null).map(() => 
@@ -899,14 +816,7 @@ export default function ToewijzingenPage() {
       }
     });
     
-    // Debug output with actual content preview
     const filledCells = newTableData.flat().filter(cell => cell.text);
-    console.log('✅ Parsed text data:', { 
-      outputRows: newTableData.length, 
-      outputCols: newTableData[0]?.length,
-      filledCells: filledCells.length,
-      sampleData: filledCells.slice(0, 10).map(cell => cell.text)
-    });
     
     return newTableData;
   };
@@ -915,13 +825,11 @@ export default function ToewijzingenPage() {
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem('toewijzingen_tableData', JSON.stringify(tableData));
-      console.log('💾 Table data saved to localStorage');
     }
   }, [tableData, isMounted]);
 
   // Auto-save function with debouncing
   const triggerAutoSave = () => {
-    console.log('🔄 triggerAutoSave called, autoSaveEnabled:', autoSaveEnabled);
     if (!autoSaveEnabled) return;
     
     // Clear existing timer
@@ -931,11 +839,9 @@ export default function ToewijzingenPage() {
     
     // Set new timer for auto-save (2 seconds debounce)
     autoSaveTimerRef.current = setTimeout(() => {
-      console.log('⏰ Auto-save timer triggered');
       handleSaveToDatabase(true); // true indicates auto-save
     }, 2000);
     
-    console.log('⏲️ Auto-save timer set for 2 seconds');
   };
 
   // Save assignments to database
@@ -948,19 +854,12 @@ export default function ToewijzingenPage() {
     }
     
     try {
-      console.log('💾 Saving toewijzingen to database...');
       
       // Get current date for assignments
       const assignmentDate = new Date().toISOString().split('T')[0];
       
       // Get staff names from staffColumns
       const staffNames = staffColumns.map(col => col.name);
-      
-      console.log('📋 Table data to save:', { 
-        rows: tableData.length, 
-        cols: tableData[0]?.length,
-        staffNames: staffNames.length 
-      });
       
       // Count non-empty assignments
       let assignmentCount = 0;
@@ -972,11 +871,9 @@ export default function ToewijzingenPage() {
         });
       });
 
-      console.log(`📊 Found ${assignmentCount} assignments to save`);
 
       // Try new Toewijzingen Grid API first, with localStorage fallback
       try {
-        console.log('🚀 Using new Toewijzingen Grid API for database storage...');
         const result = await toewijzingenGridApi.saveGrid(tableData, assignmentDate, staffNames);
         
         if (result.success && result.data) {
@@ -988,7 +885,6 @@ export default function ToewijzingenPage() {
               : `✅ Saved to database: ${result.data.grid.successful} cells, ${result.data.staff.successful} staff records`
           });
           setLastAutoSave(new Date());
-          console.log('✅ Database save successful:', result.data);
           
           if (result.data.grid.failed > 0 || result.data.staff.failed > 0) {
             console.warn('⚠️ Some records had errors:', { 
@@ -1049,7 +945,6 @@ export default function ToewijzingenPage() {
         });
         setLastAutoSave(new Date());
         
-        console.log('📁 Saved to localStorage backup:', assignmentData);
       }
       
     } catch (error) {
@@ -1062,7 +957,6 @@ export default function ToewijzingenPage() {
         });
       } else {
         // For auto-save, just log the error silently
-        console.log('Auto-save failed silently, will retry on next change');
       }
     } finally {
       setIsSaving(false);
@@ -1076,7 +970,6 @@ export default function ToewijzingenPage() {
   // Load assignments from database
   const handleLoadFromDatabase = async () => {
     try {
-      console.log('📥 Loading toewijzingen from database...');
       setSaveStatus({type: null, message: 'Loading from database...'});
       
       const assignmentDate = new Date().toISOString().split('T')[0];
@@ -1110,7 +1003,6 @@ export default function ToewijzingenPage() {
             type: 'success',
             message: `✅ Loaded ${result.data.assignments.length} assignments from database`
           });
-          console.log('✅ Database load successful:', result.data);
           
         } else {
           throw new Error('No assignments found in database');
@@ -1123,7 +1015,6 @@ export default function ToewijzingenPage() {
         
         if (backupData) {
           const parsed = JSON.parse(backupData);
-          console.log('📁 Found localStorage backup:', parsed);
           
           // Convert backup assignments back to table format
           const newTableData = getDefaultTableData();
@@ -1148,7 +1039,6 @@ export default function ToewijzingenPage() {
             type: 'success',
             message: `✅ Loaded ${parsed.assignments.length} assignments from local backup (Database unavailable)`
           });
-          console.log('✅ Backup load successful');
           
         } else {
           setSaveStatus({
@@ -1175,10 +1065,8 @@ export default function ToewijzingenPage() {
   // Users can manually load from DB if needed
   // useEffect(() => {
   //   if (isMounted) {
-  //     // Try to load latest data from database after a delay
   //     const timeoutId = setTimeout(() => {
   //       if (navigator.onLine) {
-  //         console.log('🔄 Auto-loading from database...');
   //         handleLoadFromDatabase();
   //       }
   //     }, 2000); // Load from DB after 2 second delay
@@ -1190,14 +1078,12 @@ export default function ToewijzingenPage() {
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem('toewijzingen_staffColumns', JSON.stringify(staffColumns));
-      console.log('💾 Staff columns saved to localStorage');
     }
   }, [staffColumns, isMounted]);
 
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem('toewijzingen_bottomData', JSON.stringify(bottomData));
-      console.log('💾 Bottom data saved to localStorage');
     }
   }, [bottomData, isMounted]);
 
@@ -1216,14 +1102,12 @@ export default function ToewijzingenPage() {
   };
 
   const handleSaveCell = () => {
-    console.log('handleSaveCell called with:', { editingCell, editValue, editType });
     
     if (editingCell) {
       const newData = [...tableData];
       const currentCell = newData[editingCell.row][editingCell.col];
       const previousText = currentCell.text.trim();
       
-      console.log('Before update - currentCell:', currentCell);
       
       // Check if the resident is marked as Meerderjarig in Permissielijst
       let finalColor = currentCell.color;
@@ -1257,11 +1141,9 @@ export default function ToewijzingenPage() {
         color: finalColor
       };
       
-      console.log('After update - newCell:', newData[editingCell.row][editingCell.col]);
       
       setTableData(newData);
       
-      console.log('TableData updated, new data length:', newData.length);
       
       // Trigger auto-save after cell change
       triggerAutoSave();
@@ -1269,31 +1151,25 @@ export default function ToewijzingenPage() {
       // Handle adding resident to IB column
       if (editValue.trim() && editingCell.col < dynamicStaffColumns.length) {
         const ibName = dynamicStaffColumns[editingCell.col].name;
-        console.log('IB name for column', editingCell.col, ':', ibName);
         updateResidentReferentiepersoon(editValue.trim(), ibName);
       }
       
       // Handle removing resident from IB column (clear referentiepersoon only)
       if (previousText && !editValue.trim() && editingCell.col < dynamicStaffColumns.length) {
-        console.log('Resident being removed from IB column, clearing referentiepersoon:', previousText);
         clearResidentReferentiepersoon(previousText);
       }
 
-      console.log('Setting editing cell to null and clearing form');
       setEditingCell(null);
       setEditValue('');
       setEditType('');
     } else {
-      console.log('No editing cell - save cancelled');
     }
   };
 
   // Function to clear referentiepersoon when resident is removed from IB column
   const clearResidentReferentiepersoon = (residentName: string) => {
-    console.log('Attempting to clear referentiepersoon for resident:', residentName);
     
     if (!dataMatchIt || !setDataMatchIt) {
-      console.log('DataMatchIt or setDataMatchIt not available');
       return;
     }
 
@@ -1302,10 +1178,8 @@ export default function ToewijzingenPage() {
       const fullName = `${resident.firstName} ${resident.lastName}`.trim();
       const reversedName = `${resident.lastName} ${resident.firstName}`.trim();
       
-      console.log('Comparing for referentiepersoon clearing:', fullName, 'and', reversedName, 'with:', residentName);
       
       if (fullName === residentName || reversedName === residentName) {
-        console.log('Match found! Clearing referentiepersoon for:', residentName);
         return {
           ...resident,
           referencePerson: '' // Clear the referentiepersoon field
@@ -1321,19 +1195,15 @@ export default function ToewijzingenPage() {
     });
 
     if (matchedResident) {
-      console.log('✅ Referentiepersoon cleared for resident:', residentName);
       setDataMatchIt(updatedData);
     } else {
-      console.log('❌ Resident not found for referentiepersoon clearing:', residentName);
     }
   };
 
   // Function to update referentiepersoon in dataMatchIt
   const updateResidentReferentiepersoon = (residentName: string, ibName: string) => {
-    console.log('Trying to update resident:', residentName, 'with IB:', ibName);
     
     if (!dataMatchIt || !setDataMatchIt) {
-      console.log('DataMatchIt or setDataMatchIt not available');
       return;
     }
 
@@ -1342,10 +1212,8 @@ export default function ToewijzingenPage() {
       const fullName = `${resident.firstName} ${resident.lastName}`.trim();
       const reversedName = `${resident.lastName} ${resident.firstName}`.trim();
       
-      console.log('Comparing:', fullName, 'and', reversedName, 'with:', residentName);
       
       if (fullName === residentName || reversedName === residentName) {
-        console.log('Match found! Updating referentiepersoon to:', ibName);
         return {
           ...resident,
           referencePerson: ibName
@@ -1360,7 +1228,6 @@ export default function ToewijzingenPage() {
       return fullName === residentName || reversedName === residentName;
     });
 
-    console.log('Updated resident:', matchedResident);
     setDataMatchIt(updatedData);
   };
 
@@ -1376,7 +1243,6 @@ export default function ToewijzingenPage() {
     const currentCell = newData[rowIndex][colIndex];
     const previousText = currentCell.text.trim();
     
-    console.log(`🗑️ Deleting cell [${rowIndex}][${colIndex}]: "${previousText}"`);
     
     // Clear the cell content
     newData[rowIndex][colIndex] = {
@@ -1387,12 +1253,10 @@ export default function ToewijzingenPage() {
     
     // If this was an IB assignment, clear the resident's referentiepersoon
     if (previousText && colIndex < dynamicStaffColumns.length) {
-      console.log('Clearing referentiepersoon for removed resident:', previousText);
       clearResidentReferentiepersoon(previousText);
     }
     
     setTableData(newData);
-    console.log('✅ Cell deleted and table updated');
     
     // Trigger auto-save after delete
     triggerAutoSave();
@@ -1401,7 +1265,6 @@ export default function ToewijzingenPage() {
   // Clear all cell contents while preserving template structure
   const clearAllCells = () => {
     if (window.confirm('Weet je zeker dat je ALLE celinhoud wilt wissen? Dit kan niet ongedaan worden gemaakt.')) {
-      console.log('🗑️ Clearing all cell contents - preserving template structure');
       
       // Clear all residents' referentiepersoon
       if (dataMatchIt && setDataMatchIt) {
@@ -1421,7 +1284,6 @@ export default function ToewijzingenPage() {
       localStorage.removeItem('toewijzingen_staffColumns');
       localStorage.removeItem('toewijzingen_bottomData');
       
-      console.log('✅ All cells cleared, localStorage cleared, and template structure restored');
       
       // Trigger auto-save after clear all
       triggerAutoSave();
@@ -1599,93 +1461,6 @@ export default function ToewijzingenPage() {
               </button>
             </div>
 
-            {/* Manual Save Button - for testing */}
-            <div className="relative">
-              <button
-                onClick={() => handleSaveToDatabase(false)}
-                disabled={isSaving}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 ${
-                  isSaving 
-                    ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed opacity-60'
-                    : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 transform hover:scale-105'
-                } text-white shadow-lg hover:shadow-2xl font-medium`}
-                title="Manually save to database"
-              >
-                <Save className={`h-5 w-5 ${isSaving ? 'animate-spin' : ''}`} />
-                <span className="font-medium">
-                  {isSaving ? 'Saving...' : 'Save to DB'}
-                </span>
-              </button>
-            </div>
-
-            {/* Add Real Resident Data Button - for testing */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  console.log('🏠 Adding real resident data from dataMatchIt');
-                  console.log('📋 Available residents:', dataMatchIt?.length || 0);
-                  
-                  if (!dataMatchIt || dataMatchIt.length === 0) {
-                    console.warn('⚠️ No resident data available');
-                    return;
-                  }
-                  
-                  const newTableData = [...tableData];
-                  
-                  // Add some residents to the first few cells as staff assignments
-                  const sampleResidents = dataMatchIt.slice(0, 6); // Take first 6 residents
-                  console.log('👥 Sample residents:', sampleResidents.map(r => `${r.firstName} ${r.lastName} (${r.room})`));
-                  
-                  sampleResidents.forEach((resident, index) => {
-                    const row = Math.floor(index / 3);
-                    const col = index % 3;
-                    if (row < newTableData.length && col < newTableData[0].length) {
-                      newTableData[row][col] = { 
-                        text: `${resident.firstName} ${resident.lastName}`, 
-                        color: 'white', 
-                        type: 'resident' 
-                      };
-                      console.log(`📝 Added ${resident.firstName} ${resident.lastName} to row ${row}, col ${col}`);
-                    }
-                  });
-                  
-                  setTableData(newTableData);
-                  console.log('✅ Real resident data added to table');
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 transform hover:scale-105 text-white shadow-lg hover:shadow-2xl font-medium"
-                title="Add real resident data to table"
-              >
-                <FileText className="h-5 w-5" />
-                <span className="font-medium">Real Data</span>
-              </button>
-            </div>
-
-            {/* Debug Resident Data Button */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  console.log('🔍 Debug: Checking resident data');
-                  console.log('📊 dataMatchIt length:', dataMatchIt?.length || 0);
-                  console.log('📋 First 5 residents:', dataMatchIt?.slice(0, 5).map(r => ({
-                    name: `${r.firstName} ${r.lastName}`,
-                    room: r.room,
-                    badge: r.badge,
-                    referencePerson: r.referencePerson
-                  })));
-                  console.log('👥 Staff columns:', staffColumns.map(col => col.name));
-                  console.log('📅 Table dimensions:', {
-                    rows: tableData.length,
-                    cols: tableData[0]?.length,
-                    filledCells: tableData.flat().filter(cell => cell.text.trim()).length
-                  });
-                }}
-                className="flex items-center gap-2 px-2 py-2 rounded-xl transition-all duration-300 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 transform hover:scale-105 text-white shadow-lg hover:shadow-2xl font-medium text-sm"
-                title="Debug resident data in console"
-              >
-                <Search className="h-4 w-4" />
-                <span className="font-medium">Debug</span>
-              </button>
-            </div>
 
             {/* Auto-save Status */}
             <div className="flex items-center gap-2 px-3 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-600">
