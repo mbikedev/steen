@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { useData } from "../../lib/DataContext";
+import { getLanguagesByNationality, getOfficialLanguageByNationality } from "../../lib/language-utils";
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -25,8 +26,26 @@ export default function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
     geslacht: 'Mannelijk',
     referentiepersoon: '',
     datumIn: '',
-    dagenVerblijf: ''
+    dagenVerblijf: '',
+    language: ''
   });
+
+  // Get available languages for the current nationality
+  const availableLanguages = getLanguagesByNationality(formData.nationaliteit);
+
+  // Set today's date as default for Datum In when modal opens
+  useEffect(() => {
+    if (isOpen && !formData.datumIn) {
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      setFormData(prev => ({
+        ...prev,
+        datumIn: todayString,
+        dagenVerblijf: '1' // Today = 1 day of stay by default
+      }));
+      console.log('✅ Set default Datum In to today:', todayString);
+    }
+  }, [isOpen, formData.datumIn]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +88,7 @@ export default function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
       dateIn: formData.datumIn,
       daysOfStay: parseInt(formData.dagenVerblijf) || 0,
       status: 'active',
+      language: formData.language,
       // Default meal time settings for new users
       remarks: '',
       ontbijt: false,
@@ -89,7 +109,9 @@ export default function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
     
     console.log('🎯 AddUserModal: addToDataMatchIt call completed');
     
-    // Reset form
+    // Reset form - keep today's date as default for next use
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
     setFormData({
       badge: '',
       naam: '',
@@ -102,8 +124,9 @@ export default function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
       leeftijd: '',
       geslacht: 'Mannelijk',
       referentiepersoon: '',
-      datumIn: '',
-      dagenVerblijf: ''
+      datumIn: todayString, // Keep today as default
+      dagenVerblijf: '1', // 1 day of stay for today
+      language: ''
     });
     
     onClose();
@@ -138,6 +161,18 @@ export default function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
         ...prev,
         dagenVerblijf: daysOfStay.toString()
       }));
+    }
+
+    // Auto-fill language when nationality changes
+    if (name === 'nationaliteit' && value) {
+      const detectedLanguage = getOfficialLanguageByNationality(value);
+      if (detectedLanguage) {
+        setFormData(prev => ({
+          ...prev,
+          language: detectedLanguage
+        }));
+        console.log(`✅ Auto-filled language "${detectedLanguage}" for nationality "${value}"`);
+      }
     }
   };
 
@@ -208,8 +243,8 @@ export default function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
             </div>
           </div>
 
-          {/* Row 2: Blok, Nationaliteit */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Row 2: Blok, Nationaliteit, Taal */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Blok (Kamer) *
@@ -238,6 +273,37 @@ export default function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                 placeholder="Nationaliteit"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Taal (Language)
+                <span className="text-xs text-gray-500 ml-1">(auto-filled)</span>
+              </label>
+              {availableLanguages.length > 0 ? (
+                <select
+                  name="language"
+                  value={formData.language}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                >
+                  <option value="">Selecteer een taal...</option>
+                  {availableLanguages.map((lang, index) => (
+                    <option key={index} value={lang}>
+                      {lang}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  name="language"
+                  value={formData.language}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                  placeholder="Voer eerst nationaliteit in"
+                />
+              )}
             </div>
           </div>
 
@@ -374,6 +440,7 @@ export default function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
             <p className="text-sm text-blue-800">
               <strong>Let op:</strong> 
               <br />• Leeftijd en Dagen Verblijf worden automatisch berekend op basis van de ingevoerde datums.
+              <br />• Taal wordt automatisch ingevuld op basis van nationaliteit (kan handmatig aangepast worden).
               <br />• OV Nummer wordt automatisch &apos;0000000&apos; indien leeggelaten.
               <br />• Rijkregisternr wordt automatisch &apos;0FICT&apos; + badge + &apos;A&apos; indien leeggelaten.
             </p>

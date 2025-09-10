@@ -7,6 +7,7 @@ import { Search, UserPlus, Trash2, Clipboard, Upload, Undo, Redo, RefreshCw, Che
 import { useData } from "../../../lib/DataContext";
 import AddUserModal from '../../components/AddUserModal';
 import { formatDate, formatDateTime } from '../../../lib/utils';
+import { getOfficialLanguageByNationality } from '../../../lib/language-utils';
 import * as XLSX from 'xlsx';
 
 // Helper function to calculate days of stay from arrival date
@@ -398,8 +399,15 @@ function DataMatchItPageContent() {
               dateIn: parseExcelDate(columns.datumIn >= 0 ? row[columns.datumIn] : null),
               daysOfStay: calculateDaysOfStay(parseExcelDate(columns.datumIn >= 0 ? row[columns.datumIn] : null)),
               status: 'active',
-              name: '' // Add name field
+              name: '', // Add name field
+              language: getOfficialLanguageByNationality(columns.nationaliteit >= 0 ? String(row[columns.nationaliteit] || '') : '') // Auto-fill language
             };
+
+            // Log language auto-fill
+            const autoLanguage = newResident.language;
+            if (autoLanguage) {
+              console.log(`✅ Excel Import: Auto-filled language "${autoLanguage}" for nationality "${newResident.nationality}" (Badge: ${badge})`);
+            }
 
             // Check for duplicates
             let isDuplicate = false;
@@ -820,6 +828,9 @@ function DataMatchItPageContent() {
               console.log(`Applied default Rijkregisternr for badge ${badgeNumber}: ${registerNumber}`);
             }
 
+            const nationality = columns[4]?.trim() || '';
+            const autoLanguage = getOfficialLanguageByNationality(nationality);
+
             const newResident = {
               id: Date.now() + i,
               badge: String(badgeNumber),  // Ensure badge is a string
@@ -827,7 +838,7 @@ function DataMatchItPageContent() {
               firstName: columns[2]?.trim() || '',
               lastName: columns[1]?.trim() || '',
               room: columns[3]?.trim() || '',
-              nationality: columns[4]?.trim() || '',
+              nationality: nationality,
               ovNumber: ovNumber,
               registerNumber: registerNumber,
               dateOfBirth: parsedDateOfBirth,
@@ -838,8 +849,14 @@ function DataMatchItPageContent() {
               referencePerson: String(columns[10]?.trim() || ''),  // Ensure referencePerson is a string
               dateIn: parsedDateIn,
               daysOfStay: calculatedDaysOfStay,
-              status: 'active'
+              status: 'active',
+              language: autoLanguage // Auto-fill language based on nationality
             };
+
+            // Log language auto-fill
+            if (autoLanguage) {
+              console.log(`✅ Paste Import: Auto-filled language "${autoLanguage}" for nationality "${nationality}" (Badge: ${badgeNumber})`);
+            }
 
             // Log summary of automatic calculations
             const calculations = [];
@@ -916,16 +933,17 @@ function DataMatchItPageContent() {
         setTimeout(() => setDbSyncStatus({type: null, message: ''}), 5000);
       }
 
+      // Group duplicates by type (define outside the if block for later use)
+      const badgeDuplicates = duplicates.filter(d => d.type === 'badge');
+      const nameDuplicates = duplicates.filter(d => d.type === 'name');
+      const registerDuplicates = duplicates.filter(d => d.type === 'register');
+      
       // Show result message with detailed duplicate info
       let message = `${successCount} bewoner${successCount !== 1 ? 's' : ''} succesvol toegevoegd`;
       
       // Show duplicate details if any
       if (duplicates.length > 0) {
         message += `\n\n⚠️ ${duplicates.length} duplica${duplicates.length !== 1 ? 'ten' : 'at'} gevonden en overgeslagen:`;
-        
-        // Group duplicates by type
-        const badgeDuplicates = duplicates.filter(d => d.type === 'badge');
-        const nameDuplicates = duplicates.filter(d => d.type === 'name');
         
         if (badgeDuplicates.length > 0) {
           message += `\n• ${badgeDuplicates.length} badge duplica${badgeDuplicates.length !== 1 ? 'ten' : 'at'}`;
@@ -940,6 +958,15 @@ function DataMatchItPageContent() {
           message += `\n• ${nameDuplicates.length} naam duplica${nameDuplicates.length !== 1 ? 'ten' : 'at'}`;
           if (nameDuplicates.length <= 3) {
             nameDuplicates.forEach(d => {
+              message += `\n  - ${d.value} (regel ${d.line})`;
+            });
+          }
+        }
+        
+        if (registerDuplicates.length > 0) {
+          message += `\n• ${registerDuplicates.length} registernummer duplica${registerDuplicates.length !== 1 ? 'ten' : 'at'}`;
+          if (registerDuplicates.length <= 3) {
+            registerDuplicates.forEach(d => {
               message += `\n  - ${d.value} (regel ${d.line})`;
             });
           }
@@ -977,11 +1004,17 @@ function DataMatchItPageContent() {
         alert(message);
       }
 
-      console.log('Paste operation completed:', {
+      console.log('✅ Paste operation completed:', {
         totalLines: lines.length,
         successCount,
         errorCount,
-        addedResidents: parsedResidents
+        duplicatesSkipped: duplicates.length,
+        addedResidents: parsedResidents.length,
+        duplicateBreakdown: {
+          badgeDuplicates: badgeDuplicates.length,
+          nameDuplicates: nameDuplicates.length,
+          registerDuplicates: registerDuplicates.length || 0
+        }
       });
 
       // Show debug info temporarily

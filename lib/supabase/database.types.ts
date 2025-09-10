@@ -30,6 +30,7 @@ export interface Database {
           remarks: string | null
           room_remarks: string | null
           photo_url: string | null
+          language: string | null
           created_at: string
           updated_at: string
         }
@@ -53,6 +54,7 @@ export interface Database {
           remarks?: string | null
           room_remarks?: string | null
           photo_url?: string | null
+          language?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -76,6 +78,7 @@ export interface Database {
           remarks?: string | null
           room_remarks?: string | null
           photo_url?: string | null
+          language?: string | null
           created_at?: string
           updated_at?: string
         }

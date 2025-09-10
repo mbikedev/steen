@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { apiService } from '@/lib/api-service'
+import { getOfficialLanguageByNationality } from './language-utils'
 import type { Database } from '@/lib/supabase/database.types'
 import { ALL_ROOMS, CAPACITY } from '@/lib/bedConfig'
 
@@ -52,7 +53,7 @@ interface DataContextType {
   
   // Legacy functions for backward compatibility
   syncWithToewijzingen: () => void
-  addToDataMatchIt: (resident: any) => Promise<void>
+  addToDataMatchIt: (resident: any) => Promise<boolean>
   addMultipleToDataMatchIt: (residents: any[]) => Promise<void>
   updateInDataMatchIt: (id: number, updates: any) => void
   deleteFromDataMatchIt: (id: number) => void
@@ -80,7 +81,7 @@ interface DataContextType {
   refreshAll: () => Promise<void>
   
   // CRUD operations
-  createResident: (resident: Omit<Resident, 'id' | 'created_at' | 'updated_at'>) => Promise<Resident>
+  createResident: (resident: Omit<Resident, 'id' | 'created_at' | 'updated_at'>) => Promise<Resident | null>
   updateResident: (id: number, updates: Partial<Resident>) => Promise<Resident>
   deleteResident: (id: number) => Promise<void>
   
@@ -320,16 +321,26 @@ export function DataProvider({ children }: DataProviderProps) {
   }
 
   // CRUD operations
-  const createResident = async (resident: Omit<Resident, 'id' | 'created_at' | 'updated_at'>): Promise<Resident> => {
-    const newResident = await apiService.createResident(resident)
-    await refreshResidents()
-    await apiService.logActivity({
-      action: 'create',
-      entity_type: 'resident',
-      entity_id: newResident.id,
-      details: { badge: resident.badge, name: `${resident.first_name} ${resident.last_name}` }
-    })
-    return newResident
+  const createResident = async (resident: Omit<Resident, 'id' | 'created_at' | 'updated_at'>): Promise<Resident | null> => {
+    try {
+      const newResident = await apiService.createResident(resident)
+      await refreshResidents()
+      await apiService.logActivity({
+        action: 'create',
+        entity_type: 'resident',
+        entity_id: newResident.id,
+        details: { badge: resident.badge, name: `${resident.first_name} ${resident.last_name}` }
+      })
+      return newResident
+    } catch (error: any) {
+      // Handle duplicate key errors gracefully
+      if (error?.code === '23505' || error?.message?.includes('duplicate') || error?.message?.includes('409')) {
+        console.warn(`⚠️ Resident with badge ${resident.badge} already exists in database - skipping`)
+        return null
+      }
+      // Re-throw other errors
+      throw error
+    }
   }
 
   const updateResident = async (id: number, updates: Partial<Resident>) => {
@@ -465,7 +476,7 @@ export function DataProvider({ children }: DataProviderProps) {
     // For now, just log that it was called
   }
 
-  const addToDataMatchIt = async (resident: any) => {
+  const addToDataMatchIt = async (resident: any): Promise<boolean> => {
     console.log('🔄 addToDataMatchIt called - converting to createResident')
     try {
       const supabaseResident = {
@@ -486,18 +497,42 @@ export function DataProvider({ children }: DataProviderProps) {
         status: resident.status || 'active',
         remarks: resident.remarks || null,
         room_remarks: resident.roomRemarks || resident.room_remarks || null,
-        photo_url: resident.photoUrl || resident.photo_url || null
+        photo_url: resident.photoUrl || resident.photo_url || null,
+        language: resident.language || null
       }
-      await createResident(supabaseResident)
-    } catch (error) {
+      const result = await createResident(supabaseResident)
+      if (result === null) {
+        // Duplicate was skipped
+        console.log(`ℹ️ Resident with badge ${resident.badge} was skipped (already exists)`)
+        return false
+      }
+      return true
+    } catch (error: any) {
+      // For unexpected errors, log and continue (don't break the whole import)
       console.error('Error in addToDataMatchIt:', error)
+      return false
     }
   }
 
   const addMultipleToDataMatchIt = async (residents: any[]) => {
-    console.log('🔄 addMultipleToDataMatchIt called - converting to multiple createResident calls')
+    console.log(`🔄 addMultipleToDataMatchIt called - adding ${residents.length} residents`)
+    let successCount = 0
+    let skipCount = 0
+    
     for (const resident of residents) {
-      await addToDataMatchIt(resident)
+      const success = await addToDataMatchIt(resident)
+      if (success) {
+        successCount++
+      } else {
+        skipCount++
+      }
+    }
+    
+    console.log(`✅ Batch import complete: ${successCount} added, ${skipCount} skipped (duplicates or errors)`)
+    
+    // Only refresh if we added at least one resident
+    if (successCount > 0) {
+      await refreshResidents()
     }
   }
 
@@ -507,7 +542,15 @@ export function DataProvider({ children }: DataProviderProps) {
     if (updates.firstName) supabaseUpdates.first_name = updates.firstName
     if (updates.lastName) supabaseUpdates.last_name = updates.lastName
     if (updates.room !== undefined) supabaseUpdates.room = updates.room
-    if (updates.nationality !== undefined) supabaseUpdates.nationality = updates.nationality
+    if (updates.nationality !== undefined) {
+      supabaseUpdates.nationality = updates.nationality
+      // Auto-fill language when nationality is updated
+      const autoLanguage = getOfficialLanguageByNationality(updates.nationality)
+      if (autoLanguage) {
+        supabaseUpdates.language = autoLanguage
+        console.log(`✅ Auto-filled language "${autoLanguage}" for nationality "${updates.nationality}" (ID: ${id})`)
+      }
+    }
     if (updates.ovNumber !== undefined) supabaseUpdates.ov_number = updates.ovNumber
     if (updates.registerNumber !== undefined) supabaseUpdates.register_number = updates.registerNumber
     if (updates.dateOfBirth !== undefined) supabaseUpdates.date_of_birth = updates.dateOfBirth
@@ -521,6 +564,7 @@ export function DataProvider({ children }: DataProviderProps) {
     if (updates.remarks !== undefined) supabaseUpdates.remarks = updates.remarks
     if (updates.roomRemarks !== undefined) supabaseUpdates.room_remarks = updates.roomRemarks
     if (updates.photoUrl !== undefined) supabaseUpdates.photo_url = updates.photoUrl
+    if (updates.language !== undefined) supabaseUpdates.language = updates.language
 
     updateResident(id, supabaseUpdates).catch(console.error)
   }
