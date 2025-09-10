@@ -384,6 +384,235 @@ export interface Database {
           updated_at?: string
         }
       }
+      administrative_documents: {
+        Row: {
+          id: number
+          resident_id: number | null
+          document_type: 'IN' | 'OUT'
+          file_name: string
+          file_path: string
+          file_size: number | null
+          mime_type: string | null
+          description: string | null
+          uploaded_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          resident_id?: number | null
+          document_type: 'IN' | 'OUT'
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          mime_type?: string | null
+          description?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          resident_id?: number | null
+          document_type?: 'IN' | 'OUT'
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          mime_type?: string | null
+          description?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      administrative_documents_in: {
+        Row: {
+          id: number
+          resident_id: number | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          mime_type: string | null
+          description: string | null
+          document_category: string | null
+          uploaded_by: string | null
+          is_required: boolean | null
+          verification_status: 'pending' | 'verified' | 'rejected' | null
+          verified_by: string | null
+          verified_at: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          resident_id?: number | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          mime_type?: string | null
+          description?: string | null
+          document_category?: string | null
+          uploaded_by?: string | null
+          is_required?: boolean | null
+          verification_status?: 'pending' | 'verified' | 'rejected' | null
+          verified_by?: string | null
+          verified_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          resident_id?: number | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          mime_type?: string | null
+          description?: string | null
+          document_category?: string | null
+          uploaded_by?: string | null
+          is_required?: boolean | null
+          verification_status?: 'pending' | 'verified' | 'rejected' | null
+          verified_by?: string | null
+          verified_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      administrative_documents_out: {
+        Row: {
+          id: number
+          resident_id: number | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          mime_type: string | null
+          description: string | null
+          document_category: string | null
+          uploaded_by: string | null
+          is_required: boolean | null
+          completion_status: 'pending' | 'completed' | 'cancelled' | null
+          completed_by: string | null
+          completed_at: string | null
+          exit_date: string | null
+          forwarding_address: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          resident_id?: number | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          mime_type?: string | null
+          description?: string | null
+          document_category?: string | null
+          uploaded_by?: string | null
+          is_required?: boolean | null
+          completion_status?: 'pending' | 'completed' | 'cancelled' | null
+          completed_by?: string | null
+          completed_at?: string | null
+          exit_date?: string | null
+          forwarding_address?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          resident_id?: number | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          mime_type?: string | null
+          description?: string | null
+          document_category?: string | null
+          uploaded_by?: string | null
+          is_required?: boolean | null
+          completion_status?: 'pending' | 'completed' | 'cancelled' | null
+          completed_by?: string | null
+          completed_at?: string | null
+          exit_date?: string | null
+          forwarding_address?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      document_categories: {
+        Row: {
+          id: number
+          name: string
+          description: string | null
+          document_type: 'IN' | 'OUT'
+          is_required: boolean | null
+          sort_order: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          name: string
+          description?: string | null
+          document_type: 'IN' | 'OUT'
+          is_required?: boolean | null
+          sort_order?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          name?: string
+          description?: string | null
+          document_type?: 'IN' | 'OUT'
+          is_required?: boolean | null
+          sort_order?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      resident_status_history: {
+        Row: {
+          id: number
+          resident_id: number | null
+          previous_status: string | null
+          new_status: string
+          status_type: 'IN' | 'OUT'
+          change_date: string
+          changed_by: string | null
+          reason: string | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          resident_id?: number | null
+          previous_status?: string | null
+          new_status: string
+          status_type: 'IN' | 'OUT'
+          change_date?: string
+          changed_by?: string | null
+          reason?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          resident_id?: number | null
+          previous_status?: string | null
+          new_status?: string
+          status_type?: 'IN' | 'OUT'
+          change_date?: string
+          changed_by?: string | null
+          reason?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+      }
       toewijzingen_staff: {
         Row: {
           id: number
@@ -449,6 +678,41 @@ export interface Database {
           ip_address?: string | null
           user_agent?: string | null
           created_at?: string
+        }
+      }
+      resident_photos: {
+        Row: {
+          id: number
+          badge_number: string
+          photo_url: string
+          file_name: string | null
+          file_size: number | null
+          mime_type: string | null
+          uploaded_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          badge_number: string
+          photo_url: string
+          file_name?: string | null
+          file_size?: number | null
+          mime_type?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          badge_number?: string
+          photo_url?: string
+          file_name?: string | null
+          file_size?: number | null
+          mime_type?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+          updated_at?: string
         }
       }
     }

@@ -21,7 +21,7 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
-import { residentPhotosApi } from '../../lib/api-service';
+import { residentPhotosApi, apiService } from '../../lib/api-service';
 
 interface Document {
   id: string;
@@ -64,7 +64,8 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
             // Try different key formats for badge number
             const badgeStr = String(resident.badge);
             const badgeNum = Number(resident.badge);
-            const photo = response.data[badgeStr] || response.data[badgeNum] || response.data[resident.badge];
+            const data = response.data as Record<string | number, string>;
+            const photo = data[badgeStr] || data[badgeNum] || data[resident.badge];
             
             if (photo) {
               setResidentPhoto(photo);
@@ -72,21 +73,8 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
             }
           }
         } catch (error) {
-          // API not available, continue to localStorage fallback
-        }
-        
-        // Fallback to localStorage
-        const localPhotos = localStorage.getItem('resident-photos');
-        if (localPhotos) {
-          try {
-            const parsedPhotos = JSON.parse(localPhotos);
-            const photo = parsedPhotos[String(resident.badge)];
-            setResidentPhoto(photo || null);
-          } catch (e) {
-            console.error('Failed to parse localStorage photos:', e);
-            setResidentPhoto(null);
-          }
-        } else {
+          // API not available
+          console.error('Failed to load photo from API:', error);
           setResidentPhoto(null);
         }
       }
@@ -95,9 +83,53 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
     loadResidentPhoto();
   }, [resident?.badge]);
 
+  // Load documents from database
+  useEffect(() => {
+    const loadDocuments = async () => {
+      if (resident?.id) {
+        try {
+          console.log('🔍 Loading documents for resident ID:', resident.id);
+          const response = await apiService.getAdministrativeDocuments(resident.id);
+          
+          console.log('📥 Raw response from getAdministrativeDocuments:', response);
+          
+          if (Array.isArray(response)) {
+            console.log('📄 Found documents:', response.length);
+            
+            // Convert database documents to component format
+            const formattedDocs: Document[] = response.map((doc: any) => ({
+              id: doc.id.toString(),
+              name: doc.file_name,
+              type: doc.mime_type?.includes('pdf') ? 'pdf' 
+                  : doc.mime_type?.includes('image') ? 'image' 
+                  : 'other',
+              size: formatFileSize(doc.file_size || 0),
+              uploadDate: new Date(doc.created_at).toISOString().split('T')[0],
+              category: doc.document_type, // Use 'IN' or 'OUT' directly
+              documentType: 'other',
+              url: doc.file_path // This should be a Supabase Storage URL
+            }));
+            
+            setDocuments(formattedDocs);
+          } else {
+            console.log('⚠️ Response is not an array, setting empty documents');
+            setDocuments([]);
+          }
+        } catch (error) {
+          console.error('❌ Failed to load documents:', error);
+          setDocuments([]); // Set empty array on error
+        }
+      }
+    };
+    
+    if (isOpen && resident?.id) {
+      loadDocuments();
+    }
+  }, [isOpen, resident?.id]);
+
   if (!isOpen) return null;
 
-  const categories = ['all', 'Fedasil Documenten', 'Identiteitsdocumenten', 'Medische Dossiers', 'Juridische Documenten', 'Overige'];
+  const categories = ['all', 'IN', 'OUT', 'Fedasil Documenten', 'Identiteitsdocumenten', 'Medische Dossiers', 'Juridische Documenten', 'Overige'];
 
   const filteredDocuments = selectedCategory === 'all' 
     ? documents 
@@ -105,72 +137,147 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) {
-      setUploadStatus('uploading');
+    if (!files || !resident?.id) return;
+    
+    setUploadStatus('uploading');
+    
+    try {
+      const newDocuments: Document[] = [];
       
-      try {
-        const newDocuments: Document[] = [];
+      for (const file of Array.from(files)) {
+        console.log('📤 Uploading file:', file.name, 'for resident ID:', resident.id);
+        console.log('🎯 Selected document type:', selectedDocumentType);
         
-        for (const file of Array.from(files)) {
-          // Determine file type
+        // Determine document type (IN/OUT) and description based on selection
+        const outDocumentTypes = [
+          'ontslagbrief', 'doorverwijzingsdocumenten', 'eindrapport', 
+          'retournering_documenten', 'administratieve_afsluiting'
+        ];
+        
+        let documentType = outDocumentTypes.includes(selectedDocumentType) ? 'OUT' : 'IN';
+        let description = '';
+        
+        console.log('📄 Document type will be:', documentType);
+        
+        // Set description based on document type
+        switch (selectedDocumentType) {
+          case 'bijlage26':
+            description = 'Bijlage 26 document';
+            break;
+          case 'toewijzing':
+            description = 'Toewijzing document';
+            break;
+          case 'passport':
+            description = 'Paspoort document';
+            break;
+          case 'geboorteakte':
+            description = 'Geboorte akte document';
+            break;
+          case 'identiteitsdocument':
+            description = 'Identiteitsdocument';
+            break;
+          case 'verblijfsvergunning':
+            description = 'Verblijfsvergunning';
+            break;
+          case 'medische_documenten':
+            description = 'Medische documenten';
+            break;
+          case 'inschrijvingsdocumenten':
+            description = 'Inschrijvingsdocumenten';
+            break;
+          case 'financiele_documenten':
+            description = 'Financiële documenten';
+            break;
+          case 'ontslagbrief':
+            description = 'Ontslagbrief';
+            break;
+          case 'doorverwijzingsdocumenten':
+            description = 'Doorverwijzingsdocumenten';
+            break;
+          case 'eindrapport':
+            description = 'Eindrapport';
+            break;
+          case 'retournering_documenten':
+            description = 'Retournering documenten';
+            break;
+          case 'administratieve_afsluiting':
+            description = 'Administratieve afsluiting';
+            break;
+          default:
+            description = 'Administratief document';
+        }
+        
+        // Upload to Supabase Storage and save to database
+        console.log('🚀 Calling uploadAdministrativeDocument with:', {
+          file: file.name,
+          metadata: {
+            resident_id: resident.id,
+            document_type: documentType,
+            description: description
+          }
+        });
+        
+        const response = await apiService.uploadAdministrativeDocument(file, {
+          resident_id: resident.id,
+          document_type: documentType as 'IN' | 'OUT',
+          description: description
+        });
+        
+        console.log('📦 Upload response:', response);
+        
+        if (response) {
+          console.log('✅ Document uploaded successfully:', response);
+          
+          // Determine file type for UI
           const fileType = file.type.includes('pdf') ? 'pdf' 
             : file.type.includes('image') ? 'image' 
-            : 'scan';
+            : 'other';
           
-          // Create object URL for preview
-          const url = URL.createObjectURL(file);
-          
-          // Determine category based on selected document type
-          let category = 'Overige';
-          let documentType: Document['documentType'] = 'other';
+          // Determine category based on document type (IN/OUT)
+          let category = documentType; // Use 'IN' or 'OUT' as primary category
+          let docType: Document['documentType'] = 'other';
           
           if (selectedDocumentType === 'bijlage26') {
-            category = 'Fedasil Documenten';
-            documentType = 'bijlage26';
+            docType = 'bijlage26';
           } else if (selectedDocumentType === 'toewijzing') {
-            category = 'Fedasil Documenten';
-            documentType = 'toewijzing';
+            docType = 'toewijzing';
           } else if (selectedDocumentType === 'passport') {
-            category = 'Identiteitsdocumenten';
-            documentType = 'passport';
+            docType = 'passport';
           } else if (selectedDocumentType === 'geboorteakte') {
-            category = 'Identiteitsdocumenten';
-            documentType = 'geboorteakte';
-          } else if (file.name.toLowerCase().includes('medical') || file.name.toLowerCase().includes('medisch')) {
-            category = 'Medische Dossiers';
-          } else if (file.name.toLowerCase().includes('legal') || file.name.toLowerCase().includes('juridisch')) {
-            category = 'Juridische Documenten';
+            docType = 'geboorteakte';
           }
           
           const newDocument: Document = {
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            name: file.name,
+            id: response.id.toString(),
+            name: response.file_name,
             type: fileType as Document['type'],
-            size: formatFileSize(file.size),
-            uploadDate: new Date().toISOString().split('T')[0],
+            size: formatFileSize(response.file_size || file.size),
+            uploadDate: new Date(response.created_at).toISOString().split('T')[0],
             category,
-            documentType,
-            url,
-            file
+            documentType: docType,
+            url: response.file_path
           };
           
           newDocuments.push(newDocument);
         }
-        
-        setDocuments(prev => [...prev, ...newDocuments]);
-        setUploadStatus('success');
-        
-        // Reset status after 3 seconds
-        setTimeout(() => {
-          setUploadStatus('idle');
-          setSelectedDocumentType('other');
-        }, 3000);
-        
-      } catch (error) {
-        console.error('Upload error:', error);
-        setUploadStatus('error');
-        setTimeout(() => setUploadStatus('idle'), 3000);
       }
+      
+      // Add new documents to state
+      setDocuments(prev => [...prev, ...newDocuments]);
+      setUploadStatus('success');
+      
+      console.log('🎉 All documents uploaded successfully');
+      
+      // Reset status after 3 seconds
+      setTimeout(() => {
+        setUploadStatus('idle');
+        setSelectedDocumentType('other');
+      }, 3000);
+      
+    } catch (error) {
+      console.error('❌ Upload error:', error);
+      setUploadStatus('error');
+      setTimeout(() => setUploadStatus('idle'), 3000);
     }
     
     // Reset file input
@@ -187,32 +294,74 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const handleDeleteDocument = (docId: string) => {
-    const doc = documents.find(d => d.id === docId);
-    if (doc?.url) {
-      URL.revokeObjectURL(doc.url);
+  const handleDeleteDocument = async (docId: string) => {
+    try {
+      console.log('🗑️ Deleting document ID:', docId);
+      
+      // Delete from database
+      await apiService.deleteAdministrativeDocument(parseInt(docId));
+      
+      console.log('✅ Document deleted from database');
+      
+      // Remove from local state
+      const doc = documents.find(d => d.id === docId);
+      if (doc?.url && doc.url.startsWith('blob:')) {
+        URL.revokeObjectURL(doc.url); // Only revoke blob URLs
+      }
+      
+      setDocuments(prev => prev.filter(doc => doc.id !== docId));
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error('❌ Delete error:', error);
+      alert('Fout bij verwijderen document. Probeer opnieuw.');
     }
-    setDocuments(prev => prev.filter(doc => doc.id !== docId));
-    setDeleteConfirm(null);
   };
 
-  const handleViewDocument = (doc: Document) => {
-    if (doc.url) {
-      // Open document in new tab
-      window.open(doc.url, '_blank');
+  const handleViewDocument = async (doc: Document) => {
+    try {
+      if (doc.url) {
+        // If it's a blob URL (temporary), open directly
+        if (doc.url.startsWith('blob:')) {
+          window.open(doc.url, '_blank');
+        } else {
+          // For Supabase Storage URLs, check if accessible
+          console.log('🔍 Opening document:', doc.id, doc.url);
+          
+          // Try to open the document
+          const newWindow = window.open(doc.url, '_blank');
+          
+          // If the URL fails (404), show helpful error
+          setTimeout(() => {
+            if (newWindow && newWindow.closed) {
+              alert('⚠️ Document niet gevonden. De Supabase storage bucket "administrative-documents" moet aangemaakt worden.');
+            }
+          }, 1000);
+        }
+      }
+      setPreviewDocument(doc);
+    } catch (error) {
+      console.error('❌ Error viewing document:', error);
+      alert('Fout bij openen document. Controleer of de Supabase storage bucket "administrative-documents" bestaat.');
     }
-    setPreviewDocument(doc);
   };
 
-  const handleDownloadDocument = (doc: Document) => {
-    if (doc.url && doc.file) {
-      // Trigger download for uploaded documents
-      const link = document.createElement('a');
-      link.href = doc.url;
-      link.download = doc.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  const handleDownloadDocument = async (doc: Document) => {
+    try {
+      if (doc.url) {
+        console.log('📥 Downloading document:', doc.name);
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = doc.url;
+        link.download = doc.name;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('❌ Error downloading document:', error);
+      alert('Fout bij downloaden document.');
     }
   };
 
@@ -446,10 +595,24 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                       title="Selecteer documenttype voor betere organisatie"
                     >
                       <option value="other">Selecteer Documenttype</option>
-                      <option value="bijlage26">Bijlage 26</option>
-                      <option value="toewijzing">Toewijzing</option>
-                      <option value="passport">Paspoort</option>
-                      <option value="geboorteakte">Geboorte Akte</option>
+                      <optgroup label="IN Documenten">
+                        <option value="bijlage26">Bijlage 26</option>
+                        <option value="toewijzing">Toewijzing</option>
+                        <option value="passport">Paspoort</option>
+                        <option value="geboorteakte">Geboorte Akte</option>
+                        <option value="identiteitsdocument">Identiteitsdocument</option>
+                        <option value="verblijfsvergunning">Verblijfsvergunning</option>
+                        <option value="medische_documenten">Medische Documenten</option>
+                        <option value="inschrijvingsdocumenten">Inschrijvingsdocumenten</option>
+                        <option value="financiele_documenten">Financiële Documenten</option>
+                      </optgroup>
+                      <optgroup label="OUT Documenten">
+                        <option value="ontslagbrief">Ontslagbrief</option>
+                        <option value="doorverwijzingsdocumenten">Doorverwijzingsdocumenten</option>
+                        <option value="eindrapport">Eindrapport</option>
+                        <option value="retournering_documenten">Retournering Documenten</option>
+                        <option value="administratieve_afsluiting">Administratieve Afsluiting</option>
+                      </optgroup>
                     </select>
                     <button
                       onClick={() => fileInputRef.current?.click()}

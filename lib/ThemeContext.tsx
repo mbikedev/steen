@@ -27,21 +27,9 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
 
   useEffect(() => {
     setMounted(true);
-    // Check for saved theme preference or default to light mode
-    const savedTheme = localStorage.getItem('theme');
-    
-    if (savedTheme === 'dark') {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
-    } else {
-      // Default to light mode if no preference is saved
-      setIsDarkMode(false);
-      document.documentElement.classList.remove('dark');
-      // Save light as default if nothing was saved
-      if (!savedTheme) {
-        localStorage.setItem('theme', 'light');
-      }
-    }
+    // Default to light mode
+    setIsDarkMode(false);
+    document.documentElement.classList.remove('dark');
   }, []);
 
   const toggleTheme = () => {
@@ -50,10 +38,8 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     
     if (newTheme) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
     }
   };
 

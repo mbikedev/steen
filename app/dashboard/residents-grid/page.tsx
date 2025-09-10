@@ -43,22 +43,9 @@ export default function ResidentsGridPage() {
           console.log('Loaded photos from database:', response.data);
           setResidentPhotos(response.data);
         } else {
-          console.warn('Photos API not available yet - using localStorage fallback');
+          console.warn('Photos API not available yet');
           console.log('API Response:', response);
-          // Fallback: Load from localStorage until backend is deployed
-          const localPhotos = localStorage.getItem('resident-photos');
-          if (localPhotos) {
-            try {
-              const parsedPhotos = JSON.parse(localPhotos);
-              setResidentPhotos(parsedPhotos);
-              console.log('Loaded photos from localStorage:', parsedPhotos);
-            } catch (e) {
-              console.error('Failed to parse localStorage photos:', e);
-              setResidentPhotos({});
-            }
-          } else {
-            setResidentPhotos({});
-          }
+          setResidentPhotos({});
         }
       } catch (error) {
         console.error('Error loading photos (caught exception):', error);
@@ -133,8 +120,22 @@ export default function ResidentsGridPage() {
 
   // Handle image upload
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, _residentId: string) => {
+    console.log(`📁 File selected event triggered`);
+    console.log(`📄 Files:`, event.target.files);
+    console.log(`🎯 uploadingFor state:`, uploadingFor);
+    
     const file = event.target.files?.[0];
-    if (!file || !uploadingFor) return;
+    if (!file) {
+      console.warn(`❌ No file selected`);
+      return;
+    }
+    
+    if (!uploadingFor) {
+      console.warn(`❌ No uploadingFor state set`);
+      return;
+    }
+    
+    console.log(`✅ Processing file upload for badge ${uploadingFor}:`, file.name);
 
     // Validate file type - accept all common image formats
     const allowedTypes = [
@@ -170,34 +171,12 @@ export default function ResidentsGridPage() {
         
         console.log('✅ Image uploaded to DATABASE successfully');
       } else {
-        console.warn(`⚠️ Database not available - using localStorage for badge ${uploadingFor}`);
-        
-        // Fallback: Use FileReader for local display until backend is deployed
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const imageUrl = e.target?.result as string;
-          const updatedPhotos = { ...residentPhotos, [uploadingFor]: imageUrl };
-          setResidentPhotos(updatedPhotos);
-          // Save to localStorage for persistence during session
-          localStorage.setItem('resident-photos', JSON.stringify(updatedPhotos));
-          console.log(`Using local fallback with localStorage for badge ${uploadingFor}`);
-        };
-        reader.readAsDataURL(file);
+        console.warn(`⚠️ Database not available for badge ${uploadingFor}`);
+        alert('Photo upload failed: Database not available');
       }
     } catch (error) {
-      console.warn(`Database upload failed - using local fallback for badge ${uploadingFor}:`, error);
-      
-      // Fallback: Use FileReader for local display
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        const updatedPhotos = { ...residentPhotos, [uploadingFor]: imageUrl };
-        setResidentPhotos(updatedPhotos);
-        // Save to localStorage for persistence during session
-        localStorage.setItem('resident-photos', JSON.stringify(updatedPhotos));
-        console.log(`Using local fallback with localStorage for badge ${uploadingFor}`);
-      };
-      reader.readAsDataURL(file);
+      console.error(`Database upload failed for badge ${uploadingFor}:`, error);
+      alert('Photo upload failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setUploadingFor(null);
       
@@ -209,10 +188,21 @@ export default function ResidentsGridPage() {
   };
 
   const triggerImageUpload = (residentBadge: string) => {
-    console.log(`Triggering image upload for badge: ${residentBadge}`);
+    console.log(`🚀 Triggering image upload for badge: ${residentBadge}`);
+    console.log(`📷 File input ref:`, fileInputRef.current);
+    
     setUploadingFor(residentBadge);
-    console.log(`Current resident photos:`, Object.keys(residentPhotos));
-    fileInputRef.current?.click();
+    console.log(`📋 Current resident photos:`, Object.keys(residentPhotos));
+    
+    // Small delay to ensure state is set before clicking
+    setTimeout(() => {
+      if (fileInputRef.current) {
+        console.log(`🖱️ Clicking file input for badge ${residentBadge}`);
+        fileInputRef.current.click();
+      } else {
+        console.error(`❌ File input ref is null!`);
+      }
+    }, 10);
   };
 
   // Handle photo deletion
@@ -238,43 +228,14 @@ export default function ResidentsGridPage() {
           return updated;
         });
         
-        // Also remove from localStorage (fallback)
-        const localPhotos = JSON.parse(localStorage.getItem('resident-photos') || '{}');
-        delete localPhotos[badgeNumber];
-        localStorage.setItem('resident-photos', JSON.stringify(localPhotos));
-        
         alert('✅ Photo deleted successfully!');
       } else {
-        console.warn(`⚠️ Database deletion failed - removing from localStorage only`);
-        
-        // Fallback: Remove from localStorage only
-        setResidentPhotos(prev => {
-          const updated = { ...prev };
-          delete updated[badgeNumber];
-          return updated;
-        });
-        
-        const localPhotos = JSON.parse(localStorage.getItem('resident-photos') || '{}');
-        delete localPhotos[badgeNumber];
-        localStorage.setItem('resident-photos', JSON.stringify(localPhotos));
-        
-        alert('⚠️ Photo removed from local storage (database not available)');
+        console.warn(`⚠️ Database deletion failed`);
+        alert('⚠️ Photo deletion failed (database not available)');
       }
     } catch (error) {
       console.error('Failed to delete photo:', error);
-      
-      // Still try to remove locally
-      setResidentPhotos(prev => {
-        const updated = { ...prev };
-        delete updated[badgeNumber];
-        return updated;
-      });
-      
-      const localPhotos = JSON.parse(localStorage.getItem('resident-photos') || '{}');
-      delete localPhotos[badgeNumber];
-      localStorage.setItem('resident-photos', JSON.stringify(localPhotos));
-      
-      alert('⚠️ Photo removed locally (server error)');
+      alert('⚠️ Failed to delete photo: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -425,7 +386,7 @@ export default function ResidentsGridPage() {
           id="resident-photo-upload"
           name="resident-photo-upload"
           type="file"
-          accept="image/png,image/jpg,image/jpeg,image/gif,image/bmp,image/webp,image/svg+xml,image/tiff,image/avif,image/heic,image/heif"
+          accept="image/*"
           onChange={(e) => handleImageUpload(e, uploadingFor || '')}
           className="hidden"
         />
@@ -439,10 +400,17 @@ export default function ResidentsGridPage() {
             return (
               <div
                 key={resident.id}
-                onClick={() => {
+                onClick={(e) => {
+                  console.log(`🖱️ Resident card clicked for badge ${resident.badgeNumber}`);
+                  console.log(`📸 Has photo:`, !!resident.photoUrl);
+                  console.log(`🎯 Click target:`, e.target);
+                  
                   // Only trigger upload if there's no photo and we're not clicking on an image
                   if (!resident.photoUrl) {
+                    console.log(`▶️ Triggering upload for badge ${resident.badgeNumber}`);
                     triggerImageUpload(resident.badgeNumber);
+                  } else {
+                    console.log(`⏹️ Photo exists, not triggering upload`);
                   }
                 }}
                 className={`group relative bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 overflow-hidden transform hover:scale-105 ${!resident.photoUrl ? 'cursor-pointer' : 'cursor-default'} ${shouldPageBreak ? 'print:break-after-page' : ''}`}

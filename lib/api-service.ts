@@ -10,6 +10,9 @@ type Permission = Tables['permissions']['Row']
 type Document = Tables['documents']['Row']
 type MealSchedule = Tables['meal_schedules']['Row']
 type RoomAssignment = Tables['room_assignments']['Row']
+type AdministrativeDocument = Tables['administrative_documents']['Row']
+type DocumentCategory = Tables['document_categories']['Row']
+type ResidentStatusHistory = Tables['resident_status_history']['Row']
 
 export class ApiService {
   private supabase = createClient() as any
@@ -493,6 +496,160 @@ export class ApiService {
     }
   }
 
+  // Administrative Documents
+  async getAdministrativeDocuments(residentId?: number, documentType?: 'IN' | 'OUT') {
+    let query = this.supabase
+      .from('administrative_documents')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (residentId) {
+      query = query.eq('resident_id', residentId)
+    }
+
+    if (documentType) {
+      query = query.eq('document_type', documentType)
+    }
+
+    const { data, error } = await query
+    if (error) {
+      console.error('Database error in getAdministrativeDocuments:', error)
+      throw error
+    }
+    return data || []
+  }
+
+  async uploadAdministrativeDocument(file: File, metadata: {
+    resident_id?: number
+    document_type: 'IN' | 'OUT'
+    description?: string
+    uploaded_by?: string
+  }): Promise<AdministrativeDocument> {
+    // Upload file to Supabase Storage
+    const fileName = `${metadata.document_type}/${Date.now()}_${file.name}`
+    const { data: uploadData, error: uploadError } = await this.supabase.storage
+      .from('administrative-documents')
+      .upload(fileName, file)
+
+    if (uploadError) {
+      if (uploadError.message?.includes('Bucket not found')) {
+        throw new Error('Storage bucket "administrative-documents" not found. Please create it in Supabase dashboard under Storage.')
+      }
+      throw uploadError
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = this.supabase.storage
+      .from('administrative-documents')
+      .getPublicUrl(fileName)
+
+    // Create document record
+    const { data, error } = await this.supabase
+      .from('administrative_documents')
+      .insert({
+        ...metadata,
+        file_name: file.name,
+        file_path: publicUrl,
+        file_size: file.size,
+        mime_type: file.type
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
+  async deleteAdministrativeDocument(id: number) {
+    // Get document to find file path
+    const { data: doc, error: getError } = await this.supabase
+      .from('administrative_documents')
+      .select('file_path')
+      .eq('id', id)
+      .single()
+
+    if (getError) throw getError
+
+    // Extract file name from URL and delete from storage
+    if (doc?.file_path) {
+      const fileName = doc.file_path.split('/').pop()
+      if (fileName) {
+        await this.supabase.storage
+          .from('administrative-documents')
+          .remove([fileName])
+      }
+    }
+
+    // Delete document record
+    const { error } = await this.supabase
+      .from('administrative_documents')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+  }
+
+  // Document Categories
+  async getDocumentCategories(documentType?: 'IN' | 'OUT') {
+    let query = this.supabase
+      .from('document_categories')
+      .select('*')
+      .order('sort_order', { ascending: true })
+
+    if (documentType) {
+      query = query.eq('document_type', documentType)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return data
+  }
+
+  async createDocumentCategory(category: Omit<DocumentCategory, 'id' | 'created_at' | 'updated_at'>) {
+    const { data, error } = await this.supabase
+      .from('document_categories')
+      .insert(category)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
+  // Resident Status History
+  async getResidentStatusHistory(residentId?: number, statusType?: 'IN' | 'OUT') {
+    let query = this.supabase
+      .from('resident_status_history')
+      .select(`
+        *,
+        resident:residents(*)
+      `)
+      .order('change_date', { ascending: false })
+
+    if (residentId) {
+      query = query.eq('resident_id', residentId)
+    }
+
+    if (statusType) {
+      query = query.eq('status_type', statusType)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return data
+  }
+
+  async createStatusHistoryEntry(entry: Omit<ResidentStatusHistory, 'id' | 'created_at'>) {
+    const { data, error } = await this.supabase
+      .from('resident_status_history')
+      .insert(entry)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
   // Activity Logging - temporarily disabled to prevent resource exhaustion
   async logActivity(activity: {
     action: string
@@ -817,31 +974,128 @@ export const staffAssignmentsApi = {
   }
 }
 
-// Legacy photo API for backward compatibility
+// Resident Photos API
 export const residentPhotosApi = {
   getAll: async () => {
     try {
-      // For now, return empty data - photos can be added later
-      return { success: true, data: {} }
+      const supabase = createClient() as any
+      
+      // Get all photos from database
+      const { data, error } = await supabase
+        .from('resident_photos')
+        .select('*')
+      
+      if (error) throw error
+      
+      // Convert to object format expected by frontend
+      const photosObject: Record<string, string> = {}
+      if (data) {
+        data.forEach((photo: any) => {
+          photosObject[photo.badge_number] = photo.photo_url
+        })
+      }
+      
+      return { success: true, data: photosObject }
     } catch (error) {
-      return { success: false, error: 'Photos API not implemented yet' }
+      console.error('Error fetching resident photos:', error)
+      return { success: false, error: 'Failed to fetch photos' }
     }
   },
   
-  upload: async (badgeNumber: string, file: File) => {
+  upload: async (badgeNumber: number, file: File) => {
     try {
-      // For now, just save to localStorage as fallback
-      return { success: true, photoUrl: '/placeholder-photo.jpg' }
+      const supabase = createClient() as any
+      const badgeStr = badgeNumber.toString()
+      
+      // First check if photo already exists for this badge
+      const { data: existingPhoto } = await supabase
+        .from('resident_photos')
+        .select('photo_url')
+        .eq('badge_number', badgeStr)
+        .maybeSingle()
+      
+      // If exists, delete old file from storage
+      if (existingPhoto?.photo_url) {
+        const oldPath = existingPhoto.photo_url.split('/').pop()
+        if (oldPath) {
+          await supabase.storage
+            .from('resident-photos')
+            .remove([oldPath])
+        }
+      }
+      
+      // Upload new file to storage
+      const fileName = `${badgeStr}_${Date.now()}_${file.name}`
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('resident-photos')
+        .upload(fileName, file)
+      
+      if (uploadError) throw uploadError
+      
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('resident-photos')
+        .getPublicUrl(fileName)
+      
+      // Upsert photo record in database
+      const { error: dbError } = await supabase
+        .from('resident_photos')
+        .upsert({
+          badge_number: badgeStr,
+          photo_url: publicUrl,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'badge_number'
+        })
+      
+      if (dbError) throw dbError
+      
+      return { success: true, data: { photoUrl: publicUrl } }
     } catch (error) {
-      return { success: false, error: 'Photo upload not implemented yet' }
+      console.error('Error uploading resident photo:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Photo upload failed' }
     }
   },
   
-  delete: async (badgeNumber: string) => {
+  delete: async (badgeNumber: number) => {
     try {
+      const supabase = createClient() as any
+      const badgeStr = badgeNumber.toString()
+      
+      // Get photo URL first
+      const { data: photo, error: fetchError } = await supabase
+        .from('resident_photos')
+        .select('photo_url')
+        .eq('badge_number', badgeStr)
+        .maybeSingle()
+      
+      if (fetchError) throw fetchError
+      
+      if (photo?.photo_url) {
+        // Extract file name from URL and delete from storage
+        const fileName = photo.photo_url.split('/').pop()
+        if (fileName) {
+          await supabase.storage
+            .from('resident-photos')
+            .remove([fileName])
+        }
+        
+        // Delete from database
+        const { error: deleteError } = await supabase
+          .from('resident_photos')
+          .delete()
+          .eq('badge_number', badgeStr)
+        
+        if (deleteError) throw deleteError
+      }
+      
       return { success: true }
     } catch (error) {
-      return { success: false, error: 'Photo delete not implemented yet' }
+      console.error('Error deleting resident photo:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Photo delete failed' }
     }
   }
 }

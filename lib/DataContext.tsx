@@ -40,6 +40,7 @@ interface DataContextType {
   // Backward compatibility
   bewonerslijst: Resident[]
   dataMatchIt: Resident[]
+  outResidents: Resident[]
   
   // Loading states
   isLoading: boolean
@@ -64,6 +65,8 @@ interface DataContextType {
   getStorageInfo: () => any
   setDataMatchIt: (residents: any[]) => void
   ageVerificationStatus: any
+  setAgeVerificationStatus: (badge: number, status: 'Meerderjarig' | 'Minderjarig' | null) => void
+  moveToOutAndDelete: (residentId: number) => void
   
   // Actions
   refreshResidents: () => Promise<void>
@@ -112,6 +115,8 @@ export function DataProvider({ children }: DataProviderProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dashboardStats, setDashboardStats] = useState<any>(null)
+  const [ageVerificationStatus, setAgeVerificationStatus] = useState<Record<number, 'Meerderjarig' | 'Minderjarig' | null>>({})
+  const [outResidents, setOutResidents] = useState<Resident[]>([])
   
   // Legacy state for undo/redo functionality
   const [undoStack, setUndoStack] = useState<any[]>([])
@@ -146,8 +151,20 @@ export function DataProvider({ children }: DataProviderProps) {
     try {
       const data = await apiService.getResidents()
       const transformedData = (data || []).map(transformResident)
-      setResidents(transformedData)
+      
+      // Separate IN and OUT residents
+      const inResidents = transformedData.filter((r: any) => r.status !== 'OUT')
+      const outResidentsFromDB = transformedData.filter((r: any) => r.status === 'OUT')
+      
+      setResidents(inResidents)
+      setOutResidents(outResidentsFromDB)
       setError(null) // Clear error on success
+      
+      console.log('📊 Loaded residents:', {
+        total: transformedData.length,
+        IN: inResidents.length,
+        OUT: outResidentsFromDB.length
+      })
     } catch (err) {
       console.error('Error fetching residents:', err)
       setError('Failed to load residents')
@@ -571,11 +588,79 @@ export function DataProvider({ children }: DataProviderProps) {
     })
   }
 
-  // Age verification status - for backward compatibility
-  const ageVerificationStatus = {
-    verified: residents.filter(r => r.age && r.age >= 18).length,
-    unverified: residents.filter(r => !r.age || r.age < 18).length,
-    total: residents.length
+  // Age verification status setter function
+  const handleSetAgeVerificationStatus = (badge: number, status: 'Meerderjarig' | 'Minderjarig' | null) => {
+    setAgeVerificationStatus(prev => ({
+      ...prev,
+      [badge]: status
+    }))
+  }
+
+  // Move resident to OUT status while preserving all data in database
+  const moveToOutAndDelete = async (residentId: number) => {
+    console.log('🔄 moveToOutAndDelete called with residentId:', residentId)
+    console.log('📋 Current residents count:', residents.length)
+    console.log('🔍 Looking for resident with ID:', residentId)
+    
+    const resident = residents.find(r => r.id === residentId)
+    console.log('👤 Found resident:', resident ? `${resident.first_name} ${resident.last_name} (Badge: ${resident.badge})` : 'NOT FOUND')
+    
+    if (resident) {
+      console.log('✅ Updating resident status to OUT in database')
+      
+      try {
+        // Update resident status in database to 'OUT' - this preserves all data
+        await apiService.updateResident(residentId, {
+          status: 'OUT',
+          date_out: new Date().toISOString().split('T')[0] // Set OUT date
+        })
+        console.log('📝 Resident status updated to OUT in database')
+        
+        // Log the status change to database
+        await apiService.createStatusHistoryEntry({
+          resident_id: residentId,
+          previous_status: resident.status || 'Actief',
+          new_status: 'OUT',
+          status_type: 'OUT',
+          change_date: new Date().toISOString(),
+          changed_by: 'System', // You can update this with actual user info
+          reason: 'Moved via Administrative Documents page',
+          notes: `Resident ${resident.first_name} ${resident.last_name} (Badge: ${resident.badge}) moved to OUT status`
+        })
+        console.log('📝 Status change logged to database')
+        
+        // Update local state: Add to out residents with OUT status
+        const outResident = { ...resident, status: 'OUT', date_out: new Date().toISOString().split('T')[0] }
+        setOutResidents(prev => {
+          // Check if already in out residents to avoid duplicates
+          const exists = prev.find(r => r.id === residentId)
+          if (exists) {
+            return prev.map(r => r.id === residentId ? outResident : r)
+          }
+          const newOutResidents = [...prev, outResident]
+          console.log('📤 Updated outResidents count:', newOutResidents.length)
+          return newOutResidents
+        })
+        
+        // Remove from main residents list for UI purposes (but data stays in database)
+        setResidents(prev => {
+          const filteredResidents = prev.filter(r => r.id !== residentId)
+          console.log('📉 Updated residents count:', filteredResidents.length)
+          return filteredResidents
+        })
+        
+        console.log('✅ Resident successfully moved to OUT status')
+        console.log('💾 All resident data, documents, and history preserved in database')
+        
+      } catch (error) {
+        console.error('❌ Failed to update resident status:', error)
+        throw error // Re-throw to show error to user
+      }
+    } else {
+      console.error('❌ Resident not found with ID:', residentId)
+      console.log('📋 Available resident IDs:', residents.map(r => ({ id: r.id, badge: r.badge, name: `${r.first_name} ${r.last_name}` })))
+      throw new Error('Resident not found')
+    }
   }
 
   // Initial load - only load essential data to avoid overwhelming connections
@@ -690,6 +775,7 @@ export function DataProvider({ children }: DataProviderProps) {
         // Backward compatibility - both point to the same residents data
         bewonerslijst: residents,
         dataMatchIt: residents,
+        outResidents,
         
         isLoading,
         loading: isLoading, // alias for backward compatibility
@@ -731,7 +817,9 @@ export function DataProvider({ children }: DataProviderProps) {
         canRedo,
         getStorageInfo,
         setDataMatchIt,
-        ageVerificationStatus
+        ageVerificationStatus,
+        setAgeVerificationStatus: handleSetAgeVerificationStatus,
+        moveToOutAndDelete
       }}
     >
       {children}

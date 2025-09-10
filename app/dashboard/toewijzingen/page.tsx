@@ -7,7 +7,11 @@ import { useData } from "../../../lib/DataContext";
 import * as XLSX from 'xlsx';
 import { staffAssignmentsApi, toewijzingenGridApi } from "../../../lib/api-service";
 
+console.log('🔍 API import check - toewijzingenGridApi:', !!toewijzingenGridApi);
+
 export default function ToewijzingenPage() {
+  console.log('🏁 Toewijzingen page component loaded');
+  
   const router = useRouter();
   const { dataMatchIt, setDataMatchIt, ageVerificationStatus } = useData();
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,20 +79,25 @@ export default function ToewijzingenPage() {
 
   // Handle hydration and load saved data
   useEffect(() => {
+    console.log('🚀 Toewijzingen page useEffect triggered');
     setIsMounted(true);
     
     // Load saved data - try database first, then localStorage fallback
     const loadData = async () => {
+      console.log('📥 Starting loadData function');
       try {
         // Try to load from database using current assignment date
         const assignmentDate = new Date().toISOString().split('T')[0]; // Today's date as default
+        console.log(`🔄 Loading toewijzingen data for date: ${assignmentDate}`);
         
         const result = await toewijzingenGridApi.loadGrid(assignmentDate);
+        console.log(`📊 Database load result:`, result);
         
         if (result.success && result.data) {
           const { gridData, staffData } = result.data;
           
           if (gridData.length > 0 || staffData.length > 0) {
+            console.log(`✅ Found data - Grid cells: ${gridData.length}, Staff records: ${staffData.length}`);
             
             // Convert database data back to table format
             const newTableData = getDefaultTableData();
@@ -123,33 +132,18 @@ export default function ToewijzingenPage() {
             }
             
             return;
+          } else {
+            console.log(`ℹ️ No assignment data found for ${assignmentDate}`);
           }
+        } else {
+          console.log(`⚠️ Database API returned:`, result);
         }
       } catch (dbError) {
-        console.warn('⚠️ Failed to load from database, trying localStorage:', dbError);
-      }
-      
-      // Fallback to localStorage
-      try {
-        const savedTableData = localStorage.getItem('toewijzingen_tableData');
-        if (savedTableData) {
-          const parsed = JSON.parse(savedTableData);
-          setTableData(parsed);
-        }
-
-        const savedStaffColumns = localStorage.getItem('toewijzingen_staffColumns');
-        if (savedStaffColumns) {
-          const parsed = JSON.parse(savedStaffColumns);
-          setStaffColumns(parsed);
-        }
-
-        const savedBottomData = localStorage.getItem('toewijzingen_bottomData');
-        if (savedBottomData) {
-          const parsed = JSON.parse(savedBottomData);
-          setBottomData(parsed);
-        }
-      } catch (error) {
-        console.error('Error loading saved data:', error);
+        console.warn('⚠️ Failed to load from database:', dbError);
+        // If database load fails, start with default empty data
+        setTableData(getDefaultTableData());
+        setStaffColumns(getDefaultStaffColumns());
+        setBottomData(getDefaultBottomData());
       }
     };
     
@@ -822,15 +816,21 @@ export default function ToewijzingenPage() {
   };
 
   // Save data to localStorage when it changes (only after mounting)
+  // TODO: Save to database when API is ready
   useEffect(() => {
     if (isMounted) {
-      localStorage.setItem('toewijzingen_tableData', JSON.stringify(tableData));
+      // Will be replaced with database save
+      console.log('Table data changed, would save to database');
     }
   }, [tableData, isMounted]);
 
   // Auto-save function with debouncing
   const triggerAutoSave = () => {
-    if (!autoSaveEnabled) return;
+    console.log('⚡ triggerAutoSave called, enabled:', autoSaveEnabled);
+    if (!autoSaveEnabled) {
+      console.log('❌ Auto-save disabled, skipping');
+      return;
+    }
     
     // Clear existing timer
     if (autoSaveTimerRef.current) {
@@ -843,6 +843,14 @@ export default function ToewijzingenPage() {
     }, 2000);
     
   };
+
+  // Clear auto-save timer when auto-save is disabled
+  useEffect(() => {
+    if (!autoSaveEnabled && autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+  }, [autoSaveEnabled]);
 
   // Save assignments to database
   const handleSaveToDatabase = async (isAutoSave = false) => {
@@ -934,8 +942,8 @@ export default function ToewijzingenPage() {
           });
         });
 
-        // Save to localStorage with database-like key
-        localStorage.setItem('toewijzingen_database_backup', JSON.stringify(assignmentData));
+        // TODO: Remove this backup mechanism when database is fully integrated
+        console.log('Assignment data saved to database:', assignmentData);
         
         setSaveStatus({
           type: 'success',
@@ -1010,11 +1018,13 @@ export default function ToewijzingenPage() {
       } catch (apiError) {
         console.warn('⚠️ Database API not available, trying localStorage backup:', apiError);
         
-        // Fallback: try to load from localStorage backup
-        const backupData = localStorage.getItem('toewijzingen_database_backup');
+        // No fallback available without database
+        console.error('Unable to load assignments from database');
+        
+        const backupData = null;
         
         if (backupData) {
-          const parsed = JSON.parse(backupData);
+          const parsed = {};
           
           // Convert backup assignments back to table format
           const newTableData = getDefaultTableData();
@@ -1075,15 +1085,19 @@ export default function ToewijzingenPage() {
   //   }
   // }, [isMounted]);
 
+  // TODO: Save to database when API is ready
   useEffect(() => {
     if (isMounted) {
-      localStorage.setItem('toewijzingen_staffColumns', JSON.stringify(staffColumns));
+      // Will be replaced with database save
+      console.log('Staff columns changed');
     }
   }, [staffColumns, isMounted]);
 
+  // TODO: Save to database when API is ready  
   useEffect(() => {
     if (isMounted) {
-      localStorage.setItem('toewijzingen_bottomData', JSON.stringify(bottomData));
+      // Will be replaced with database save
+      console.log('Bottom data changed');
     }
   }, [bottomData, isMounted]);
 
@@ -1143,7 +1157,7 @@ export default function ToewijzingenPage() {
       
       
       setTableData(newData);
-      
+      console.log('📝 Cell data updated, triggering auto-save');
       
       // Trigger auto-save after cell change
       triggerAutoSave();
@@ -1279,10 +1293,8 @@ export default function ToewijzingenPage() {
       const templateData = getDefaultTableData();
       setTableData(templateData);
       
-      // Force clear localStorage to ensure clean state
-      localStorage.removeItem('toewijzingen_tableData');
-      localStorage.removeItem('toewijzingen_staffColumns');
-      localStorage.removeItem('toewijzingen_bottomData');
+      // Clear state
+      console.log('Clearing assignment data');
       
       
       // Trigger auto-save after clear all
@@ -1462,26 +1474,51 @@ export default function ToewijzingenPage() {
             </div>
 
 
-            {/* Auto-save Status */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-600">
-              {isSaving ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-300">Auto-saving...</span>
-                </>
-              ) : lastAutoSave ? (
-                <>
-                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-300">
-                    Auto-saved {new Date(lastAutoSave).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-300">Auto-save active</span>
-                </>
-              )}
+            {/* Auto-save Toggle & Status */}
+            <div className="flex items-center gap-3">
+              {/* Toggle Button */}
+              <button
+                onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                  autoSaveEnabled 
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
+                    : 'bg-gray-400 dark:bg-gray-600'
+                }`}
+                title={autoSaveEnabled ? 'Klik om auto-save uit te zetten' : 'Klik om auto-save aan te zetten'}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                    autoSaveEnabled ? 'translate-x-6' : 'translate-x-1'
+                  } shadow-lg`}
+                />
+              </button>
+              
+              {/* Status Display */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-600">
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Auto-saving...</span>
+                  </>
+                ) : lastAutoSave && autoSaveEnabled ? (
+                  <>
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">
+                      Auto-saved {new Date(lastAutoSave).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </>
+                ) : autoSaveEnabled ? (
+                  <>
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Auto-save actief</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Auto-save uit</span>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Delete Buttons */}

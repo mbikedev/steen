@@ -90,21 +90,15 @@ export default function PermissielijstPage() {
 
   useEffect(() => {
     setIsClient(true);
-    // Load saved cell changes from localStorage
-    const savedChanges = localStorage.getItem('permissielijst-cell-changes');
-    if (savedChanges) {
-      try {
-        setCellChanges(JSON.parse(savedChanges));
-      } catch (error) {
-        console.error('Failed to load saved cell changes:', error);
-      }
-    }
+    // Initialize with empty cell changes
+    // TODO: Load from database when API is ready
   }, []);
 
-  // Save cell changes to localStorage whenever they change
+  // TODO: Save cell changes to database when API is ready
   useEffect(() => {
     if (isClient && Object.keys(cellChanges).length > 0) {
-      localStorage.setItem('permissielijst-cell-changes', JSON.stringify(cellChanges));
+      // Will be replaced with database save
+      console.log('Cell changes:', cellChanges);
     }
   }, [cellChanges, isClient]);
 

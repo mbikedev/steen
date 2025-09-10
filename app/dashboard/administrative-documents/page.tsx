@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { Search, Filter, Printer, FileText, FolderOpen, ExternalLink, ChevronDown } from 'lucide-react';
+import { Search, Filter, FileText, FolderOpen, ExternalLink, ChevronDown } from 'lucide-react';
 import { useData } from "../../../lib/DataContext";
 import ResidentDocumentsModal from '../../components/ResidentDocumentsModal';
 
@@ -75,9 +75,6 @@ function AdministrativeDocumentsPageContent() {
   // Sort residents by badge number
   const sortedResidents = currentResidents.sort((a, b) => a.badge - b.badge);
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   const handleResidentClick = (resident: any) => {
     setSelectedResident(resident);
@@ -91,13 +88,28 @@ function AdministrativeDocumentsPageContent() {
 
   const handleStatusChange = (residentId: number, newStatus: string) => {
     console.log(`🔄 handleStatusChange called with residentId: ${residentId}, newStatus: ${newStatus}`);
+    console.log(`📋 bewonerslijst length:`, bewonerslijst?.length);
+    console.log(`🔍 Looking for resident with ID: ${residentId} in bewonerslijst`);
+    console.log(`📋 Available resident IDs in bewonerslijst:`, bewonerslijst?.map(r => ({ id: r.id, badge: r.badge, name: `${r.first_name} ${r.last_name}` })));
     
     if (newStatus === 'OUT') {
-      const resident = bewonerslijst.find(r => r.id === residentId);
-      console.log(`🔄 Found resident:`, resident);
+      let resident = bewonerslijst.find(r => r.id === residentId);
+      console.log(`🔄 Found resident in bewonerslijst by ID:`, resident);
+      
+      // If not found by ID, try to find by badge number (fallback)
+      if (!resident) {
+        console.log(`🔍 Resident not found by ID, trying to find by badge number...`);
+        // We need to get the badge number from the current residents list
+        const currentResident = currentResidents.find(r => r.id === residentId);
+        if (currentResident) {
+          console.log(`🔍 Found current resident with badge:`, currentResident.badge);
+          resident = bewonerslijst.find(r => r.badge === currentResident.badge);
+          console.log(`🔄 Found resident in bewonerslijst by badge:`, resident);
+        }
+      }
       
       const confirmed = window.confirm(
-        `Weet u zeker dat u ${resident?.firstName} ${resident?.lastName} wilt verplaatsen naar OUT?\n\nDe bewoner wordt verplaatst naar de OUT sectie van Administratieve Documenten en verwijderd uit alle andere lijsten.`
+        `Weet u zeker dat u ${resident?.first_name} ${resident?.last_name} wilt verplaatsen naar OUT?\n\nDe bewoner wordt verplaatst naar de OUT sectie van Administratieve Documenten en verwijderd uit alle andere lijsten.`
       );
       
       if (!confirmed) {
@@ -221,13 +233,6 @@ function AdministrativeDocumentsPageContent() {
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Klik op een bewoner om documenten te bekijken</p>
                 </div>
                 <div className="text-right">
-                  <button 
-                    onClick={handlePrint}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 ml-auto"
-                  >
-                    <Printer className="w-4 h-4" />
-                    Overzicht Afdrukken
-                  </button>
                 </div>
               </div>
             </div>
@@ -256,7 +261,6 @@ function AdministrativeDocumentsPageContent() {
                 >
                   <option value="">Alle Statussen</option>
                   <option value="Actief">Actief</option>
-                  <option value="Inactief">Inactief</option>
                   <option value="OUT">OUT</option>
                 </select>
               </div>
@@ -325,7 +329,6 @@ function AdministrativeDocumentsPageContent() {
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <option value="Actief">Actief</option>
-                                <option value="Inactief">Inactief</option>
                                 <option value="OUT">OUT</option>
                               </select>
                             ) : (
@@ -442,7 +445,6 @@ function AdministrativeDocumentsPageContent() {
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <option value="Actief">Actief</option>
-                                      <option value="Inactief">Inactief</option>
                                       <option value="OUT">OUT</option>
                                     </select>
                                   ) : (

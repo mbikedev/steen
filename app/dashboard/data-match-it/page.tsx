@@ -1430,10 +1430,10 @@ function DataMatchItPageContent() {
                 return storageInfo ? (
                   <>
                     <div>
-                      <strong>Data Status:</strong> {storageInfo.hasData ? '✅ Opgeslagen in localStorage' : '❌ Niet opgeslagen'}
+                      <strong>Data Status:</strong> {storageInfo.hasData ? '✅ Opgeslagen in database' : '❌ Niet opgeslagen'}
                     </div>
                     <div>
-                      <strong>Records in localStorage:</strong> {storageInfo.recordCount}
+                      <strong>Records in database:</strong> {storageInfo.recordCount}
                     </div>
                     <div>
                       <strong>Records in geheugen:</strong> {dataMatchIt.length}
