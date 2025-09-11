@@ -2,6 +2,11 @@ import { NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
+  // Skip middleware during static export
+  if (process.env.BUILD_STATIC === 'true') {
+    return
+  }
+  
   return await updateSession(request)
 }
 
