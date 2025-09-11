@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
     // Temporarily ignore TypeScript errors during builds for deployment  
     ignoreBuildErrors: true,
   },
+  output: 'export',
+  trailingSlash: true,
+  images: {
+    unoptimized: true
+  }
 };
 
 export default nextConfig;

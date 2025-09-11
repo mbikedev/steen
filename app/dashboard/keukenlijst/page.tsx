@@ -65,7 +65,7 @@ export default function KeukenlijstPage() {
         @media print {
           @page {
             size: A4 ${printOrientation};
-            margin: 8mm;
+            margin: 5mm;
           }
           
           * {
@@ -90,9 +90,9 @@ export default function KeukenlijstPage() {
             display: block !important;
             position: relative !important;
             z-index: 999 !important;
-            transform: scale(0.75);
+            transform: scale(0.9);
             transform-origin: top left;
-            width: 133.33%;
+            width: 111.11%;
           }
         }
         
@@ -355,12 +355,12 @@ export default function KeukenlijstPage() {
     {/* Print-only layout - optimized for single page */}
     <div className="print-only">
       {/* Header */}
-      <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>
+      <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>
         STEENOKKERZEEL KEUKENLIJST
       </div>
       
       {/* Info bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', fontSize: '10px', fontWeight: 'bold' }}>
         <div style={{ fontWeight: 'bold' }}>
           {formatDate(new Date())}
         </div>
@@ -370,43 +370,43 @@ export default function KeukenlijstPage() {
       </div>
 
       {/* Table optimized for single page */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '7px', border: '2px solid black' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8px', border: '2px solid black' }}>
         <thead>
           <tr style={{ backgroundColor: '#E6E6FA', color: 'black' }}>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Badge</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Achternaam</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Voornaam</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Wooneenheid</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>OPMERKING</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Ontbijt</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Middag</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>16u</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>Avond</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '6px' }}>21u</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Badge</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Achternaam</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Voornaam</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Kamer</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>OPMERKING</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Ontbijt</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Middag</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>16u</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Avond</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>21u</th>
           </tr>
         </thead>
         <tbody>
           {keukenlijst.map((resident) => (
             <tr key={resident.id}>
-              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '7px' }}>{resident.badge}</td>
-              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', fontSize: '7px' }}>{resident.lastName}</td>
-              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', fontSize: '7px' }}>{resident.firstName}</td>
-              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '7px' }}>{resident.room}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.badge}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', fontSize: '8px' }}>{resident.lastName}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', fontSize: '8px' }}>{resident.firstName}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.room}</td>
               <td style={{ 
                 border: '1px solid black', 
                 padding: '1px', 
                 textAlign: 'left', 
-                fontSize: '7px', 
+                fontSize: '8px', 
                 backgroundColor: resident.remarks ? '#FDE047' : 'transparent',
                 color: resident.remarks ? '#1E40AF' : 'black'
               }}>
                 {resident.remarks || '-'}
               </td>
-              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.ontbijt ? '✓' : ''}</td>
-              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.middag ? '✓' : ''}</td>
-              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.snack16 ? '✓' : ''}</td>
-              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.avond ? '✓' : ''}</td>
-              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.snack21 ? '✓' : ''}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '9px' }}>{resident.ontbijt ? '✓' : ''}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '9px' }}>{resident.middag ? '✓' : ''}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '9px' }}>{resident.snack16 ? '✓' : ''}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '9px' }}>{resident.avond ? '✓' : ''}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '9px' }}>{resident.snack21 ? '✓' : ''}</td>
             </tr>
           ))}
         </tbody>

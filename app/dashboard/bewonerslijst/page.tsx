@@ -47,7 +47,7 @@ function BewonerslijstPageContent() {
         @media print {
           @page {
             size: A4 ${printOrientation};
-            margin: 8mm;
+            margin: 5mm;
           }
           
           * {
@@ -72,9 +72,9 @@ function BewonerslijstPageContent() {
             display: block !important;
             position: relative !important;
             z-index: 999 !important;
-            transform: scale(0.7);
+            transform: scale(0.85);
             transform-origin: top left;
-            width: 142.86%;
+            width: 117.65%;
           }
         }
         
@@ -267,8 +267,8 @@ function BewonerslijstPageContent() {
     {/* Print-only layout - optimized for single page */}
     <div className="print-only">
       {/* Info bar matching PDF layout */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '10px' }}>
-        <div style={{ backgroundColor: '#FFFF99', padding: '3px 6px', border: '1px solid black', fontWeight: 'bold' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+        <div style={{ backgroundColor: '#FFFF99', padding: '2px 4px', border: '1px solid black', fontWeight: 'bold' }}>
           Bewonerslijst
         </div>
         <div style={{ fontWeight: 'bold' }}>
@@ -280,58 +280,58 @@ function BewonerslijstPageContent() {
       </div>
 
       {/* Table */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8px', border: '1px solid black' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', border: '1px solid black' }}>
         <thead>
           <tr style={{ backgroundColor: '#99CCFF', fontWeight: 'bold' }}>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '40px' }}>Badge</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '80px' }}>Achternaam</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '80px' }}>Voornaam</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '30px' }}>Wooneenheid</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '60px' }}>Nationaliteit</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '70px' }}>OV Nummer</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '80px' }}>Nationaal Nummer</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '60px' }}>Geboortedatum</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '30px' }}>Leeftijd</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '30px' }}>Geslacht</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '80px' }}>Referentiepersoon</th>
-            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '60px' }}>Aankomstdatum</th>
-            <th style={{ border: '1px solid black', borderRight: '2px solid black !important', padding: '2px', textAlign: 'center', width: '40px' }}>Dagen verblijf</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '35px', fontSize: '8px' }}>Badge</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '70px', fontSize: '8px' }}>Achternaam</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '70px', fontSize: '8px' }}>Voornaam</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '25px', fontSize: '8px' }}>Kamer</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '55px', fontSize: '8px' }}>Nationaliteit</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '60px', fontSize: '8px' }}>OV Nr</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '70px', fontSize: '8px' }}>Nat Nr</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '55px', fontSize: '8px' }}>Geb.datum</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '25px', fontSize: '8px' }}>Leeftijd</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '25px', fontSize: '8px' }}>Geslacht</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'left', width: '70px', fontSize: '8px' }}>Ref.persoon</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', width: '55px', fontSize: '8px' }}>Aankomst</th>
+            <th style={{ border: '1px solid black', borderRight: '2px solid black !important', padding: '2px', textAlign: 'center', width: '35px', fontSize: '8px' }}>Dagen</th>
           </tr>
         </thead>
         <tbody>
           {filteredResidents.map((resident, index) => (
             <tr key={resident.id}>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{resident.badge}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                {truncateText(resident.lastName, 12)}
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center' }}>{resident.badge}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {truncateText(resident.lastName, 10)}
               </td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                {truncateText(resident.firstName, 12)}
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {truncateText(resident.firstName, 10)}
               </td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{resident.room}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                {truncateText(resident.nationality, 10)}
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center' }}>{resident.room}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {truncateText(resident.nationality, 8)}
               </td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                {truncateText(resident.ovNumber, 11)}
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {truncateText(resident.ovNumber, 9)}
               </td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                {truncateText(resident.registerNumber, 13)}
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {truncateText(resident.registerNumber, 11)}
               </td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                 {formatDate(resident.dateOfBirth)}
               </td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>{resident.age}</td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center' }}>{resident.age}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center' }}>
                 {resident.gender === 'M' ? 'M' : 'V'}
               </td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                {truncateText(resident.referencePerson, 12)}
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {truncateText(resident.referencePerson, 10)}
               </td>
-              <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                 {formatDate(resident.dateIn)}
               </td>
-              <td style={{ border: '1px solid black', borderRight: '2px solid black !important', padding: '2px', textAlign: 'center' }}>{resident.daysOfStay}</td>
+              <td style={{ border: '1px solid black', borderRight: '2px solid black !important', padding: '1px', textAlign: 'center' }}>{resident.daysOfStay}</td>
             </tr>
           ))}
         </tbody>

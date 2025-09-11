@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Home, Search, Save, X, Edit2, Upload, FileText, Trash2 } from 'lucide-react';
+import { Home, Search, Save, X, Edit2, Upload, FileText, Trash2, Plus, Minus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useData } from "../../../lib/DataContext";
 import * as XLSX from 'xlsx';
@@ -1332,6 +1332,112 @@ export default function ToewijzingenPage() {
     triggerAutoSave();
   };
 
+  // Column management functions
+  const addColumn = () => {
+    // Add a new staff column
+    const newStaffColumns = [...staffColumns, { 
+      name: `Nieuwe Medewerker ${staffColumns.length + 1}`, 
+      count: 0, 
+      annotation: '' 
+    }];
+    setStaffColumns(newStaffColumns);
+
+    // Add a new column to all table rows
+    const newTableData = tableData.map(row => [
+      ...row,
+      { text: '', color: 'white', type: '' }
+    ]);
+    setTableData(newTableData);
+
+    // Add a new column to bottom data
+    const newBottomData = {
+      IB: [...bottomData.IB, ''],
+      GB: [...bottomData.GB, ''],
+      NB: [...bottomData.NB, '']
+    };
+    setBottomData(newBottomData);
+
+    triggerAutoSave();
+    console.log('✅ Added new column');
+  };
+
+  const removeColumn = (columnIndex: number) => {
+    // Prevent removing if there's only one column left
+    if (staffColumns.length <= 1) {
+      alert('Cannot remove the last column');
+      return;
+    }
+
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to remove column "${staffColumns[columnIndex]?.name}"? This will delete all data in this column.`)) {
+      return;
+    }
+
+    // Remove from staff columns
+    const newStaffColumns = staffColumns.filter((_, index) => index !== columnIndex);
+    setStaffColumns(newStaffColumns);
+
+    // Remove from all table rows
+    const newTableData = tableData.map(row => 
+      row.filter((_, index) => index !== columnIndex)
+    );
+    setTableData(newTableData);
+
+    // Remove from bottom data
+    const newBottomData = {
+      IB: bottomData.IB.filter((_, index) => index !== columnIndex),
+      GB: bottomData.GB.filter((_, index) => index !== columnIndex),
+      NB: bottomData.NB.filter((_, index) => index !== columnIndex)
+    };
+    setBottomData(newBottomData);
+
+    triggerAutoSave();
+    console.log(`✅ Removed column ${columnIndex}`);
+  };
+
+  // Row management functions  
+  const addRow = () => {
+    // Add a new row with empty cells matching the number of columns
+    const newRow = Array.from({ length: staffColumns.length }, () => ({ 
+      text: '', 
+      color: 'white', 
+      type: '' 
+    }));
+    
+    // Insert the new row before the "Backups" section (which starts after the main table)
+    const newTableData = [...tableData, newRow];
+    setTableData(newTableData);
+
+    triggerAutoSave();
+    console.log('✅ Added new row');
+  };
+
+  const removeRow = (rowIndex: number) => {
+    // Prevent removing header rows (first 2 rows)
+    if (rowIndex < 2) {
+      alert('Cannot remove header rows');
+      return;
+    }
+
+    // Prevent removing if there are only header rows left
+    if (tableData.length <= 3) {
+      alert('Cannot remove the last data row');
+      return;
+    }
+
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to remove row ${rowIndex === 1 ? "IB's" : rowIndex - 1}? This will delete all data in this row.`)) {
+      return;
+    }
+
+    // Remove the row
+    const newTableData = tableData.filter((_, index) => index !== rowIndex);
+    setTableData(newTableData);
+
+    triggerAutoSave();
+    console.log(`✅ Removed row ${rowIndex}`);
+  };
+
   // Get cell background class based on PDF color attributions
   const getCellClass = (text: string = '', type: string = '', color: string = 'white') => {
     if (text === '') return 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-400';
@@ -1473,6 +1579,27 @@ export default function ToewijzingenPage() {
               </button>
             </div>
 
+            {/* Column/Row Management Buttons */}
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1">
+                <button
+                  onClick={addColumn}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg transition-all duration-300 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 font-medium text-sm"
+                  title="Add new column"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Column</span>
+                </button>
+                <button
+                  onClick={addRow}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg transition-all duration-300 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 font-medium text-sm"
+                  title="Add new row"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Row</span>
+                </button>
+              </div>
+            </div>
 
             {/* Auto-save Toggle & Status */}
             <div className="flex items-center gap-3">
@@ -1593,10 +1720,68 @@ export default function ToewijzingenPage() {
         <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-300 dark:border-gray-700 hover:shadow-3xl transition-shadow duration-300">
           <table className="border-collapse w-full">
             <tbody>
+              {/* Staff Column Headers with Remove Buttons */}
+              <tr>
+                <td className="border-2 border-black dark:border-gray-300 px-2 py-1 text-xs font-bold text-center bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 text-black dark:text-gray-200">
+                  Staff
+                </td>
+                {dynamicStaffColumns.map((staff, colIndex) => (
+                  <td key={colIndex} className="border-2 border-black dark:border-gray-300 px-1 py-1 text-xs font-bold text-center bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 text-black dark:text-gray-200 relative group">
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center justify-center gap-1 min-h-[20px]">
+                        <input
+                          type="text"
+                          value={staff.name}
+                          onChange={(e) => handleStaffEdit(colIndex, 'name', e.target.value)}
+                          className="bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded text-center text-xs font-bold w-full min-w-[60px] text-black dark:text-gray-200"
+                          title="Click to edit staff name"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeColumn(colIndex);
+                          }}
+                          className="opacity-0 group-hover:opacity-70 hover:opacity-100 p-0.5 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all"
+                          title={`Remove column "${staff.name}"`}
+                        >
+                          <Minus className="h-2 w-2" />
+                        </button>
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        ({staff.count})
+                      </div>
+                      {staff.annotation && (
+                        <input
+                          type="text"
+                          value={staff.annotation}
+                          onChange={(e) => handleStaffEdit(colIndex, 'annotation', e.target.value)}
+                          className="bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded text-center text-xs italic w-full text-gray-600 dark:text-gray-400"
+                          title="Click to edit annotation"
+                          placeholder="Add note..."
+                        />
+                      )}
+                    </div>
+                  </td>
+                ))}
+              </tr>
               {tableData.map((row, rowIndex) => (
                 <tr key={rowIndex} className={searchTerm && !row.some(cell => isVisible(cell.text)) ? 'hidden' : ''}>
-                  <td className={`border-2 border-black dark:border-gray-300 px-2 py-1 ${rowIndex === 1 ? 'text-base' : 'text-xs'} font-bold text-center bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-black dark:text-gray-300`}>
-                    {rowIndex === 0 ? 'Aantal' : rowIndex === 1 ? "IB's" : rowIndex - 1}
+                  <td className={`border-2 border-black dark:border-gray-300 px-2 py-1 ${rowIndex === 1 ? 'text-base' : 'text-xs'} font-bold text-center bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-black dark:text-gray-300 relative group`}>
+                    <div className="flex items-center justify-center gap-1">
+                      <span>{rowIndex === 0 ? 'Aantal' : rowIndex === 1 ? "IB's" : rowIndex - 1}</span>
+                      {rowIndex >= 2 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeRow(rowIndex);
+                          }}
+                          className="opacity-0 group-hover:opacity-70 hover:opacity-100 p-0.5 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all ml-1"
+                          title={`Remove row ${rowIndex - 1}`}
+                        >
+                          <Minus className="h-2 w-2" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                   {row.map((cell, colIndex) => (
                     <td 
