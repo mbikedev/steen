@@ -5,6 +5,12 @@
 # Next.js 15 with static export
 [build.environment]
   NEXT_TELEMETRY_DISABLED = "1"
+  # Omit Next.js public environment variables from secrets scanning
+  # These are intentionally included in client-side bundles
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_PROJECT_ID"
+  
+  # Alternative: Omit specific paths where these secrets are expected
+  SECRETS_SCAN_OMIT_PATHS = ".next/**,_next/**,netlify/functions-internal/**"
 
 # Handle client-side routing for SPA
 [[redirects]]
@@ -32,3 +38,12 @@
   for = "*.css"
   [headers.values]
     Cache-Control = "public, max-age=31536000"
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
