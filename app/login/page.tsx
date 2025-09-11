@@ -95,7 +95,7 @@ export default function LoginPage() {
         setError('Ongeldige inloggegevens');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login error:', error instanceof Error ? error.message : 'Unknown error');
       setError('Er is een fout opgetreden. Probeer opnieuw.');
     } finally {
       setIsLoading(false);

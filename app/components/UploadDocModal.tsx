@@ -57,7 +57,7 @@ export default function UploadDocModal({ isOpen, onClose, onUpload }: UploadDocM
       onUpload(selectedFiles);
       
     } catch (error) {
-      console.error('Error processing files:', error);
+      console.error('Error processing files:', error instanceof Error ? error.message : 'Unknown error');
       alert('Fout bij verwerken Excel bestand. Controleer het bestandsformaat.');
     } finally {
       setIsProcessing(false);
@@ -137,7 +137,7 @@ export default function UploadDocModal({ isOpen, onClose, onUpload }: UploadDocM
           resolve();
           
         } catch (error) {
-          console.error('Error processing Excel file:', error);
+          console.error('Error processing Excel file:', error instanceof Error ? error.message : 'Unknown error');
           reject(error);
         }
       };

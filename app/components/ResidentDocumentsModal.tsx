@@ -74,7 +74,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
           }
         } catch (error) {
           // API not available
-          console.error('Failed to load photo from API:', error);
+          console.error('Failed to load photo from API:', error instanceof Error ? error.message : 'Unknown error');
           setResidentPhoto(null);
         }
       }
@@ -116,7 +116,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
             setDocuments([]);
           }
         } catch (error) {
-          console.error('❌ Failed to load documents:', error);
+          console.error('❌ Failed to load documents:', error instanceof Error ? error.message : 'Unknown error');
           setDocuments([]); // Set empty array on error
         }
       }
@@ -275,7 +275,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
       }, 3000);
       
     } catch (error) {
-      console.error('❌ Upload error:', error);
+      console.error('❌ Upload error:', error instanceof Error ? error.message : 'Unknown error');
       setUploadStatus('error');
       setTimeout(() => setUploadStatus('idle'), 3000);
     }
@@ -312,7 +312,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
       setDocuments(prev => prev.filter(doc => doc.id !== docId));
       setDeleteConfirm(null);
     } catch (error) {
-      console.error('❌ Delete error:', error);
+      console.error('❌ Delete error:', error instanceof Error ? error.message : 'Unknown error');
       alert('Fout bij verwijderen document. Probeer opnieuw.');
     }
   };
@@ -340,7 +340,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
       }
       setPreviewDocument(doc);
     } catch (error) {
-      console.error('❌ Error viewing document:', error);
+      console.error('❌ Error viewing document:', error instanceof Error ? error.message : 'Unknown error');
       alert('Fout bij openen document. Controleer of de Supabase storage bucket "administrative-documents" bestaat.');
     }
   };
@@ -360,7 +360,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
         document.body.removeChild(link);
       }
     } catch (error) {
-      console.error('❌ Error downloading document:', error);
+      console.error('❌ Error downloading document:', error instanceof Error ? error.message : 'Unknown error');
       alert('Fout bij downloaden document.');
     }
   };

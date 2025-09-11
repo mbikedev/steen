@@ -524,7 +524,7 @@ function DataMatchItPageContent() {
           fileInputRef.current.value = '';
         }
       } catch (error) {
-        console.error('Error reading Excel file:', error);
+        console.error('Error reading Excel file:', error instanceof Error ? error.message : 'Unknown error');
         alert('Fout bij het lezen van het Excel bestand. Probeer het bestand opnieuw op te slaan in Excel en probeer het dan nog een keer.');
       }
     };
@@ -918,7 +918,7 @@ function DataMatchItPageContent() {
             errorCount++;
           }
         } catch (error) {
-          console.error(`Fout bij verwerken regel ${i + 1}:`, error);
+          console.error(`Fout bij verwerken regel ${i + 1}:`, error instanceof Error ? error.message : 'Unknown error');
           errorCount++;
         }
       }
@@ -1022,7 +1022,7 @@ function DataMatchItPageContent() {
       setTimeout(() => setLastPasteDebug(null), 5000); // Hide after 5 seconds
 
     } catch (error) {
-      console.error('Fout bij lezen klembord:', error);
+      console.error('Fout bij lezen klembord:', error instanceof Error ? error.message : 'Unknown error');
       alert('Kon klembord niet lezen. Zorg ervoor dat je data hebt gekopieerd.');
     } finally {
       setIsPasting(false);
@@ -1214,7 +1214,7 @@ function DataMatchItPageContent() {
                       setDbSyncStatus({type: 'success', message: 'Synchronisatie voltooid!'});
                       setTimeout(() => setDbSyncStatus({type: null, message: ''}), 3000);
                     } catch (error) {
-                      console.error('❌ Error calling sync function:', error);
+                      console.error('❌ Error calling sync function:', error instanceof Error ? error.message : 'Unknown error');
                       setDbSyncStatus({type: 'error', message: 'Fout bij synchronisatie'});
                       setTimeout(() => setDbSyncStatus({type: null, message: ''}), 3000);
                     } finally {
