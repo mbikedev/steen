@@ -479,26 +479,39 @@ export function DataProvider({ children }: DataProviderProps) {
   const addToDataMatchIt = async (resident: any): Promise<boolean> => {
     console.log('🔄 addToDataMatchIt called - converting to createResident')
     try {
-      const supabaseResident = {
+      // Helper function to safely truncate strings to database limits
+      const truncateString = (value: string | null | undefined, maxLength: number): string => {
+        if (!value) return ''
+        const str = String(value).trim()
+        if (str.length <= maxLength) return str
+        console.warn(`Truncating field from ${str.length} to ${maxLength} characters: "${str.substring(0, 30)}..."`)
+        return str.substring(0, maxLength)
+      }
+
+      const supabaseResident: any = {
         badge: resident.badge,
-        first_name: resident.firstName || resident.first_name || '',
-        last_name: resident.lastName || resident.last_name || '',
-        room: resident.room || '',
-        nationality: resident.nationality || '',
-        ov_number: resident.ovNumber || resident.ov_number || '',
-        register_number: resident.registerNumber || resident.register_number || '',
+        first_name: truncateString(resident.firstName || resident.first_name, 100),
+        last_name: truncateString(resident.lastName || resident.last_name, 100),
+        room: truncateString(resident.room, 50),
+        nationality: truncateString(resident.nationality, 100),
+        ov_number: truncateString(resident.ovNumber || resident.ov_number, 100),
+        register_number: truncateString(resident.registerNumber || resident.register_number, 100),
         date_of_birth: resident.dateOfBirth || resident.date_of_birth || null,
         age: resident.age || null,
         gender: resident.gender || null,
-        reference_person: resident.referencePerson || resident.reference_person || '',
+        reference_person: truncateString(resident.referencePerson || resident.reference_person, 300),
         date_in: resident.dateIn || resident.date_in || null,
         date_out: resident.dateOut || resident.date_out || null,
         days_of_stay: resident.daysOfStay || resident.days_of_stay || null,
         status: resident.status || 'active',
         remarks: resident.remarks || null,
         room_remarks: resident.roomRemarks || resident.room_remarks || null,
-        photo_url: resident.photoUrl || resident.photo_url || null,
-        language: resident.language || null
+        photo_url: resident.photoUrl || resident.photo_url || null
+      }
+      
+      // Only include language if it's provided and the column exists
+      if (resident.language) {
+        supabaseResident.language = truncateString(resident.language, 50)
       }
       const result = await createResident(supabaseResident)
       if (result === null) {
@@ -509,7 +522,21 @@ export function DataProvider({ children }: DataProviderProps) {
       return true
     } catch (error: any) {
       // For unexpected errors, log and continue (don't break the whole import)
-      console.error('Error in addToDataMatchIt:', error)
+      console.error('Error in addToDataMatchIt:', {
+        error,
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        residentBadge: resident.badge,
+        residentData: {
+          badge: resident.badge,
+          firstName: resident.firstName || resident.first_name,
+          lastName: resident.lastName || resident.last_name,
+          room: resident.room,
+          nationality: resident.nationality
+        }
+      })
       return false
     }
   }
@@ -564,7 +591,14 @@ export function DataProvider({ children }: DataProviderProps) {
     if (updates.remarks !== undefined) supabaseUpdates.remarks = updates.remarks
     if (updates.roomRemarks !== undefined) supabaseUpdates.room_remarks = updates.roomRemarks
     if (updates.photoUrl !== undefined) supabaseUpdates.photo_url = updates.photoUrl
-    if (updates.language !== undefined) supabaseUpdates.language = updates.language
+    // Handle language field carefully since column might not exist yet
+    if (updates.language !== undefined) {
+      try {
+        supabaseUpdates.language = updates.language
+      } catch (error) {
+        console.warn('Language column might not exist yet:', error)
+      }
+    }
 
     updateResident(id, supabaseUpdates).catch(console.error)
   }

@@ -40,26 +40,121 @@ export class ApiService {
   }
 
   async createResident(resident: Omit<Resident, 'id' | 'created_at' | 'updated_at'>): Promise<Resident> {
-    const { data, error } = await this.supabase
-      .from('residents')
-      .insert(resident)
-      .select()
-      .single()
+    // Create a copy of resident data without language field if it might cause issues
+    const residentData = { ...resident }
+    
+    try {
+      const { data, error } = await this.supabase
+        .from('residents')
+        .insert(residentData)
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+      return data
+    } catch (error: any) {
+      console.error('createResident error details:', {
+        error,
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        residentData: {
+          badge: residentData.badge,
+          first_name: residentData.first_name?.substring(0, 20) + '...',
+          last_name: residentData.last_name?.substring(0, 20) + '...',
+          room: residentData.room,
+          room_length: residentData.room?.length
+        }
+      })
+      
+      // If error mentions language column, try again without it
+      if (error?.message?.includes('language')) {
+        console.warn('Language column not found, retrying without language field')
+        delete residentData.language
+        
+        const { data, error: retryError } = await this.supabase
+          .from('residents')
+          .insert(residentData)
+          .select()
+          .single()
+
+        if (retryError) {
+          console.error('Retry also failed:', retryError)
+          throw retryError
+        }
+        return data
+      }
+      
+      // If error mentions column length, try truncating fields
+      if (error?.code === '22001' || error?.message?.includes('too long')) {
+        console.warn('Data too long error, attempting to truncate fields')
+        
+        // Truncate string fields that might be too long
+        const truncatedData = {
+          ...residentData,
+          room: residentData.room?.substring(0, 20) || '', // Original DB limit
+          ov_number: residentData.ov_number?.substring(0, 50) || '',
+          register_number: residentData.register_number?.substring(0, 50) || '',
+          reference_person: residentData.reference_person?.substring(0, 200) || ''
+        }
+        
+        console.log('Retrying with truncated data:', {
+          original_room_length: residentData.room?.length,
+          truncated_room_length: truncatedData.room?.length,
+          original_room: residentData.room,
+          truncated_room: truncatedData.room
+        })
+        
+        const { data, error: retryError } = await this.supabase
+          .from('residents')
+          .insert(truncatedData)
+          .select()
+          .single()
+
+        if (retryError) {
+          console.error('Truncation retry also failed:', retryError)
+          throw retryError
+        }
+        return data
+      }
+      
+      throw error
+    }
   }
 
   async updateResident(id: number, updates: Partial<Resident>) {
-    const { data, error } = await this.supabase
-      .from('residents')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
+    // Create a copy of updates without language field if it might cause issues
+    const updateData = { ...updates }
+    
+    try {
+      const { data, error } = await this.supabase
+        .from('residents')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+      return data
+    } catch (error: any) {
+      // If error mentions language column, try again without it
+      if (error?.message?.includes('language')) {
+        console.warn('Language column not found, retrying without language field')
+        delete updateData.language
+        
+        const { data, error: retryError } = await this.supabase
+          .from('residents')
+          .update(updateData)
+          .eq('id', id)
+          .select()
+          .single()
+
+        if (retryError) throw retryError
+        return data
+      }
+      throw error
+    }
   }
 
   async deleteResident(id: number) {

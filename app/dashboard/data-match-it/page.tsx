@@ -34,7 +34,7 @@ const calculateDaysOfStay = (arrivalDate: string | Date | null | undefined): num
 };
 
 function DataMatchItPageContent() {
-  const { dataMatchIt, bewonerslijst, deleteFromDataMatchIt, addToDataMatchIt, addMultipleToDataMatchIt, clearAllData, getStorageInfo, updateInDataMatchIt, undoDelete, redoDelete, canUndo, canRedo, deleteMultipleFromDataMatchIt, syncWithToewijzingen } = useData();
+  const { dataMatchIt, bewonerslijst, deleteFromDataMatchIt, addToDataMatchIt, addMultipleToDataMatchIt, clearAllData, getStorageInfo, updateInDataMatchIt, undoDelete, redoDelete, canUndo, canRedo, deleteMultipleFromDataMatchIt, syncWithToewijzingen, refreshResidents, isLoading, error } = useData();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentView, setCurrentView] = useState('bewonerslijst');
@@ -1095,6 +1095,42 @@ function DataMatchItPageContent() {
         </div>
 
 
+        {/* Data Loading Error Alert */}
+        {error && dataMatchIt.length === 0 && !isLoading && (
+          <div className="mb-4 border rounded-lg p-3 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800 dark:text-red-200">
+                  ❌ Fout bij laden van data: {error}. Probeer de "Sync Database" knop om opnieuw te laden.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* No Data Alert */}
+        {!error && dataMatchIt.length === 0 && !isLoading && (
+          <div className="mb-4 border rounded-lg p-3 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.866-.833-2.598 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  ⚠️ Geen bewonersdata geladen. Klik op "Sync Database" om data van de server te laden.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Database Sync Status */}
         {dbSyncStatus.type && (
           <div className={`mb-4 border rounded-lg p-3 ${
@@ -1199,43 +1235,41 @@ function DataMatchItPageContent() {
                 Opnieuw
               </button>
 
-              {/* Sync with Toewijzingen Button */}
+              {/* Sync Database Button */}
               <button 
                 onClick={async () => {
-                  console.log('🔄 Manual sync triggered');
-                  console.log('🔍 syncWithToewijzingen function:', typeof syncWithToewijzingen);
+                  console.log('🔄 Database sync triggered');
+                  setIsSyncing(true);
+                  setDbSyncStatus({type: 'info', message: 'Synchroniseren met database...'});
                   
-                  if (typeof syncWithToewijzingen === 'function') {
-                    setIsSyncing(true);
-                    try {
-                      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to show loading
-                      syncWithToewijzingen();
-                      console.log('✅ Sync function called successfully');
-                      setDbSyncStatus({type: 'success', message: 'Synchronisatie voltooid!'});
-                      setTimeout(() => setDbSyncStatus({type: null, message: ''}), 3000);
-                    } catch (error) {
-                      console.error('❌ Error calling sync function:', error instanceof Error ? error.message : 'Unknown error');
-                      setDbSyncStatus({type: 'error', message: 'Fout bij synchronisatie'});
-                      setTimeout(() => setDbSyncStatus({type: null, message: ''}), 3000);
-                    } finally {
-                      setIsSyncing(false);
-                    }
-                  } else {
-                    console.error('❌ syncWithToewijzingen is not a function:', syncWithToewijzingen);
-                    setDbSyncStatus({type: 'error', message: 'Sync functie niet beschikbaar'});
-                    setTimeout(() => setDbSyncStatus({type: null, message: ''}), 3000);
+                  try {
+                    await refreshResidents();
+                    console.log('✅ Database sync completed successfully');
+                    // Use a small delay to ensure state is updated before showing the count
+                    setTimeout(() => {
+                      setDbSyncStatus({type: 'success', message: `✅ Data gesynchroniseerd! ${dataMatchIt.length} bewoners geladen.`});
+                      setTimeout(() => setDbSyncStatus({type: null, message: ''}), 5000);
+                    }, 100);
+                  } catch (error) {
+                    console.error('❌ Error syncing with database:', error instanceof Error ? error.message : 'Unknown error');
+                    setDbSyncStatus({type: 'error', message: 'Fout bij synchronisatie met database'});
+                    setTimeout(() => setDbSyncStatus({type: null, message: ''}), 5000);
+                  } finally {
+                    setIsSyncing(false);
                   }
                 }}
-                disabled={isSyncing}
+                disabled={isSyncing || isLoading}
                 className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                  isSyncing 
+                  isSyncing || isLoading
                     ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
+                    : dataMatchIt.length === 0 
+                    ? 'bg-red-600 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-800'
                     : 'bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-800'
                 } text-white`}
-                title="Synchroniseer referentiepersoon met Toewijzingen"
+                title={dataMatchIt.length === 0 ? "Geen data geladen - klik om te synchroniseren" : "Synchroniseer met database"}
               >
-                <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                {isSyncing ? 'Synchroniseert...' : 'Sync Toewijzingen'}
+                <RefreshCw className={`h-4 w-4 ${isSyncing || isLoading ? 'animate-spin' : ''}`} />
+                {isSyncing ? 'Synchroniseert...' : isLoading ? 'Laden...' : dataMatchIt.length === 0 ? 'Sync Database' : 'Sync Database'}
               </button>
 
               {/* Delete Selected Button */}
@@ -1365,7 +1399,30 @@ function DataMatchItPageContent() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800">
-                {filteredData.map((resident, index) => (
+                {filteredData.length === 0 ? (
+                  <tr>
+                    <td colSpan={14} className="px-6 py-12 text-center">
+                      <div className="text-gray-500 dark:text-gray-400">
+                        {isLoading ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <RefreshCw className="h-5 w-5 animate-spin" />
+                            <span>Data laden...</span>
+                          </div>
+                        ) : dataMatchIt.length === 0 ? (
+                          <div>
+                            <div className="text-lg font-medium mb-2">Geen bewonersdata beschikbaar</div>
+                            <div className="text-sm">Klik op "Sync Database" om data van de server te laden</div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="text-lg font-medium mb-2">Geen resultaten gevonden</div>
+                            <div className="text-sm">Pas je zoekcriteria aan om meer resultaten te zien</div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredData.map((resident, index) => (
                   <tr key={`${resident.id}-${resident.badge}-${index}`} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} border-b border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-gray-600`}>
                     <td className="px-2 py-2 text-center border-r border-gray-200 dark:border-gray-600">
                       <input
