@@ -768,7 +768,7 @@ export default function NoordPage() {
                 letterSpacing: '0.5px'
               }}>
                 <div style={{ fontWeight: 'bold', fontSize: '13px' }}>
-                  {new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  {formatDate(new Date())}
                 </div>
                 <div style={{ fontSize: '10px', opacity: 0.9, marginTop: '2px' }}>Kamer</div>
               </th>
@@ -1043,7 +1043,7 @@ export default function NoordPage() {
                 letterSpacing: '0.5px'
               }}>
                 <div style={{ fontWeight: 'bold', fontSize: '13px' }}>
-                  {new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  {formatDate(new Date())}
                 </div>
                 <div style={{ fontSize: '10px', opacity: 0.9, marginTop: '2px' }}>Kamer</div>
               </th>

@@ -159,26 +159,21 @@ export default function AfsprakenPage() {
   const getFormattedDate = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    return date.toLocaleDateString('nl-NL', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
+    return formatDate(date);
   };
 
   // Get short formatted date for badges
   const getShortFormattedDate = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    return date.toLocaleDateString('nl-NL');
+    return formatDate(date);
   };
 
   // For Opmerkingen per Bewoner: display date + 1 day instead of actual
   const getShortFormattedDatePlusOne = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day) + 1);
-    return date.toLocaleDateString('nl-NL');
+    return formatDate(date);
   };
 
   return (
@@ -381,9 +376,7 @@ export default function AfsprakenPage() {
             {selectedDate ? (() => {
               const [y, m, d] = selectedDate.split('-');
               const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-              return date.toLocaleDateString('nl-BE', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-              });
+              return formatDate(date);
             })() : ''}
           </div>
           <div style={{ height: '1px', backgroundColor: '#000', opacity: 0.1, marginTop: '10px' }} />

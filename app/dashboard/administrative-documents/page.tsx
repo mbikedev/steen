@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Search, Filter, FileText, FolderOpen, ExternalLink, ChevronDown } from 'lucide-react';
 import { useData } from "../../../lib/DataContext";
+import { formatDate } from "../../../lib/utils";
 import ResidentDocumentsModal from '../../components/ResidentDocumentsModal';
 
 function AdministrativeDocumentsPageContent() {
@@ -519,7 +520,7 @@ function AdministrativeDocumentsPageContent() {
             color: '#666',
             marginTop: '5px'
           }}>
-            Totaal Bewoners: {sortedResidents.length} | Gegenereerd: {new Date().toLocaleDateString('nl-BE')}
+            Totaal Bewoners: {sortedResidents.length} | Gegenereerd: {formatDate(new Date())}
           </div>
         </div>
 

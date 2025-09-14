@@ -1439,3 +1439,139 @@ export const residentPhotosApi = {
     }
   }
 }
+
+// Weekend Permissions API
+export const weekendPermissionsApi = {
+  // Get permissions for a specific week
+  getByWeek: async (week: string) => {
+    try {
+      const supabase = createClient() as any;
+      const { data, error } = await supabase
+        .from('weekend_permissions')
+        .select('*')
+        .eq('week', week)
+        .order('badge');
+      
+      if (error) throw error;
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Error fetching weekend permissions:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to fetch permissions' };
+    }
+  },
+
+  // Save or update permissions for a specific week
+  saveWeekPermissions: async (permissions: any[]) => {
+    try {
+      if (permissions.length === 0) {
+        return { success: true, data: { saved: 0, errors: [] } };
+      }
+
+      const results = { saved: 0, errors: [] as any[] };
+
+      for (const permission of permissions) {
+        try {
+          // Prepare the data for database
+          const dbPermission = {
+            resident_id: permission.residentId,
+            badge: permission.badge,
+            first_name: permission.firstName,
+            last_name: permission.lastName,
+            date_of_birth: permission.dateOfBirth,
+            age: permission.age,
+            week: permission.week,
+            friday_type: permission.friday.type,
+            saturday_type: permission.saturday.type,
+            sunday_type: permission.sunday.type,
+            monday_type: permission.monday?.type || null,
+            notes: permission.notes || '',
+            status: permission.status,
+            actual_arrival_time: permission.actualArrivalTime || null,
+            last_modified: permission.lastModified
+          };
+
+          // Use upsert (insert or update) based on resident_id and week
+          const supabase = createClient() as any;
+          const { error } = await supabase
+            .from('weekend_permissions')
+            .upsert(dbPermission, {
+              onConflict: 'resident_id,week'
+            });
+
+          if (error) {
+            console.error(`Error saving permission for resident ${permission.residentId}:`, error);
+            results.errors.push({
+              residentId: permission.residentId,
+              error: error.message
+            });
+          } else {
+            results.saved++;
+          }
+        } catch (error) {
+          console.error(`Error processing permission for resident ${permission.residentId}:`, error);
+          results.errors.push({
+            residentId: permission.residentId,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+
+      return { success: true, data: results };
+    } catch (error) {
+      console.error('Error saving weekend permissions:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to save permissions' };
+    }
+  },
+
+  // Delete permissions for a specific week
+  deleteWeekPermissions: async (week: string) => {
+    try {
+      const supabase = createClient() as any;
+      const { error } = await supabase
+        .from('weekend_permissions')
+        .delete()
+        .eq('week', week);
+      
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting weekend permissions:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to delete permissions' };
+    }
+  },
+
+  // Get permissions for a specific resident
+  getByResident: async (residentId: number) => {
+    try {
+      const supabase = createClient() as any;
+      const { data, error } = await supabase
+        .from('weekend_permissions')
+        .select('*')
+        .eq('resident_id', residentId)
+        .order('week', { ascending: false });
+      
+      if (error) throw error;
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Error fetching resident permissions:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to fetch resident permissions' };
+    }
+  },
+
+  // Update status of permissions (approve/reject)
+  updatePermissionStatus: async (permissionIds: number[], status: 'approved' | 'rejected') => {
+    try {
+      const supabase = createClient() as any;
+      const { error } = await supabase
+        .from('weekend_permissions')
+        .update({ status, last_modified: new Date().toISOString() })
+        .in('id', permissionIds);
+      
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating permission status:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to update status' };
+    }
+  }
+}

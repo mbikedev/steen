@@ -72,7 +72,7 @@ export default function ZuidPage() {
     sortedRoomGroups[room] = [...roomGroups[room]].sort((a, b) => a.badge - b.badge);
     
     // Map to new objects with updated bed numbers based on position
-    sortedRoomGroups[room] = sortedRoomGroups[room].map((resident, index) => ({
+    sortedRoomGroups[room] = sortedRoomGroups[room].map((resident: any, index: number) => ({
       ...resident,
       bedNumber: index + 1 // Assign sequential bed numbers: 1, 2, 3, etc.
     }));
@@ -313,7 +313,7 @@ export default function ZuidPage() {
                     <tbody className="bg-white dark:bg-gray-800 divide-y-2 divide-black dark:divide-gray-300">
                       {Array.from({ length: maxBeds }, (_, bedIndex) => {
                         const bedNumber = bedIndex + 1;
-                        const resident = roomResidents.find(r => r.bedNumber === bedNumber);
+                        const resident = roomResidents.find((r: any) => r.bedNumber === bedNumber);
                         const index = bedIndex;
                         
                         return (
@@ -501,7 +501,7 @@ export default function ZuidPage() {
                     <tbody className="bg-white dark:bg-gray-800 divide-y-2 divide-black dark:divide-gray-300">
                       {Array.from({ length: maxBeds }, (_, bedIndex) => {
                         const bedNumber = bedIndex + 1;
-                        const resident = roomResidents.find(r => r.bedNumber === bedNumber);
+                        const resident = roomResidents.find((r: any) => r.bedNumber === bedNumber);
                         const index = bedIndex;
                         
                         return (
@@ -751,7 +751,7 @@ export default function ZuidPage() {
                 letterSpacing: '0.5px'
               }}>
                 <div style={{ fontWeight: 'bold', fontSize: '11px' }}>
-                  {new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  {formatDate(new Date())}
                 </div>
                 <div style={{ fontSize: '8px', opacity: 0.9, marginTop: '1px' }}>Kamer</div>
               </th>
@@ -841,7 +841,7 @@ export default function ZuidPage() {
               
               return Array.from({ length: maxBeds }, (_, bedIndex) => {
                 const bedNumber = bedIndex + 1;
-                const resident = roomResidents.find(r => r.bedNumber === bedNumber);
+                const resident = roomResidents.find((r: any) => r.bedNumber === bedNumber);
                 const isFirstBedInRoom = bedNumber === 1;
                 const isEmpty = !resident;
                 
@@ -1029,7 +1029,7 @@ export default function ZuidPage() {
                 letterSpacing: '0.5px'
               }}>
                 <div style={{ fontWeight: 'bold', fontSize: '11px' }}>
-                  {new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  {formatDate(new Date())}
                 </div>
                 <div style={{ fontSize: '8px', opacity: 0.9, marginTop: '1px' }}>Kamer</div>
               </th>
@@ -1119,7 +1119,7 @@ export default function ZuidPage() {
               
               return Array.from({ length: maxBeds }, (_, bedIndex) => {
                 const bedNumber = bedIndex + 1;
-                const resident = roomResidents.find(r => r.bedNumber === bedNumber);
+                const resident = roomResidents.find((r: any) => r.bedNumber === bedNumber);
                 const isFirstBedInRoom = bedNumber === 1;
                 const isEmpty = !resident;
                 

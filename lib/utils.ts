@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Format date to DD-MM-YYYY format
+// Format date to DD/MM/YYYY format
 export function formatDate(date: Date | string): string {
   const d = new Date(date);
   if (isNaN(d.getTime())) return '';
@@ -14,10 +14,10 @@ export function formatDate(date: Date | string): string {
   const month = (d.getMonth() + 1).toString().padStart(2, '0');
   const year = d.getFullYear();
   
-  return `${day}-${month}-${year}`;
+  return `${day}/${month}/${year}`;
 }
 
-// Format date and time to DD-MM-YYYY HH:MM:SS format
+// Format date and time to DD/MM/YYYY HH:MM:SS format
 export function formatDateTime(date: Date | string): string {
   const d = new Date(date);
   if (isNaN(d.getTime())) return '';
@@ -29,7 +29,7 @@ export function formatDateTime(date: Date | string): string {
   const minutes = d.getMinutes().toString().padStart(2, '0');
   const seconds = d.getSeconds().toString().padStart(2, '0');
   
-  return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
 
 // Format date with day name (in Dutch)
@@ -43,7 +43,7 @@ export function formatDateWithDay(date: Date | string): string {
   const month = (d.getMonth() + 1).toString().padStart(2, '0');
   const year = d.getFullYear();
   
-  return `${dayName}, ${day}-${month}-${year}`;
+  return `${dayName}, ${day}/${month}/${year}`;
 }
 
 export function getISOWeek(date: Date): number {

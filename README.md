@@ -39,7 +39,7 @@ This is a Next.js 15.5 application with Supabase backend, designed to streamline
 #### 📋 **List Management**
 - **Bewonerslijst**: Complete resident roster with filtering and search
 - **Keukenlijst**: Meal planning and dietary requirements
-- **Permissielijst**: Leave and permission tracking
+- **Overzicht Jongeren**: Leave and permission tracking
 - **Data Match-IT**: Data synchronization and matching
 - **Toewijzingen**: Staff assignment management with visual status indicators
 - **Appointments**: Appointment scheduling and tracking system

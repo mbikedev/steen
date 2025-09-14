@@ -38,13 +38,14 @@ import {
 interface DashboardLayoutProps {
   children: ReactNode;
   className?: string;
+  onResidentSearch?: (resident: any) => void;
 }
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Administratieve Documenten', href: '/dashboard/administrative-documents', icon: FileText },
   { name: 'Bedden Beheer', href: '/dashboard/bed-management', icon: Bed },
-  { name: 'Permissielijst', href: '/dashboard/permissielijst', icon: List },
+  { name: 'Overzicht Jongeren', href: '/dashboard/permissielijst', icon: List },
   { name: 'Bewoners Overzicht', href: '/dashboard/residents-grid', icon: Grid3X3 },
 ];
 
@@ -58,7 +59,7 @@ const kamersItems = [
   { name: 'Zuid', href: '/dashboard/zuid', icon: MapPin },
 ];
 
-export default function DashboardLayout({ children, className }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, className, onResidentSearch }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -98,8 +99,8 @@ export default function DashboardLayout({ children, className }: DashboardLayout
       const results = allResidents.filter(resident => {
         const searchLower = searchQuery.toLowerCase();
         return (
-          resident.lastName.toLowerCase().includes(searchLower) ||
-          resident.firstName.toLowerCase().includes(searchLower) ||
+          resident.last_name.toLowerCase().includes(searchLower) ||
+          resident.first_name.toLowerCase().includes(searchLower) ||
           resident.badge.toString().includes(searchLower) ||
           (resident.room && resident.room.toLowerCase().includes(searchLower))
         );
@@ -139,6 +140,11 @@ export default function DashboardLayout({ children, className }: DashboardLayout
   useEffect(() => {
     const handleEscapeKey = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
+        // Don't handle ESC on Weekend Permissie page - it has its own handler
+        if (pathname === '/dashboard/weekend-permissie') {
+          return;
+        }
+        
         if (showSearchResults) {
           // First press: close search results
           setShowSearchResults(false);
@@ -152,22 +158,38 @@ export default function DashboardLayout({ children, className }: DashboardLayout
     
     document.addEventListener('keydown', handleEscapeKey);
     return () => document.removeEventListener('keydown', handleEscapeKey);
-  }, [showSearchResults, router]);
+  }, [showSearchResults, router, pathname]);
   
   const handleSearch = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
-      // Navigate to bewonerslijst page with search query
-      router.push(`/dashboard/bewonerslijst?search=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery('');
-      setShowSearchResults(false);
+      // Check if we're on Weekend Permissie page and have a search callback
+      if (pathname === '/dashboard/weekend-permissie' && onResidentSearch && searchResults.length > 0) {
+        // Use the first search result for Weekend Permissie page
+        onResidentSearch(searchResults[0]);
+        setSearchQuery('');
+        setShowSearchResults(false);
+      } else {
+        // Navigate to bewonerslijst page with search query for other pages
+        router.push(`/dashboard/bewonerslijst?search=${encodeURIComponent(searchQuery)}`);
+        setSearchQuery('');
+        setShowSearchResults(false);
+      }
     }
   };
   
   const handleResultClick = (resident: any) => {
-    // Navigate to bewonerslijst with the specific resident's name
-    router.push(`/dashboard/bewonerslijst?search=${encodeURIComponent(resident.lastName)}`);
-    setSearchQuery('');
-    setShowSearchResults(false);
+    // Check if we're on Weekend Permissie page and have a search callback
+    if (pathname === '/dashboard/weekend-permissie' && onResidentSearch) {
+      // Use the callback to handle resident selection on Weekend Permissie page
+      onResidentSearch(resident);
+      setSearchQuery('');
+      setShowSearchResults(false);
+    } else {
+      // Navigate to bewonerslijst with the specific resident's name for other pages
+      router.push(`/dashboard/bewonerslijst?search=${encodeURIComponent(resident.lastName)}`);
+      setSearchQuery('');
+      setShowSearchResults(false);
+    }
   };
 
   return (
@@ -329,6 +351,19 @@ export default function DashboardLayout({ children, className }: DashboardLayout
               Toewijzingen
             </Link>
             
+            {/* Weekend Permissie - Standalone item */}
+            <Link
+              href="/dashboard/weekend-permissie"
+              className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                pathname === '/dashboard/weekend-permissie'
+                  ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+              }`}
+            >
+              <Calendar className="mr-3 h-5 w-5" />
+              Weekend Permissie
+            </Link>
+            
             {/* Afspraken - Standalone item */}
             <Link
               href="/dashboard/appointments"
@@ -471,6 +506,19 @@ export default function DashboardLayout({ children, className }: DashboardLayout
               Toewijzingen
             </Link>
             
+            {/* Weekend Permissie - Standalone item */}
+            <Link
+              href="/dashboard/weekend-permissie"
+              className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                pathname === '/dashboard/weekend-permissie'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
+              }`}
+            >
+              <Calendar className={`mr-3 h-5 w-5 transition-colors ${pathname === '/dashboard/weekend-permissie' ? 'text-white' : 'text-current'}`} />
+              Weekend Permissie
+            </Link>
+            
             {/* Afspraken - Standalone item */}
             <Link
               href="/dashboard/appointments"
@@ -500,7 +548,7 @@ export default function DashboardLayout({ children, className }: DashboardLayout
           </button>
           <div className="flex flex-1 items-center justify-between px-4">
             <div className="flex flex-1 items-center">
-              {pathname !== '/dashboard/residents-grid' && (
+              {pathname !== '/dashboard/residents-grid' && pathname !== '/dashboard/weekend-permissie' && (
                 <div className="relative w-full max-w-md" ref={searchRef}>
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 z-10">
                   <Search className="h-5 w-5 text-gray-400 dark:text-gray-400" />
@@ -578,7 +626,7 @@ export default function DashboardLayout({ children, className }: DashboardLayout
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-3 py-2">
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {user?.name || 'User'}
+                      {user?.email?.split('@')[0] || 'User'}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {user?.email || 'user@example.com'}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useData } from '../../../lib/DataContext';
+import { formatDate } from '../../../lib/utils';
 import { residentPhotosApi } from '../../../lib/api-service';
 import { Search, Users, Grid3X3, Camera, Upload, X, ZoomIn, Trash2 } from 'lucide-react';
 
@@ -313,12 +314,7 @@ export default function ResidentsGridPage() {
               Bezetting ({filteredResidents.length})
             </h2>
             <p className="text-sm text-gray-600">
-              {new Date().toLocaleDateString('nl-BE', { 
-                weekday: 'long',
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
+              {formatDate(new Date())}
             </p>
           </div>
         </div>
@@ -336,12 +332,7 @@ export default function ResidentsGridPage() {
                   Visueel overzicht van alle {residents.length} bewoners
                 </p>
                 <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-2">
-                  {new Date().toLocaleDateString('nl-BE', { 
-                    weekday: 'long',
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
+                  {formatDate(new Date())}
                 </p>
               </div>
               

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Home, Search, Save, X, Edit2, Upload, FileText, Trash2, Plus, Minus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useData } from "../../../lib/DataContext";
+import { formatDate } from "../../../lib/utils";
 import * as XLSX from 'xlsx';
 import { staffAssignmentsApi, toewijzingenGridApi } from "../../../lib/api-service";
 
@@ -268,8 +269,8 @@ export default function ToewijzingenPage() {
     let changesCount = 0;
     const updatedData = dataMatchIt.map(resident => {
       // Try both name formats
-      const fullName = `${resident.firstName} ${resident.lastName}`.trim();
-      const reversedName = `${resident.lastName} ${resident.firstName}`.trim();
+      const fullName = `${resident.first_name} ${resident.last_name}`.trim();
+      const reversedName = `${resident.last_name} ${resident.first_name}`.trim();
       
       // Check if this resident is assigned to a staff member
       let assignedStaff = assignments[fullName] || assignments[reversedName];
@@ -278,8 +279,8 @@ export default function ToewijzingenPage() {
       if (!assignedStaff) {
         // Extract individual words from the resident name
         const residentWords = [
-          ...resident.firstName.split(' ').filter(w => w.length > 0),
-          ...resident.lastName.split(' ').filter(w => w.length > 0)
+          ...resident.first_name.split(' ').filter((w: string) => w.length > 0),
+          ...resident.last_name.split(' ').filter((w: string) => w.length > 0)
         ];
         
         for (const [assignmentName, staffName] of Object.entries(assignments)) {
@@ -330,15 +331,15 @@ export default function ToewijzingenPage() {
       
       
       // If assigned staff is different from current referentiepersoon, update it
-      if (assignedStaff && assignedStaff !== resident.referencePerson) {
+      if (assignedStaff && assignedStaff !== resident.reference_person) {
         changesCount++;
-        return { ...resident, referencePerson: assignedStaff };
+        return { ...resident, reference_person: assignedStaff };
       }
       
       // If resident is not in Toewijzingen but has a referentiepersoon, clear it
-      if (!assignedStaff && resident.referencePerson) {
+      if (!assignedStaff && resident.reference_person) {
         changesCount++;
-        return { ...resident, referencePerson: '' };
+        return { ...resident, reference_person: '' };
       }
       
       return resident;
@@ -733,8 +734,8 @@ export default function ToewijzingenPage() {
             // Only override with age verification status if no color was imported from Excel
             if (cellText && (cellColor === 'white' || cellColor === '#FFFFFF') && ageVerificationStatus) {
               const resident = dataMatchIt.find(r => {
-                const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
-                const reversedName = `${r.lastName} ${r.firstName}`.toLowerCase();
+                const fullName = `${r.first_name} ${r.last_name}`.toLowerCase();
+                const reversedName = `${r.last_name} ${r.first_name}`.toLowerCase();
                 const textLower = cellText.toLowerCase();
                 return fullName === textLower || reversedName === textLower || 
                        fullName.includes(textLower) || reversedName.includes(textLower) ||
@@ -792,8 +793,8 @@ export default function ToewijzingenPage() {
               let cellColor = 'white';
               if (cellText && ageVerificationStatus) {
                 const resident = dataMatchIt.find(r => {
-                  const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
-                  const reversedName = `${r.lastName} ${r.firstName}`.toLowerCase();
+                  const fullName = `${r.first_name} ${r.last_name}`.toLowerCase();
+                  const reversedName = `${r.last_name} ${r.first_name}`.toLowerCase();
                   const textLower = cellText.toLowerCase();
                   return fullName === textLower || reversedName === textLower || 
                          fullName.includes(textLower) || reversedName.includes(textLower) ||
@@ -883,7 +884,7 @@ export default function ToewijzingenPage() {
       
       // Count non-empty assignments and debug data structure
       let assignmentCount = 0;
-      const cellsWithData = [];
+      const cellsWithData: Array<{row: number, col: number, text: string, staffName: string}> = [];
       tableData.forEach((row, rowIndex) => {
         row.forEach((cell, colIndex) => {
           if (cell.text.trim()) {
@@ -936,7 +937,18 @@ export default function ToewijzingenPage() {
         
         // Fallback: enhanced localStorage save with database-like structure
         const assignmentData = {
-          assignments: [],
+          assignments: [] as Array<{
+            id: string;
+            resident_name: string;
+            staff_name: string;
+            assignment_date: string;
+            assignment_type: string;
+            color_code: string;
+            position_row: number;
+            position_col: number;
+            notes: string;
+            created_at: string;
+          }>,
           assignmentDate,
           savedAt: new Date().toISOString(),
           metadata: {
@@ -1052,13 +1064,13 @@ export default function ToewijzingenPage() {
         const backupData = null;
         
         if (backupData) {
-          const parsed = {};
+          const parsed: any = {};
           
           // Convert backup assignments back to table format
           const newTableData = getDefaultTableData();
           const staffNames = staffColumns.map(col => col.name);
           
-          parsed.assignments.forEach((assignment: any) => {
+          parsed.assignments?.forEach((assignment: any) => {
             const row = assignment.position_row;
             const col = assignment.position_col;
             
@@ -1075,7 +1087,7 @@ export default function ToewijzingenPage() {
           setTableData(newTableData);
           setSaveStatus({
             type: 'success',
-            message: `✅ Loaded ${parsed.assignments.length} assignments from local backup (Database unavailable)`
+            message: `✅ Loaded ${parsed.assignments?.length || 0} assignments from local backup (Database unavailable)`
           });
           
         } else {
@@ -1180,8 +1192,8 @@ export default function ToewijzingenPage() {
       
       if (cellText && ageVerificationStatus) {
         const resident = dataMatchIt.find(r => {
-          const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
-          const reversedName = `${r.lastName} ${r.firstName}`.toLowerCase();
+          const fullName = `${r.first_name} ${r.last_name}`.toLowerCase();
+          const reversedName = `${r.last_name} ${r.first_name}`.toLowerCase();
           const textLower = cellText.toLowerCase();
           return fullName === textLower || reversedName === textLower || 
                  fullName.includes(textLower) || reversedName.includes(textLower) ||
@@ -1240,8 +1252,8 @@ export default function ToewijzingenPage() {
 
     const updatedData = dataMatchIt.map(resident => {
       // Try both firstName + lastName and lastName + firstName
-      const fullName = `${resident.firstName} ${resident.lastName}`.trim();
-      const reversedName = `${resident.lastName} ${resident.firstName}`.trim();
+      const fullName = `${resident.first_name} ${resident.last_name}`.trim();
+      const reversedName = `${resident.last_name} ${resident.first_name}`.trim();
       
       
       if (fullName === residentName || reversedName === residentName) {
@@ -1254,9 +1266,9 @@ export default function ToewijzingenPage() {
     });
 
     const matchedResident = updatedData.find(r => {
-      const fullName = `${r.firstName} ${r.lastName}`.trim();
-      const reversedName = `${r.lastName} ${r.firstName}`.trim();
-      return (fullName === residentName || reversedName === residentName) && r.referencePerson === '';
+      const fullName = `${r.first_name} ${r.last_name}`.trim();
+      const reversedName = `${r.last_name} ${r.first_name}`.trim();
+      return (fullName === residentName || reversedName === residentName) && r.reference_person === '';
     });
 
     if (matchedResident) {
@@ -1274,22 +1286,22 @@ export default function ToewijzingenPage() {
 
     const updatedData = dataMatchIt.map(resident => {
       // Try both firstName + lastName and lastName + firstName
-      const fullName = `${resident.firstName} ${resident.lastName}`.trim();
-      const reversedName = `${resident.lastName} ${resident.firstName}`.trim();
+      const fullName = `${resident.first_name} ${resident.last_name}`.trim();
+      const reversedName = `${resident.last_name} ${resident.first_name}`.trim();
       
       
       if (fullName === residentName || reversedName === residentName) {
         return {
           ...resident,
-          referencePerson: ibName
+          reference_person: ibName
         };
       }
       return resident;
     });
 
     const matchedResident = updatedData.find(r => {
-      const fullName = `${r.firstName} ${r.lastName}`.trim();
-      const reversedName = `${r.lastName} ${r.firstName}`.trim();
+      const fullName = `${r.first_name} ${r.last_name}`.trim();
+      const reversedName = `${r.last_name} ${r.first_name}`.trim();
       return fullName === residentName || reversedName === residentName;
     });
 
@@ -1497,8 +1509,8 @@ export default function ToewijzingenPage() {
     if (text && ageVerificationStatus) {
       // Try to find the resident's badge by matching the name
       const resident = dataMatchIt.find(r => {
-        const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
-        const reversedName = `${r.lastName} ${r.firstName}`.toLowerCase();
+        const fullName = `${r.first_name} ${r.last_name}`.toLowerCase();
+        const reversedName = `${r.last_name} ${r.first_name}`.toLowerCase();
         const cellText = text.toLowerCase();
         return fullName === cellText || reversedName === cellText || 
                fullName.includes(cellText) || reversedName.includes(cellText) ||
@@ -1598,9 +1610,19 @@ export default function ToewijzingenPage() {
               <Home className="h-5 w-5" />
               <span className="font-medium">Dashboard</span>
             </button>
-            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent drop-shadow-sm">
-              Toewijzingen
-            </h1>
+            <div className="text-center">
+              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent drop-shadow-sm">
+                Toewijzingen
+              </h1>
+              <div className="mt-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200 dark:border-blue-700 shadow-sm">
+                <div className="text-lg font-bold text-blue-800 dark:text-blue-200">
+                  {formatDate(new Date())}
+                </div>
+                <div className="text-xs text-blue-600 dark:text-blue-300 uppercase tracking-wide">
+                  Vandaag
+                </div>
+              </div>
+            </div>
           </div>
           
           <div className="flex items-center gap-4">
@@ -1748,12 +1770,6 @@ export default function ToewijzingenPage() {
           </div>
         )}
 
-        {/* Centered date */}
-        <div className="mb-4 flex justify-center">
-          <div className="px-5 py-1.5 bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 rounded-full shadow-lg backdrop-blur-sm border border-white/20">
-            <span className="text-base font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">8/22/25</span>
-          </div>
-        </div>
         {/* Status labels moved from last column */}
         <div className="mb-4 flex flex-col items-center gap-2">
           <div className="flex items-center gap-2">
