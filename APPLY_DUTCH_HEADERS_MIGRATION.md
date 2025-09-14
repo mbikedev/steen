@@ -9,20 +9,29 @@ Some fields are too short (room limited to 20 chars) causing "value too long" er
 ## Problem 3: CSV Import Headers  
 CSV import fails because it expects Dutch column headers but the database uses English field names.
 
+## Problem 4: Toewijzingen Data Not Persisting
+Toewijzingen page data disappears on page refresh because the `toewijzingen_staff` table is missing and RLS policies need fixes.
+
 ## Solution
-Run all three migrations to fix the database structure and add compatibility.
+Run all five migrations to fix the database structure and add full compatibility.
 
 ## Steps to Apply Migrations
 
 ### Option 1: Via Supabase Dashboard (Recommended)
 1. Go to your Supabase dashboard
 2. Navigate to SQL Editor
-3. **FIRST**: Copy and paste the contents of `supabase/migrations/007_add_language_column.sql`
+3. **STEP 1**: Copy and paste the contents of `supabase/migrations/007_add_language_column.sql`
 4. Click "Run" to execute
-5. **SECOND**: Copy and paste the contents of `supabase/migrations/008_fix_column_lengths.sql`
+5. **STEP 2**: Copy and paste the contents of `supabase/migrations/008_fix_column_lengths.sql`
 6. Click "Run" to execute
-7. **THIRD**: Copy and paste the contents of `supabase/migrations/006_add_dutch_column_view.sql`  
+7. **STEP 3**: Copy and paste the contents of `supabase/migrations/009_create_toewijzingen_staff_table.sql`
 8. Click "Run" to execute
+9. **STEP 4**: Copy and paste the contents of `supabase/migrations/010_fix_toewijzingen_grid_rls.sql`
+10. Click "Run" to execute
+11. **STEP 5**: Copy and paste the contents of `supabase/migrations/006_add_dutch_column_view.sql`  
+12. Click "Run" to execute
+
+**IMPORTANT**: Run all 5 migrations in this exact order. Each one is needed for different functionality.
 
 ### Option 2: Via Supabase CLI
 ```bash
@@ -35,7 +44,9 @@ Connect to your database using the password you provided and run:
 ```sql
 -- FIRST: Copy the entire contents of 007_add_language_column.sql here
 -- SECOND: Copy the entire contents of 008_fix_column_lengths.sql here  
--- THIRD: Copy the entire contents of 006_add_dutch_column_view.sql here
+-- THIRD: Copy the entire contents of 009_create_toewijzingen_staff_table.sql here
+-- FOURTH: Copy the entire contents of 010_fix_toewijzingen_grid_rls.sql here
+-- FIFTH: Copy the entire contents of 006_add_dutch_column_view.sql here
 ```
 
 ## After Migration

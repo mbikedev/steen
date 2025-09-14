@@ -34,7 +34,7 @@ const calculateDaysOfStay = (arrivalDate: string | Date | null | undefined): num
 };
 
 function DataMatchItPageContent() {
-  const { dataMatchIt, bewonerslijst, deleteFromDataMatchIt, addToDataMatchIt, addMultipleToDataMatchIt, clearAllData, getStorageInfo, updateInDataMatchIt, undoDelete, redoDelete, canUndo, canRedo, deleteMultipleFromDataMatchIt, syncWithToewijzingen, refreshResidents, isLoading, error } = useData();
+  const { dataMatchIt, bewonerslijst, deleteFromDataMatchIt, addToDataMatchIt, addMultipleToDataMatchIt, clearAllData, getStorageInfo, updateInDataMatchIt, undoDelete, redoDelete, canUndo, canRedo, deleteMultipleFromDataMatchIt, syncWithToewijzingen, refreshResidents, isLoading, error, batchUpdateResidents } = useData();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentView, setCurrentView] = useState('bewonerslijst');
@@ -47,7 +47,6 @@ function DataMatchItPageContent() {
   const [editingCells, setEditingCells] = useState<{[key: string]: any}>({});
   const [editingValues, setEditingValues] = useState<{[key: string]: any}>({});
   const [dbSyncStatus, setDbSyncStatus] = useState<{type: 'success' | 'error' | 'info' | null, message: string}>({type: null, message: ''});
-  const [isSyncing, setIsSyncing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle URL parameter to switch between views
@@ -65,38 +64,66 @@ function DataMatchItPageContent() {
   useEffect(() => {
     setLastUpdated(formatDateTime(new Date()));
     
-    // Auto-update days of stay for all residents based on their arrival date
-    const updatedResidents = dataMatchIt.filter(resident => {
-      if (resident.dateIn) {
-        const calculatedDays = calculateDaysOfStay(resident.dateIn);
-        if (calculatedDays !== resident.daysOfStay) {
-          return true;
-        }
-      }
-      return false;
-    });
-    
-    // Update residents with new days of stay
-    updatedResidents.forEach(resident => {
-      const calculatedDays = calculateDaysOfStay(resident.dateIn);
-      console.log(`Auto-updating days of stay for ${resident.firstName} ${resident.lastName}: ${calculatedDays} days`);
-      updateInDataMatchIt(resident.id, { daysOfStay: calculatedDays });
-    });
-  }, [dataMatchIt.length]); // Only recalculate when number of residents changes
-
-  // Recalculate days of stay when page regains focus or at midnight
-  useEffect(() => {
-    const recalculateDaysOfStay = () => {
-      console.log('Recalculating days of stay for all residents...');
+    // Batch update days of stay to prevent ERR_INSUFFICIENT_RESOURCES
+    const batchUpdateDaysOfStay = async () => {
+      const updates: Array<{id: number, updates: {days_of_stay: number}}> = [];
+      
       dataMatchIt.forEach(resident => {
         if (resident.dateIn) {
           const calculatedDays = calculateDaysOfStay(resident.dateIn);
           if (calculatedDays !== resident.daysOfStay) {
-            console.log(`Updating days for ${resident.firstName} ${resident.lastName}: ${resident.daysOfStay} -> ${calculatedDays}`);
-            updateInDataMatchIt(resident.id, { daysOfStay: calculatedDays });
+            updates.push({ 
+              id: resident.id, 
+              updates: { days_of_stay: calculatedDays }
+            });
           }
         }
       });
+      
+      // Only update if there are changes - use batch update
+      if (updates.length > 0 && batchUpdateResidents) {
+        console.log(`Batch updating days of stay for ${updates.length} residents`);
+        try {
+          await batchUpdateResidents(updates);
+        } catch (error) {
+          console.error('Failed to batch update days of stay:', error);
+        }
+      }
+    };
+    
+    batchUpdateDaysOfStay();
+  }, [dataMatchIt.length, batchUpdateResidents]); // Only recalculate when number of residents changes
+
+  // Recalculate days of stay when page regains focus or at midnight
+  useEffect(() => {
+    const recalculateDaysOfStay = async () => {
+      console.log('Recalculating days of stay for all residents...');
+      
+      // Batch process to prevent ERR_INSUFFICIENT_RESOURCES
+      const updates: Array<{id: number, updates: {days_of_stay: number}}> = [];
+      
+      dataMatchIt.forEach(resident => {
+        if (resident.dateIn) {
+          const calculatedDays = calculateDaysOfStay(resident.dateIn);
+          if (calculatedDays !== resident.daysOfStay) {
+            updates.push({ 
+              id: resident.id, 
+              updates: { days_of_stay: calculatedDays }
+            });
+          }
+        }
+      });
+      
+      // Batch update all at once using the batch function
+      if (updates.length > 0 && batchUpdateResidents) {
+        console.log(`Batch updating ${updates.length} residents' days of stay`);
+        try {
+          await batchUpdateResidents(updates);
+          console.log('✅ Batch update completed successfully');
+        } catch (error) {
+          console.error('❌ Failed to batch update days of stay:', error);
+        }
+      }
     };
 
     // Recalculate when page regains focus
@@ -1046,7 +1073,7 @@ function DataMatchItPageContent() {
       if (event.ctrlKey && !event.shiftKey && event.key === 'z' && !isInputField) {
         event.preventDefault();
         if (canUndo) {
-          undoDelete();
+          undoDelete().catch(error => console.error('Keyboard undo failed:', error));
         }
       }
       
@@ -1056,7 +1083,7 @@ function DataMatchItPageContent() {
         if (!isInputField) {
           event.preventDefault();
           if (canRedo) {
-            redoDelete();
+            redoDelete().catch(error => console.error('Keyboard redo failed:', error));
           }
         }
       }
@@ -1068,25 +1095,30 @@ function DataMatchItPageContent() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 bg-white dark:bg-gray-800 min-h-screen transition-colors">
-        {/* Header - Matching PDF Layout */}
-        <div className="mb-8">
-          <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-6 border dark:border-gray-700">
-            <div className="grid grid-cols-3 gap-4 items-center">
-              <div className="bg-blue-200 dark:bg-blue-600 px-3 py-2 text-center font-semibold text-black dark:text-white">
-                <div className="text-lg font-bold">DATA-MATCH-IT</div>
+      <div className="p-3 sm:p-6 bg-white dark:bg-gray-800 min-h-screen transition-colors">
+        {/* Header - Responsive Layout */}
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 border dark:border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+              {/* Title Section */}
+              <div className="bg-blue-200 dark:bg-blue-600 px-3 py-2 text-center font-semibold text-black dark:text-white rounded">
+                <div className="text-lg md:text-xl font-bold">DATA-MATCH-IT</div>
                 <div className="text-sm mt-1 capitalize">
                   {currentView === 'keukenlijst' ? 'Keukenlijst' : 'Bewonerslijst'}
                 </div>
               </div>
-              <div className="text-center text-gray-900 dark:text-gray-100">
-                {formatDate(new Date())}
+              
+              {/* Date Section */}
+              <div className="text-center text-gray-900 dark:text-gray-100 order-3 md:order-2">
+                <div className="text-sm md:text-base">{formatDate(new Date())}</div>
               </div>
-              <div className="text-right">
-                <div className="text-black dark:text-gray-100">
+              
+              {/* Stats Section */}
+              <div className="text-center md:text-right order-2 md:order-3">
+                <div className="text-black dark:text-gray-100 text-sm md:text-base">
                   Aantal: <span className="font-bold">{getCurrentDataSource().length}</span> bewoners
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                   Gefilterd: <span className="font-bold">{filteredData.length}</span>
                 </div>
               </div>
@@ -1188,138 +1220,99 @@ function DataMatchItPageContent() {
 
         {/* Search and Actions */}
         <div className="mb-6 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Zoek op badge, naam, nationaliteit, kamer..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-black dark:text-gray-100"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+          {/* Search Bar */}
+          <div className="w-full">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Zoek op badge, naam, nationaliteit, kamer..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-black dark:text-gray-100"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
+          </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              {/* Undo Button */}
-              <button 
-                onClick={undoDelete}
-                disabled={!canUndo}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                  !canUndo
-                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-800'
-                }`}
-                title="Ongedaan maken (Ctrl+Z)"
-              >
-                <Undo className="h-4 w-4" />
-                Ongedaan
-              </button>
+          {/* Action Buttons - Responsive Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2 lg:gap-3">
+            {/* Undo Button */}
+            <button 
+              onClick={async () => {
+                try {
+                  await undoDelete();
+                } catch (error) {
+                  console.error('Undo failed:', error);
+                }
+              }}
+              disabled={!canUndo}
+              className={`px-2 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
+                !canUndo
+                  ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-800'
+              }`}
+              title="Ongedaan maken (Ctrl+Z)"
+            >
+              <Undo className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Ongedaan</span>
+            </button>
 
-              {/* Redo Button */}
-              <button 
-                onClick={redoDelete}
-                disabled={!canRedo}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                  !canRedo
-                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-800'
-                }`}
-                title="Opnieuw (Ctrl+Shift+Z)"
-              >
-                <Redo className="h-4 w-4" />
-                Opnieuw
-              </button>
+            {/* Redo Button */}
+            <button 
+              onClick={async () => {
+                try {
+                  await redoDelete();
+                } catch (error) {
+                  console.error('Redo failed:', error);
+                }
+              }}
+              disabled={!canRedo}
+              className={`px-2 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
+                !canRedo
+                  ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-800'
+              }`}
+              title="Opnieuw (Ctrl+Shift+Z)"
+            >
+              <Redo className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Opnieuw</span>
+            </button>
 
-              {/* Sync Database Button */}
-              <button 
-                onClick={async () => {
-                  console.log('🔄 Database sync triggered');
-                  setIsSyncing(true);
-                  setDbSyncStatus({type: 'info', message: 'Synchroniseren met database...'});
-                  
-                  try {
-                    await refreshResidents();
-                    console.log('✅ Database sync completed successfully');
-                    // Use a small delay to ensure state is updated before showing the count
-                    setTimeout(() => {
-                      setDbSyncStatus({type: 'success', message: `✅ Data gesynchroniseerd! ${dataMatchIt.length} bewoners geladen.`});
-                      setTimeout(() => setDbSyncStatus({type: null, message: ''}), 5000);
-                    }, 100);
-                  } catch (error) {
-                    console.error('❌ Error syncing with database:', error instanceof Error ? error.message : 'Unknown error');
-                    setDbSyncStatus({type: 'error', message: 'Fout bij synchronisatie met database'});
-                    setTimeout(() => setDbSyncStatus({type: null, message: ''}), 5000);
-                  } finally {
-                    setIsSyncing(false);
-                  }
-                }}
-                disabled={isSyncing || isLoading}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                  isSyncing || isLoading
-                    ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
-                    : dataMatchIt.length === 0 
-                    ? 'bg-red-600 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-800'
-                    : 'bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-800'
-                } text-white`}
-                title={dataMatchIt.length === 0 ? "Geen data geladen - klik om te synchroniseren" : "Synchroniseer met database"}
-              >
-                <RefreshCw className={`h-4 w-4 ${isSyncing || isLoading ? 'animate-spin' : ''}`} />
-                {isSyncing ? 'Synchroniseert...' : isLoading ? 'Laden...' : dataMatchIt.length === 0 ? 'Sync Database' : 'Sync Database'}
-              </button>
 
-              {/* Delete Selected Button */}
-              <button 
-                onClick={handleDeleteSelected}
-                disabled={selectedResidents.size === 0}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                  selectedResidents.size === 0
-                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                    : 'bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800'
-                }`}
-              >
-                <Trash2 className="h-4 w-4" />
-                Verwijder Geselecteerd ({selectedResidents.size})
-              </button>
+            {/* Delete Selected Button */}
+            <button 
+              onClick={handleDeleteSelected}
+              disabled={selectedResidents.size === 0}
+              className={`px-2 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1 ${
+                selectedResidents.size === 0
+                  ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                  : 'bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800'
+              }`}
+            >
+              <Trash2 className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Verwijder ({selectedResidents.size})</span>
+              <span className="sm:hidden">({selectedResidents.size})</span>
+            </button>
 
-              {/* Clear All Data Button */}
-              {dataMatchIt.length > 0 && (
-                <button 
-                  onClick={() => {
-                    if (confirm('Weet je zeker dat je ALLE data wilt wissen?')) {
-                      clearAllData();
-                      setSelectedResidents(new Set());
-                    }
-                  }}
-                  className="px-4 py-2 bg-red-800 dark:bg-red-900 text-white rounded-lg hover:bg-red-900 dark:hover:bg-red-950 flex items-center gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Alles Wissen
-                </button>
-              )}
 
-              {/* Paste Users Button */}
-              <button 
-                onClick={handlePasteUsers}
-                disabled={isPasting}
-                className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-800 flex items-center gap-2 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
-              >
-                <Clipboard className="h-4 w-4" />
-                {isPasting ? 'Plakken...' : 'Gebruikers Plakken'}
-              </button>
+            {/* Paste Users Button */}
+            <button 
+              onClick={handlePasteUsers}
+              disabled={isPasting}
+              className="px-2 sm:px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-800 flex items-center justify-center gap-1 sm:gap-2 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-xs sm:text-sm col-span-2 sm:col-span-1"
+            >
+              <Clipboard className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">{isPasting ? 'Plakken...' : 'Plakken'}</span>
+            </button>
 
-              {/* Excel Upload Button */}
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-800 flex items-center gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                Excel Importeren
-              </button>
+            {/* Excel Upload Button */}
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="px-2 sm:px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-800 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
+            >
+              <Upload className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Excel</span>
+            </button>
 
               {/* Hidden file input for Excel */}
               <input
@@ -1330,16 +1323,15 @@ function DataMatchItPageContent() {
                 className="hidden"
               />
 
-              {/* Add User Button */}
-              <button 
-                onClick={() => setIsAddUserModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 flex items-center gap-2"
-              >
-                <UserPlus className="h-4 w-4" />
-                Gebruiker Toevoegen
-              </button>
+            {/* Add User Button */}
+            <button 
+              onClick={() => setIsAddUserModalOpen(true)}
+              className="px-2 sm:px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
+            >
+              <UserPlus className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Toevoegen</span>
+            </button>
 
-            </div>
           </div>
         </div>
 
@@ -1349,59 +1341,71 @@ function DataMatchItPageContent() {
             <table className="min-w-full">
               <thead className="bg-teal-700 dark:bg-teal-800 text-white">
                 <tr>
-                  <th className="px-1 py-2 text-center font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 w-12" style={{fontSize: '0.625rem'}}>
+                  <th className="px-1 py-2 text-center font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 w-8 sm:w-12 text-xs">
                     <input
                       type="checkbox"
                       checked={selectedResidents.size === filteredData.length && filteredData.length > 0}
                       onChange={handleSelectAll}
-                      className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-blue-300 text-blue-600 focus:ring-blue-500 scale-75 sm:scale-100"
                     />
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
-                    Externe referentie
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs">
+                    <span className="hidden sm:inline">Externe referentie</span>
+                    <span className="sm:hidden">Badge</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
-                    Achternaam
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs">
+                    <span className="hidden sm:inline">Achternaam</span>
+                    <span className="sm:hidden">Achtern.</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
-                    Voornaam
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs">
+                    <span className="hidden sm:inline">Voornaam</span>
+                    <span className="sm:hidden">Voorn.</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
-                    Wooneenheid
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs">
+                    <span className="hidden sm:inline">Wooneenheid</span>
+                    <span className="sm:hidden">Kamer</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
-                    Nationaliteit
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden md:table-cell">
+                    <span className="hidden lg:inline">Nationaliteit</span>
+                    <span className="lg:hidden">Land</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
-                    OV Nummer
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden lg:table-cell">
+                    <span className="hidden xl:inline">OV Nummer</span>
+                    <span className="xl:hidden">OV Nr</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
-                    Nationaal Nummer
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden lg:table-cell">
+                    <span className="hidden xl:inline">Nationaal Nummer</span>
+                    <span className="xl:hidden">Nat. Nr</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
-                    Geboortedatum
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden md:table-cell">
+                    <span className="hidden lg:inline">Geboortedatum</span>
+                    <span className="lg:hidden">Geboorte</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
-                    Leeftijd
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs">
+                    <span className="hidden sm:inline">Leeftijd</span>
+                    <span className="sm:hidden">Lft</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
-                    Geslacht
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden sm:table-cell">
+                    <span className="hidden md:inline">Geslacht</span>
+                    <span className="md:hidden">M/V</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden lg:table-cell">
                     REFERENT
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700" style={{fontSize: '0.625rem'}}>
-                    Aankomstdatum
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden md:table-cell">
+                    <span className="hidden lg:inline">Aankomstdatum</span>
+                    <span className="lg:hidden">Aankomst</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight" style={{fontSize: '0.625rem'}}>
-                    Dagen verblijf
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight text-xs">
+                    <span className="hidden sm:inline">Dagen verblijf</span>
+                    <span className="sm:hidden">Dagen</span>
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800">
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={14} className="px-6 py-12 text-center">
+                    <td colSpan={20} className="px-4 sm:px-6 py-8 sm:py-12 text-center">
                       <div className="text-gray-500 dark:text-gray-400">
                         {isLoading ? (
                           <div className="flex items-center justify-center gap-2">
@@ -1424,53 +1428,53 @@ function DataMatchItPageContent() {
                   </tr>
                 ) : filteredData.map((resident, index) => (
                   <tr key={`${resident.id}-${resident.badge}-${index}`} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} border-b border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-gray-600`}>
-                    <td className="px-2 py-2 text-center border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-center border-r border-gray-200 dark:border-gray-600">
                       <input
                         type="checkbox"
                         checked={selectedResidents.has(resident.id)}
                         onChange={() => handleSelectResident(resident.id)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 scale-75 sm:scale-100"
                       />
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 font-medium">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 font-medium">
                       {renderEditableCell(resident, 'badge', resident.badge, 'number')}
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
                       {renderEditableCell(resident, 'lastName', resident.lastName)}
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
                       {renderEditableCell(resident, 'firstName', resident.firstName)}
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
                       {renderEditableCell(resident, 'room', resident.room)}
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden md:table-cell">
                       {renderEditableCell(resident, 'nationality', resident.nationality)}
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden lg:table-cell">
                       {renderEditableCell(resident, 'ovNumber', resident.ovNumber)}
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden lg:table-cell">
                       {renderEditableCell(resident, 'registerNumber', resident.registerNumber)}
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden md:table-cell">
                       {renderEditableCell(resident, 'dateOfBirth', resident.dateOfBirth, 'date')}
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
                       <div className="px-1 py-1" title="Leeftijd wordt automatisch berekend uit geboortedatum">
                         {resident.age || 0}
                       </div>
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden sm:table-cell">
                       {renderEditableCell(resident, 'gender', resident.gender)}
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden lg:table-cell">
                       {renderEditableCell(resident, 'referencePerson', resident.referencePerson)}
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden md:table-cell">
                       {renderEditableCell(resident, 'dateIn', resident.dateIn, 'date')}
                     </td>
-                    <td className="px-2 py-2 text-xs text-gray-900 dark:text-gray-100">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100">
                       <div className="flex items-center gap-1">
                         {resident.dateIn ? (
                           <span title={`Automatisch berekend vanaf ${formatDate(resident.dateIn)}`}>

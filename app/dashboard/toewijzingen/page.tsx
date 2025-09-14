@@ -10,7 +10,7 @@ import { staffAssignmentsApi, toewijzingenGridApi } from "../../../lib/api-servi
 console.log('🔍 API import check - toewijzingenGridApi:', !!toewijzingenGridApi);
 
 export default function ToewijzingenPage() {
-  console.log('🏁 Toewijzingen page component loaded');
+  // Component loaded (removed excessive logging for cleaner console)
   
   const router = useRouter();
   const { dataMatchIt, setDataMatchIt, ageVerificationStatus } = useData();
@@ -79,7 +79,7 @@ export default function ToewijzingenPage() {
 
   // Handle hydration and load saved data
   useEffect(() => {
-    console.log('🚀 Toewijzingen page useEffect triggered');
+    console.log('🚀🚀🚀 TOEWIJZINGEN PAGE USEEFFECT TRIGGERED - You should see this on page load!', new Date().toLocaleTimeString());
     setIsMounted(true);
     
     // Load saved data - try database first, then localStorage fallback
@@ -573,6 +573,9 @@ export default function ToewijzingenPage() {
       if (parsedData.length > 0) {
         setTableData(parsedData);
         setUploadStatus({type: 'success', message: `✅ PDF bestand ingeladen: ${parsedData.length} rijen`});
+        
+        // Trigger auto-save after file upload
+        triggerAutoSave();
       } else {
         throw new Error('Geen geldige data gevonden in PDF bestand');
       }
@@ -641,6 +644,9 @@ export default function ToewijzingenPage() {
     if (parsedData.length > 0) {
       setTableData(parsedData);
       setUploadStatus({type: 'success', message: `✅ Tekstbestand ingeladen: ${parsedData.length} rijen`});
+      
+      // Trigger auto-save after file upload
+      triggerAutoSave();
     } else {
       throw new Error('Geen geldige data gevonden in tekstbestand');
     }
@@ -826,7 +832,13 @@ export default function ToewijzingenPage() {
 
   // Auto-save function with debouncing
   const triggerAutoSave = () => {
-    console.log('⚡ triggerAutoSave called, enabled:', autoSaveEnabled);
+    console.log('⚡⚡⚡ TRIGGER AUTO SAVE CALLED - This should show after editing:', {
+      autoSaveEnabled,
+      currentTime: new Date().toLocaleTimeString(),
+      isSaving,
+      isMounted
+    });
+    
     if (!autoSaveEnabled) {
       console.log('❌ Auto-save disabled, skipping');
       return;
@@ -866,22 +878,38 @@ export default function ToewijzingenPage() {
       // Get current date for assignments
       const assignmentDate = new Date().toISOString().split('T')[0];
       
-      // Get staff names from staffColumns
+      // Get staff names from staffColumns  
       const staffNames = staffColumns.map(col => col.name);
       
-      // Count non-empty assignments
+      // Count non-empty assignments and debug data structure
       let assignmentCount = 0;
-      tableData.forEach((row) => {
-        row.forEach((cell) => {
+      const cellsWithData = [];
+      tableData.forEach((row, rowIndex) => {
+        row.forEach((cell, colIndex) => {
           if (cell.text.trim()) {
             assignmentCount++;
+            cellsWithData.push({
+              row: rowIndex,
+              col: colIndex,
+              text: cell.text.trim(),
+              staffName: staffNames[colIndex] || 'Unknown'
+            });
           }
         });
       });
 
+      console.log('🔍 DEBUG Save Data:', {
+        assignmentDate,
+        staffNames,
+        assignmentCount,
+        tableDataRows: tableData.length,
+        cellsWithData: cellsWithData.slice(0, 5), // First 5 for debugging
+        totalCellsWithData: cellsWithData.length
+      });
 
       // Try new Toewijzingen Grid API first, with localStorage fallback
       try {
+        console.log('💾 Calling toewijzingenGridApi.saveGrid...');
         const result = await toewijzingenGridApi.saveGrid(tableData, assignmentDate, staffNames);
         
         if (result.success && result.data) {
@@ -1103,19 +1131,42 @@ export default function ToewijzingenPage() {
 
   // Handle cell editing
   const handleCellClick = (row: number, col: number, value: string, type: string = '') => {
+    console.log('🎯🎯🎯 CELL CLICKED - This should ALWAYS show:', { 
+      row, 
+      col, 
+      value, 
+      type, 
+      currentTime: new Date().toLocaleTimeString(),
+      autoSaveEnabled,
+      isMounted
+    });
+    
     // Track selected cell
     setSelectedCell({ row, col });
     
     // Don't reset if we're already editing this cell
     if (editingCell?.row === row && editingCell?.col === col) {
+      console.log('📝 Already editing this cell, skipping reset');
       return;
     }
     setEditingCell({ row, col });
     setEditValue(value);
     setEditType(type || '');
+    
+    console.log('🎯 Cell click setup complete:', { 
+      editingCell: {row, col}, 
+      editValue: value,
+      editType: type 
+    });
   };
 
   const handleSaveCell = () => {
+    console.log('💾💾💾 SAVE CELL CALLED - This should show when you press Save/Enter:', {
+      editingCell,
+      editValue,
+      editType,
+      currentTime: new Date().toLocaleTimeString()
+    });
     
     if (editingCell) {
       const newData = [...tableData];

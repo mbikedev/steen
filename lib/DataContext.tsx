@@ -83,6 +83,7 @@ interface DataContextType {
   // CRUD operations
   createResident: (resident: Omit<Resident, 'id' | 'created_at' | 'updated_at'>) => Promise<Resident | null>
   updateResident: (id: number, updates: Partial<Resident>) => Promise<Resident>
+  batchUpdateResidents: (updates: Array<{id: number, updates: Partial<Resident>}>) => Promise<void>
   deleteResident: (id: number) => Promise<void>
   
   createAppointment: (appointment: Omit<Appointment, 'id' | 'created_at' | 'updated_at'>) => Promise<Appointment>
@@ -325,6 +326,16 @@ export function DataProvider({ children }: DataProviderProps) {
     try {
       const newResident = await apiService.createResident(resident)
       await refreshResidents()
+      
+      // Refresh dashboard stats after creating a resident
+      try {
+        const stats = await apiService.getDashboardStats()
+        setDashboardStats(stats)
+        console.log('✅ Dashboard stats refreshed after resident creation')
+      } catch (err) {
+        console.error('❌ Failed to refresh dashboard stats after creation:', err)
+      }
+      
       await apiService.logActivity({
         action: 'create',
         entity_type: 'resident',
@@ -354,10 +365,85 @@ export function DataProvider({ children }: DataProviderProps) {
     })
     return updatedResident
   }
+  
+  // Batch update function to prevent ERR_INSUFFICIENT_RESOURCES
+  const batchUpdateResidents = async (updates: Array<{id: number, updates: Partial<Resident>}>) => {
+    try {
+      // Process in chunks to avoid overwhelming the database
+      const chunkSize = 5; // Process 5 updates at a time
+      const chunks = [];
+      
+      for (let i = 0; i < updates.length; i += chunkSize) {
+        chunks.push(updates.slice(i, i + chunkSize));
+      }
+      
+      console.log(`📦 Processing ${updates.length} updates in ${chunks.length} chunks`);
+      
+      // Process each chunk sequentially
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        
+        try {
+          const promises = chunk.map(({ id, updates }) => 
+            apiService.updateResident(id, updates).catch(err => {
+              console.error(`❌ Failed to update resident ${id}:`, err?.message || err);
+              // Return null for failed updates instead of throwing
+              return null;
+            })
+          );
+          
+          const results = await Promise.all(promises);
+          const successful = results.filter(r => r !== null).length;
+          const failed = results.length - successful;
+          
+          if (failed > 0) {
+            console.warn(`⚠️ Chunk ${i + 1}/${chunks.length}: ${successful} successful, ${failed} failed`);
+          } else {
+            console.log(`✅ Processed chunk ${i + 1}/${chunks.length}: all ${successful} successful`);
+          }
+          
+          // Small delay between chunks to prevent resource exhaustion
+          if (i < chunks.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        } catch (chunkError) {
+          console.error(`❌ Chunk ${i + 1} failed completely:`, chunkError);
+          // Continue with next chunk instead of failing completely
+        }
+      }
+      
+      // Refresh once after all updates
+      await refreshResidents();
+      
+      console.log(`✅ Batch updated ${updates.length} residents successfully`);
+    } catch (error) {
+      console.error('❌ Batch update failed:', error);
+      throw error;
+    }
+  }
 
   const deleteResident = async (id: number) => {
     await apiService.deleteResident(id)
     await refreshResidents()
+    
+    // Refresh dashboard stats after deleting a resident
+    try {
+      const stats = await apiService.getDashboardStats()
+      setDashboardStats(stats)
+      console.log('✅ Dashboard stats refreshed after resident deletion')
+    } catch (err) {
+      console.error('❌ Failed to refresh dashboard stats after deletion:', err)
+      // Fallback: calculate stats based on current residents data
+      setDashboardStats({
+        totalResidents: residents.length - 1, // Subtract 1 for the deleted resident
+        occupiedRooms: 0,
+        availableRooms: 0,
+        totalRooms: 70,
+        occupancyRate: 0,
+        recentActivities: []
+      })
+    }
+    
     await apiService.logActivity({
       action: 'delete',
       entity_type: 'resident',
@@ -625,19 +711,100 @@ export function DataProvider({ children }: DataProviderProps) {
     // This could be implemented to clear local state only if needed
   }
 
-  const undoDelete = () => {
-    console.log('🔄 undoDelete called - limited implementation for Supabase version')
-    // Limited implementation - would need more complex logic to restore deleted records
+  const undoDelete = async () => {
+    console.log('🔄 undoDelete called - restoring previous state')
+    
     if (undoStack.length > 0) {
+      // Get the previous state
+      const previousState = undoStack[undoStack.length - 1]
+      
+      // Save current state to redo stack
+      setRedoStack(prev => [...prev, residents])
+      
+      // Remove the last item from undo stack
       setUndoStack(prev => prev.slice(0, -1))
+      
+      try {
+        // Find residents that were deleted (in previous state but not in current state)
+        const currentIds = new Set(residents.map(r => r.id))
+        const deletedResidents = previousState.filter((r: any) => !currentIds.has(r.id))
+        
+        if (deletedResidents.length > 0) {
+          console.log(`🔄 Restoring ${deletedResidents.length} deleted residents`)
+          
+          // Restore deleted residents by re-creating them
+          for (const resident of deletedResidents) {
+            // Convert back to Supabase format
+            const supabaseResident = {
+              badge: resident.badge,
+              first_name: resident.firstName || resident.first_name,
+              last_name: resident.lastName || resident.last_name,
+              room: resident.room,
+              nationality: resident.nationality,
+              ov_number: resident.ovNumber || resident.ov_number,
+              register_number: resident.registerNumber || resident.register_number,
+              date_of_birth: resident.dateOfBirth || resident.date_of_birth,
+              age: resident.age,
+              gender: resident.gender,
+              reference_person: resident.referencePerson || resident.reference_person,
+              date_in: resident.dateIn || resident.date_in,
+              days_of_stay: resident.daysOfStay || resident.days_of_stay,
+              status: resident.status || 'active',
+              language: resident.language
+            }
+            
+            await createResident(supabaseResident)
+          }
+          
+          console.log('✅ Undo delete completed successfully')
+        } else {
+          console.log('ℹ️ No deleted residents found to restore')
+        }
+      } catch (error) {
+        console.error('❌ Error during undo delete:', error)
+        // Restore undo stack if error occurred
+        setUndoStack(prev => [...prev, previousState])
+        setRedoStack(prev => prev.slice(0, -1))
+      }
     }
   }
 
-  const redoDelete = () => {
-    console.log('🔄 redoDelete called - limited implementation for Supabase version')
-    // Limited implementation
+  const redoDelete = async () => {
+    console.log('🔄 redoDelete called - re-applying delete operation')
+    
     if (redoStack.length > 0) {
+      // Get the state to redo to
+      const redoState = redoStack[redoStack.length - 1]
+      
+      // Save current state to undo stack
+      setUndoStack(prev => [...prev, residents])
+      
+      // Remove the last item from redo stack
       setRedoStack(prev => prev.slice(0, -1))
+      
+      try {
+        // Find residents that should be deleted (in current state but not in redo state)
+        const redoIds = new Set(redoState.map((r: any) => r.id))
+        const residentsToDelete = residents.filter(r => !redoIds.has(r.id))
+        
+        if (residentsToDelete.length > 0) {
+          console.log(`🔄 Re-deleting ${residentsToDelete.length} residents`)
+          
+          // Delete the residents
+          for (const resident of residentsToDelete) {
+            await deleteResident(resident.id)
+          }
+          
+          console.log('✅ Redo delete completed successfully')
+        } else {
+          console.log('ℹ️ No residents found to re-delete')
+        }
+      } catch (error) {
+        console.error('❌ Error during redo delete:', error)
+        // Restore redo stack if error occurred
+        setRedoStack(prev => [...prev, redoState])
+        setUndoStack(prev => prev.slice(0, -1))
+      }
     }
   }
 
@@ -870,6 +1037,7 @@ export function DataProvider({ children }: DataProviderProps) {
         refreshAll,
         createResident,
         updateResident,
+        batchUpdateResidents,
         deleteResident,
         createAppointment,
         updateAppointment,

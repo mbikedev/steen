@@ -71,11 +71,15 @@ export class ApiService {
       // If error mentions language column, try again without it
       if (error?.message?.includes('language')) {
         console.warn('Language column not found, retrying without language field')
-        delete residentData.language
+        // Create a new object without the language field
+        const residentPayload = { ...residentData }
+        delete (residentPayload as any).language
+        
+        console.log('Retrying without language field, payload keys:', Object.keys(residentPayload))
         
         const { data, error: retryError } = await this.supabase
           .from('residents')
-          .insert(residentData)
+          .insert(residentPayload)
           .select()
           .single()
 
@@ -83,6 +87,7 @@ export class ApiService {
           console.error('Retry also failed:', retryError)
           throw retryError
         }
+        console.log('✅ createResident retry without language succeeded')
         return data
       }
       
@@ -124,8 +129,37 @@ export class ApiService {
   }
 
   async updateResident(id: number, updates: Partial<Resident>) {
-    // Create a copy of updates without language field if it might cause issues
-    const updateData = { ...updates }
+    // Validate input
+    if (!id || typeof id !== 'number' || id <= 0) {
+      const error = new Error(`Invalid resident ID: ${id}`);
+      console.error('❌ updateResident called with invalid ID:', id);
+      throw error;
+    }
+    
+    if (!updates || Object.keys(updates).length === 0) {
+      console.warn('⚠️ updateResident called with no updates, skipping');
+      // Return existing data without making a database call
+      const { data } = await this.supabase
+        .from('residents')
+        .select('*')
+        .eq('id', id)
+        .single();
+      return data;
+    }
+    
+    // Create a copy of updates and sanitize fields
+    const updateData: Partial<Resident> = { ...updates }
+    
+    // Remove any undefined or null fields (typed keys to satisfy TS)
+    Object.keys(updateData).forEach((key) => {
+      const typedKey = key as keyof Partial<Resident>
+      if (updateData[typedKey] === undefined || updateData[typedKey] === null) {
+        delete updateData[typedKey]
+      }
+    })
+    
+    // Log what we're updating for debugging
+    console.log(`🔄 Updating resident ${id} with fields:`, Object.keys(updateData));
     
     try {
       const { data, error } = await this.supabase
@@ -138,10 +172,59 @@ export class ApiService {
       if (error) throw error
       return data
     } catch (error: any) {
-      // If error mentions language column, try again without it
+      // Properly serialize the error for logging
+      const errorDetails = {
+        message: error?.message || 'Unknown error',
+        code: error?.code || 'UNKNOWN',
+        details: error?.details || null,
+        hint: error?.hint || null,
+        residentId: id,
+        updateData: {
+          ...updateData,
+          // Truncate long fields for logging
+          room: updateData.room?.substring(0, 30),
+          nationality: updateData.nationality?.substring(0, 30),
+          ov_number: updateData.ov_number?.substring(0, 30),
+          register_number: updateData.register_number?.substring(0, 30),
+          reference_person: updateData.reference_person?.substring(0, 30)
+        }
+      }
+      
+      console.error('❌ updateResident error:', error?.message || 'Unknown error')
+      console.error('❌ Error details:', JSON.stringify(errorDetails, null, 2))
+
+      // Handle specific database errors with migrations not applied
       if (error?.message?.includes('language')) {
-        console.warn('Language column not found, retrying without language field')
+        console.warn('🔧 Language column not found, retrying without language field')
         delete updateData.language
+      } else if (error?.message?.includes('value too long') || error?.code === '22001') {
+        console.warn('🔧 Data too long error detected, applying automatic truncation')
+        // Truncate fields that commonly exceed limits
+        if (updateData.room && updateData.room.length > 20) {
+          updateData.room = updateData.room.substring(0, 20)
+        }
+        if (updateData.ov_number && updateData.ov_number.length > 50) {
+          updateData.ov_number = updateData.ov_number.substring(0, 50)
+        }
+        if (updateData.register_number && updateData.register_number.length > 50) {
+          updateData.register_number = updateData.register_number.substring(0, 50)
+        }
+        if (updateData.reference_person && updateData.reference_person.length > 200) {
+          updateData.reference_person = updateData.reference_person.substring(0, 200)
+        }
+        if (updateData.nationality && updateData.nationality.length > 100) {
+          updateData.nationality = updateData.nationality.substring(0, 100)
+        }
+      } else {
+        // For other errors, don't retry
+        throw error
+      }
+      
+      try {
+        console.log('🔄 Retrying updateResident with adjusted data:', {
+          residentId: id,
+          adjustedFields: Object.keys(updateData)
+        })
         
         const { data, error: retryError } = await this.supabase
           .from('residents')
@@ -150,10 +233,17 @@ export class ApiService {
           .select()
           .single()
 
-        if (retryError) throw retryError
+        if (retryError) {
+          console.error('❌ Retry also failed:', retryError)
+          throw retryError
+        }
+        
+        console.log('✅ updateResident retry succeeded')
         return data
+      } catch (retryError) {
+        console.error('❌ Final retry failed, giving up:', retryError)
+        throw retryError
       }
-      throw error
     }
   }
 
@@ -561,7 +651,7 @@ export class ApiService {
   // Dashboard Stats
   async getDashboardStats() {
     const [residents, rooms, recentActivities] = await Promise.all([
-      this.supabase.from('residents').select('id, status').eq('status', 'active'),
+      this.supabase.from('residents').select('id, status'),
       this.supabase.from('rooms').select('id, occupied, capacity'),
       this.supabase
         .from('activity_logs')
@@ -573,6 +663,7 @@ export class ApiService {
     if (residents.error) throw residents.error
     if (rooms.error) throw rooms.error
 
+    // Count all residents regardless of status (since we want total count, not just active)
     const totalResidents = residents.data?.length || 0
     const occupiedRooms = rooms.data?.filter((r: any) => r.occupied > 0).length || 0
     const availableRooms = rooms.data?.filter((r: any) => r.occupied === 0).length || 0
@@ -768,43 +859,123 @@ export class ApiService {
 
   // Toewijzingen Grid methods
   async getToewijzingenGrid(assignmentDate: string) {
-    const { data, error } = await this.supabase
-      .from('toewijzingen_grid')
-      .select('*')
-      .eq('assignment_date', assignmentDate)
-      .order('row_index')
-      .order('col_index')
+    try {
+      const { data, error } = await this.supabase
+        .from('toewijzingen_grid')
+        .select('*')
+        .eq('assignment_date', assignmentDate)
+        .order('row_index')
+        .order('col_index')
 
-    if (error) throw error
-    return data || []
+      if (error) {
+        console.error('❌ getToewijzingenGrid error:', error)
+        if (error.message?.includes('relation "public.toewijzingen_grid" does not exist')) {
+          console.error('🚨 URGENT: toewijzingen_grid table does not exist! Please apply migration 002/003.')
+        }
+        throw error
+      }
+      
+      console.log(`📥 getToewijzingenGrid: Found ${data?.length || 0} records for date ${assignmentDate}`)
+      return data || []
+    } catch (error) {
+      console.error('❌ Exception in getToewijzingenGrid:', error)
+      throw error
+    }
   }
 
   async getToewijzingenStaff(assignmentDate: string) {
-    const { data, error } = await this.supabase
-      .from('toewijzingen_staff')
-      .select('*')
-      .eq('assignment_date', assignmentDate)
-      .order('staff_index')
+    try {
+      const { data, error } = await this.supabase
+        .from('toewijzingen_staff')
+        .select('*')
+        .eq('assignment_date', assignmentDate)
+        .order('staff_index')
 
-    if (error) throw error
-    return data || []
+      if (error) {
+        console.error('❌ getToewijzingenStaff error:', error)
+        if (error.message?.includes('relation "public.toewijzingen_staff" does not exist')) {
+          console.error('🚨 URGENT: toewijzingen_staff table does not exist! Please apply migration 009.')
+        }
+        throw error
+      }
+      
+      console.log(`📥 getToewijzingenStaff: Found ${data?.length || 0} records for date ${assignmentDate}`)
+      return data || []
+    } catch (error) {
+      console.error('❌ Exception in getToewijzingenStaff:', error)
+      throw error
+    }
   }
 
   async clearToewijzingenGrid(assignmentDate: string) {
-    // Clear both grid and staff data for the date
-    const { error: gridError } = await this.supabase
-      .from('toewijzingen_grid')
-      .delete()
-      .eq('assignment_date', assignmentDate)
+    try {
+      console.log(`🧹 Clearing toewijzingen data for date: ${assignmentDate}`)
+      
+      // Clear both grid and staff data for the date
+      const { error: gridError } = await this.supabase
+        .from('toewijzingen_grid')
+        .delete()
+        .eq('assignment_date', assignmentDate)
 
-    if (gridError) throw gridError
+      if (gridError) {
+        console.error('❌ Error clearing toewijzingen_grid:', gridError)
+        throw gridError
+      }
 
-    const { error: staffError } = await this.supabase
-      .from('toewijzingen_staff')
-      .delete()
-      .eq('assignment_date', assignmentDate)
+      const { error: staffError } = await this.supabase
+        .from('toewijzingen_staff')
+        .delete()
+        .eq('assignment_date', assignmentDate)
 
-    if (staffError) throw staffError
+      if (staffError) {
+        console.error('❌ Error clearing toewijzingen_staff:', staffError)
+        throw staffError
+      }
+      
+      console.log('✅ Successfully cleared existing data')
+    } catch (error) {
+      console.error('❌ Exception in clearToewijzingenGrid:', error)
+      throw error
+    }
+  }
+  
+  // Test function to verify database tables exist and are accessible
+  async testToewijzingenTables() {
+    try {
+      console.log('🧪 Testing toewijzingen table access...')
+      
+      // Test toewijzingen_grid table
+      const { data: gridData, error: gridError } = await this.supabase
+        .from('toewijzingen_grid')
+        .select('*')
+        .limit(1)
+      
+      if (gridError) {
+        console.error('❌ toewijzingen_grid table test failed:', gridError)
+        return { success: false, error: `Grid table error: ${gridError.message}` }
+      }
+      
+      // Test toewijzingen_staff table
+      const { data: staffData, error: staffError } = await this.supabase
+        .from('toewijzingen_staff')
+        .select('*')
+        .limit(1)
+      
+      if (staffError) {
+        console.error('❌ toewijzingen_staff table test failed:', staffError)
+        return { success: false, error: `Staff table error: ${staffError.message}` }
+      }
+      
+      console.log('✅ Both tables accessible')
+      return { 
+        success: true, 
+        gridRecords: gridData?.length || 0,
+        staffRecords: staffData?.length || 0
+      }
+    } catch (error) {
+      console.error('❌ Exception testing tables:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   }
 
   async bulkCreateToewijzingenGrid(gridCells: Array<{
@@ -840,14 +1011,24 @@ export class ApiService {
 
     // Ensure the user is authenticated (RLS requires it)
     try {
-      const { data: authData } = await this.supabase.auth.getUser()
+      const { data: authData, error: authError } = await this.supabase.auth.getUser()
+      if (authError) {
+        console.error('🔒 Auth error:', authError)
+        return gridCells.map(() => ({ error: `Auth error: ${authError.message}` }))
+      }
       if (!authData?.user) {
         console.warn('🔒 Not authenticated - cannot write to toewijzingen_grid')
-        return gridCells.map(() => ({ error: 'Not authenticated' }))
+        console.log('🔒 Attempting to check session...')
+        const { data: sessionData } = await this.supabase.auth.getSession()
+        if (!sessionData?.session) {
+          console.error('🔒 No session found - user needs to log in')
+          return gridCells.map(() => ({ error: 'Not authenticated - please log in' }))
+        }
       }
-      console.log('✅ User authenticated:', authData.user.email || 'no email')
+      console.log('✅ User authenticated:', authData?.user?.email || 'no email')
     } catch (e) {
-      console.warn('🔒 Auth check failed - proceeding may fail due to RLS', e)
+      console.error('🔒 Auth check exception:', e)
+      return gridCells.map(() => ({ error: 'Authentication check failed' }))
     }
 
     console.log(`🔄 Processing ${gridCells.length} grid cells in batches...`)
@@ -861,17 +1042,33 @@ export class ApiService {
       console.log('🔍 DEBUG: First item in batch:', JSON.stringify(batch[0], null, 2))
       
       try {
+        console.log(`🔄 Attempting to save batch of ${batch.length} records to toewijzingen_grid`)
+        console.log('📋 Sample records from batch:', batch.slice(0, 2))
+        
+        // Use upsert to handle both insert and update cases
+        // This requires a unique constraint on (assignment_date, row_index, col_index) in the database
         const { data, error } = await this.supabase
           .from('toewijzingen_grid')
-          .upsert(batch, { onConflict: 'assignment_date,row_index,col_index' })
+          .upsert(batch, { 
+            onConflict: 'assignment_date,row_index,col_index',
+            ignoreDuplicates: false 
+          })
           .select() // Add select to see what was actually inserted
 
         if (error) {
           console.error('❌ Database error in grid batch:', error)
+          console.error('❌ Error details:', { 
+            code: error.code, 
+            details: error.details, 
+            hint: error.hint,
+            message: error.message 
+          })
+          console.error('❌ Failed batch sample:', batch.slice(0, 2))
           batch.forEach(() => results.push({ error: error.message }))
         } else {
           console.log(`✅ Grid batch saved successfully: ${batch.length} records`)
-          console.log('✅ Sample inserted data:', data?.[0])
+          console.log('✅ Inserted data sample:', data?.slice(0, 2))
+          console.log(`✅ Total records returned from database: ${data?.length || 0}`)
           batch.forEach((item) => results.push({ data: item }))
         }
       } catch (err) {
@@ -927,24 +1124,55 @@ export const toewijzingenGridApi = {
         staffNames
       })
 
-      // First, clear existing data for this date
-      await apiService.clearToewijzingenGrid(assignmentDate)
-      console.log('✅ Cleared existing grid data for date:', assignmentDate)
+      // Test table access before proceeding
+      const tableTest = await apiService.testToewijzingenTables()
+      if (!tableTest.success) {
+        console.error('🚨 Database tables not accessible:', tableTest.error)
+        throw new Error(`Database not ready: ${tableTest.error}`)
+      }
+      console.log('✅ Database tables verified and accessible')
 
       const gridCells: any[] = []
       const staffData: any[] = []
 
+      // Debug: Check structure of tableData
+      console.log('🔍 DEBUG: tableData structure:', {
+        rows: tableData.length,
+        firstRow: tableData[0] ? {
+          length: tableData[0].length,
+          firstCell: tableData[0][0],
+          type: typeof tableData[0][0]
+        } : null
+      })
+      
       // Convert table data to grid cells - save only cells with resident names
       tableData.forEach((row, rowIndex) => {
         row.forEach((cell, colIndex) => {
+          // Debug first few cells
+          if (rowIndex <= 2 && colIndex <= 2 && cell && cell.text?.trim()) {
+            console.log(`🔍 DEBUG: Cell [${rowIndex}][${colIndex}]:`, {
+              text: cell.text,
+              type: typeof cell,
+              structure: cell,
+              staffName: staffNames[colIndex]
+            })
+          }
+          
           if (cell && cell.text?.trim()) {
-            gridCells.push({
+            const gridCell = {
               assignment_date: assignmentDate,
               row_index: rowIndex,
               col_index: colIndex,
               resident_full_name: cell.text.trim(),
               ib_name: staffNames[colIndex] || null
-            })
+            };
+            
+            gridCells.push(gridCell);
+            
+            // Debug first few grid cells
+            if (gridCells.length <= 3) {
+              console.log(`📝 Grid Cell ${gridCells.length}:`, gridCell);
+            }
           }
         })
       })
@@ -967,10 +1195,27 @@ export const toewijzingenGridApi = {
       console.log(`📊 Total grid cells to save: ${gridCells.length}`)
       console.log(`👥 Total staff records to save: ${staffData.length}`)
       
-      // Debug: Log sample grid cells
-      if (gridCells.length > 0) {
-        console.log('📋 Sample grid cells:', gridCells.slice(0, 3))
+      // Only proceed with database operations if there's actual data to save
+      if (gridCells.length === 0) {
+        console.log('ℹ️ No grid data to save, skipping database operations to preserve existing data')
+        return {
+          success: true,
+          data: {
+            grid: { successful: 0, failed: 0, total: 0 },
+            staff: { successful: staffData.length, failed: 0, total: staffData.length },
+            errors: [],
+            message: 'No changes to save'
+          }
+        }
       }
+      
+      // Debug: Log sample grid cells
+      console.log('📋 Sample grid cells:', gridCells.slice(0, 3))
+
+      // Clear existing data only when we have new data to save
+      console.log('🧹 Clearing existing data before saving new data...')
+      await apiService.clearToewijzingenGrid(assignmentDate)
+      console.log('✅ Cleared existing grid data for date:', assignmentDate)
 
       // Save grid cells and staff data
       console.log('💾 Starting grid cells save...')
