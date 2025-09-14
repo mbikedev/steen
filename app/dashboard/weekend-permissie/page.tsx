@@ -828,7 +828,7 @@ export default function WeekendPermissiePage() {
                   <tr 
                     key={permission.residentId}
                     id={`resident-row-${permission.residentId}`}
-                    className={`${rowBgColor} hover:bg-blue-50 dark:hover:bg-gray-600 border-b border-gray-200 dark:border-gray-600 ${
+                    className={`${rowBgColor} hover:bg-orange-500 dark:hover:bg-purple-900/20 border-b border-gray-200 dark:border-gray-600 ${
                       isMinor ? 'relative' : ''
                     } ${
                       highlightedResident === permission.residentId ? 'ring-4 ring-yellow-400 bg-yellow-100 dark:bg-yellow-900/30' : ''

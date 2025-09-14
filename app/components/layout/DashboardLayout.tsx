@@ -22,7 +22,8 @@ import {
   UserCheck,
   Grid3X3,
   FileText,
-  ChevronDown
+  ChevronDown,
+  ArrowLeft
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useData } from "../../../lib/DataContext";
@@ -39,6 +40,7 @@ interface DashboardLayoutProps {
   children: ReactNode;
   className?: string;
   onResidentSearch?: (resident: any) => void;
+  notificationCount?: number;
 }
 
 const navigation = [
@@ -59,7 +61,7 @@ const kamersItems = [
   { name: 'Zuid', href: '/dashboard/zuid', icon: MapPin },
 ];
 
-export default function DashboardLayout({ children, className, onResidentSearch }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, className, onResidentSearch, notificationCount = 0 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -218,6 +220,7 @@ export default function DashboardLayout({ children, className, onResidentSearch 
       `}</style>
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-slate-900 transition-colors duration-300 print-bg-override ${className || ''}`}>
       {/* Mobile sidebar */}
+      {pathname !== '/dashboard/weekend-permissie' && (
       <div className={`sidebar-mobile fixed inset-0 z-50 lg:hidden ${sidebarOpen ? '' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
         <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white dark:bg-gray-800 shadow-2xl backdrop-blur-lg">
@@ -379,8 +382,10 @@ export default function DashboardLayout({ children, className, onResidentSearch 
           </nav>
         </div>
       </div>
+      )}
 
       {/* Desktop sidebar */}
+      {pathname !== '/dashboard/weekend-permissie' && (
       <div className="sidebar-desktop hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
         <div className="flex flex-grow flex-col overflow-y-auto bg-white/80 dark:bg-gray-800/90 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-600/50 shadow-xl">
           <div className="flex h-16 items-center px-4 border-b border-gray-200/50 dark:border-gray-600/50">
@@ -534,11 +539,13 @@ export default function DashboardLayout({ children, className, onResidentSearch 
           </nav>
         </div>
       </div>
+      )}
 
       {/* Main content */}
-      <div className="main-content lg:pl-64">
+      <div className={`main-content ${pathname !== '/dashboard/weekend-permissie' ? 'lg:pl-64' : ''}`}>
         {/* Top bar */}
         <div className="top-navigation sticky top-0 z-40 flex h-16 bg-white/80 dark:bg-gray-800/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-600/50 shadow-sm">
+          {pathname !== '/dashboard/weekend-permissie' && (
           <button
             type="button"
             className="px-4 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 lg:hidden transition-colors"
@@ -546,6 +553,16 @@ export default function DashboardLayout({ children, className, onResidentSearch 
           >
             <Menu className="h-6 w-6" />
           </button>
+          )}
+          {pathname === '/dashboard/weekend-permissie' && (
+          <button
+            type="button"
+            className="px-4 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 transition-colors"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </button>
+          )}
           <div className="flex flex-1 items-center justify-between px-4">
             <div className="flex flex-1 items-center">
               {pathname !== '/dashboard/residents-grid' && pathname !== '/dashboard/weekend-permissie' && (
@@ -615,7 +632,11 @@ export default function DashboardLayout({ children, className, onResidentSearch 
               )}
               <button className="relative p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200">
                 <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-gradient-to-r from-red-400 to-pink-500 ring-2 ring-white dark:ring-gray-800 animate-pulse" />
+                {notificationCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center h-5 w-5 text-xs font-bold text-white bg-gradient-to-r from-red-400 to-pink-500 rounded-full ring-2 ring-white dark:ring-gray-800">
+                    {notificationCount > 9 ? '9+' : notificationCount}
+                  </span>
+                )}
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
