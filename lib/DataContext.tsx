@@ -267,7 +267,7 @@ export function DataProvider({ children }: DataProviderProps) {
       
       // Only load essential data for bed management with controlled requests
       await executeWithResourceControl(refreshResidents, 3, 'refresh residents')
-      await new Promise(resolve => setTimeout(resolve, 200)) // Increased delay
+      await new Promise(resolve => setTimeout(resolve, 500)) // Much longer delay to prevent overload
       await executeWithResourceControl(refreshRooms, 2, 'refresh rooms')
       
       // Calculate dashboard stats with low priority

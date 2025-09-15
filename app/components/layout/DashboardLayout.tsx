@@ -277,20 +277,20 @@ export default function DashboardLayout({ children, className, onResidentSearch,
           }
         }
       `}</style>
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-slate-900 transition-colors duration-300 print-bg-override ${className || ''}`}>
+    <div className={`min-h-screen bg-background transition-colors duration-300 print-bg-override ${className || ''}`}>
       {/* Mobile sidebar */}
       {pathname !== '/dashboard/weekend-permissie' && (
       <div className={`sidebar-mobile fixed inset-0 z-50 lg:hidden ${sidebarOpen ? '' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white dark:bg-gray-800 shadow-2xl backdrop-blur-lg">
-          <div className="flex h-16 items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-card shadow-2xl backdrop-blur-lg border-r border-border">
+          <div className="flex h-16 items-center justify-between px-4 border-b border-border">
             <div className="flex items-center">
-              <Sparkles className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-2" />
-              <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent font-title">OOC Steenokkerzeel</h2>
+              <Sparkles className="h-6 w-6 text-primary mr-2" />
+              <h2 className="text-lg font-bold text-foreground font-title">OOC Steenokkerzeel</h2>
             </div>
             <button
               type="button"
-              className="text-gray-500 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-accent transition-colors"
               onClick={() => setSidebarOpen(false)}
             >
               <X className="h-5 w-5" />
@@ -305,8 +305,8 @@ export default function DashboardLayout({ children, className, onResidentSearch,
                   href={item.href}
                   className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                     pathname === item.href
-                      ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   <Icon className="mr-3 h-5 w-5" />
@@ -322,8 +322,8 @@ export default function DashboardLayout({ children, className, onResidentSearch,
                   href="/dashboard/data-match-it"
                   className={`group flex items-center flex-1 px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                     pathname === '/dashboard/data-match-it' || pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst'
-                      ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   <Users className="mr-3 h-5 w-5" />
@@ -333,8 +333,8 @@ export default function DashboardLayout({ children, className, onResidentSearch,
                   onClick={() => setDataMatchItOpen(!dataMatchItOpen)}
                   className={`p-2 text-sm rounded-md transition-colors ${
                     pathname === '/dashboard/data-match-it' || pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst'
-                      ? 'text-blue-900 dark:text-blue-100'
-                      : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
+                      ? 'text-accent-foreground'
+                      : 'text-muted-foreground hover:text-accent-foreground'
                   }`}
                 >
                   <ChevronDown className={`h-4 w-4 transition-transform ${dataMatchItOpen ? 'rotate-180' : ''}`} />
@@ -350,8 +350,8 @@ export default function DashboardLayout({ children, className, onResidentSearch,
                         href={item.href}
                         className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                           pathname === item.href
-                            ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                            ? 'bg-accent text-accent-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                         }`}
                       >
                         <Icon className="mr-3 h-4 w-4" />
@@ -369,8 +369,8 @@ export default function DashboardLayout({ children, className, onResidentSearch,
                 onClick={() => setKamersOpen(!kamersOpen)}
                 className={`group flex items-center w-full px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                   pathname === '/dashboard/noord' || pathname === '/dashboard/zuid'
-                    ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 }`}
               >
                 <MapPin className="mr-3 h-5 w-5" />
@@ -387,8 +387,8 @@ export default function DashboardLayout({ children, className, onResidentSearch,
                         href={item.href}
                         className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                           pathname === item.href
-                            ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                            ? 'bg-accent text-accent-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                         }`}
                       >
                         <Icon className="mr-3 h-4 w-4" />
@@ -405,8 +405,8 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               href="/dashboard/toewijzingen"
               className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                 pathname === '/dashboard/toewijzingen'
-                  ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               }`}
             >
               <UserCheck className="mr-3 h-5 w-5" />
@@ -418,8 +418,8 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               href="/dashboard/weekend-permissie"
               className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                 pathname === '/dashboard/weekend-permissie'
-                  ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               }`}
             >
               <Calendar className="mr-3 h-5 w-5" />
@@ -431,8 +431,8 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               href="/dashboard/appointments"
               className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                 pathname === '/dashboard/appointments'
-                  ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               }`}
             >
               <Calendar className="mr-3 h-5 w-5" />
@@ -446,11 +446,11 @@ export default function DashboardLayout({ children, className, onResidentSearch,
       {/* Desktop sidebar */}
       {pathname !== '/dashboard/weekend-permissie' && (
       <div className="sidebar-desktop hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-grow flex-col overflow-y-auto bg-white/80 dark:bg-gray-800/90 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-600/50 shadow-xl">
-          <div className="flex h-16 items-center px-4 border-b border-gray-200/50 dark:border-gray-600/50">
+        <div className="flex flex-grow flex-col overflow-y-auto bg-card/80 backdrop-blur-xl border-r border-border shadow-xl">
+          <div className="flex h-16 items-center px-4 border-b border-border">
             <div className="flex items-center">
-              <Sparkles className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-2" />
-              <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent font-title">OOC Steenokkerzeel</h2>
+              <Sparkles className="h-6 w-6 text-primary mr-2" />
+              <h2 className="text-lg font-bold text-foreground font-title">OOC Steenokkerzeel</h2>
             </div>
           </div>
           <nav className="flex-1 space-y-2 px-3 py-6">
@@ -462,11 +462,11 @@ export default function DashboardLayout({ children, className, onResidentSearch,
                   href={item.href}
                   className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                     pathname === item.href
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
+                      ? 'bg-primary text-primary-foreground shadow-lg'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:scale-105'
                   }`}
                 >
-                  <Icon className={`mr-3 h-5 w-5 transition-colors ${pathname === item.href ? 'text-white' : 'text-current'}`} />
+                  <Icon className={`mr-3 h-5 w-5 transition-colors`} />
                   {item.name}
                 </Link>
               );
@@ -479,19 +479,19 @@ export default function DashboardLayout({ children, className, onResidentSearch,
                   href="/dashboard/data-match-it"
                   className={`group flex items-center flex-1 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                     pathname === '/dashboard/data-match-it' || pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst'
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
+                      ? 'bg-primary text-primary-foreground shadow-lg'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:scale-105'
                   }`}
                 >
-                  <Users className={`mr-3 h-5 w-5 transition-colors ${pathname === '/dashboard/data-match-it' || pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst' ? 'text-white' : 'text-current'}`} />
+                  <Users className={`mr-3 h-5 w-5 transition-colors`} />
                   DATA-MATCH-IT
                 </Link>
                 <button
                   onClick={() => setDataMatchItOpen(!dataMatchItOpen)}
                   className={`p-2.5 text-sm rounded-xl transition-all duration-200 ${
                     pathname === '/dashboard/data-match-it' || pathname === '/dashboard/bewonerslijst' || pathname === '/dashboard/keukenlijst'
-                      ? 'text-white'
-                      : 'text-gray-600 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white'
+                      ? 'text-primary-foreground'
+                      : 'text-muted-foreground hover:text-accent-foreground'
                   }`}
                 >
                   <ChevronDown className={`h-4 w-4 transition-transform ${dataMatchItOpen ? 'rotate-180' : ''}`} />
@@ -507,8 +507,8 @@ export default function DashboardLayout({ children, className, onResidentSearch,
                         href={item.href}
                         className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                           pathname === item.href
-                            ? 'bg-blue-200 text-blue-900 dark:bg-blue-800 dark:text-blue-100'
-                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                            ? 'bg-secondary text-secondary-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                         }`}
                       >
                         <Icon className="mr-3 h-4 w-4" />
@@ -526,13 +526,13 @@ export default function DashboardLayout({ children, className, onResidentSearch,
                 onClick={() => setKamersOpen(!kamersOpen)}
                 className={`group flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                   pathname === '/dashboard/noord' || pathname === '/dashboard/zuid'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
+                    ? 'bg-primary text-primary-foreground shadow-lg'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:scale-105'
                 }`}
               >
-                <MapPin className={`mr-3 h-5 w-5 transition-colors ${pathname === '/dashboard/noord' || pathname === '/dashboard/zuid' ? 'text-white' : 'text-current'}`} />
+                <MapPin className={`mr-3 h-5 w-5 transition-colors`} />
                 KAMERS
-                <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${kamersOpen ? 'rotate-180' : ''} ${pathname === '/dashboard/noord' || pathname === '/dashboard/zuid' ? 'text-white' : 'text-current'}`} />
+                <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${kamersOpen ? 'rotate-180' : ''}`} />
               </button>
               {kamersOpen && (
                 <div className="ml-6 space-y-1">
@@ -544,8 +544,8 @@ export default function DashboardLayout({ children, className, onResidentSearch,
                         href={item.href}
                         className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                           pathname === item.href
-                            ? 'bg-blue-200 text-blue-900 dark:bg-blue-800 dark:text-blue-100'
-                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                            ? 'bg-secondary text-secondary-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                         }`}
                       >
                         <Icon className="mr-3 h-4 w-4" />
@@ -562,11 +562,11 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               href="/dashboard/toewijzingen"
               className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                 pathname === '/dashboard/toewijzingen'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
+                  ? 'bg-primary text-primary-foreground shadow-lg'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:scale-105'
               }`}
             >
-              <UserCheck className={`mr-3 h-5 w-5 transition-colors ${pathname === '/dashboard/toewijzingen' ? 'text-white' : 'text-current'}`} />
+              <UserCheck className={`mr-3 h-5 w-5 transition-colors`} />
               Toewijzingen
             </Link>
             
@@ -575,11 +575,11 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               href="/dashboard/weekend-permissie"
               className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                 pathname === '/dashboard/weekend-permissie'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
+                  ? 'bg-primary text-primary-foreground shadow-lg'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:scale-105'
               }`}
             >
-              <Calendar className={`mr-3 h-5 w-5 transition-colors ${pathname === '/dashboard/weekend-permissie' ? 'text-white' : 'text-current'}`} />
+              <Calendar className={`mr-3 h-5 w-5 transition-colors`} />
               Weekend Permissie
             </Link>
             
@@ -588,11 +588,11 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               href="/dashboard/appointments"
               className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                 pathname === '/dashboard/appointments'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-600/30'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white hover:scale-105'
+                  ? 'bg-primary text-primary-foreground shadow-lg'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:scale-105'
               }`}
             >
-              <Calendar className={`mr-3 h-5 w-5 transition-colors ${pathname === '/dashboard/appointments' ? 'text-white' : 'text-current'}`} />
+              <Calendar className={`mr-3 h-5 w-5 transition-colors`} />
               Afspraken
             </Link>
           </nav>
@@ -603,11 +603,11 @@ export default function DashboardLayout({ children, className, onResidentSearch,
       {/* Main content */}
       <div className={`main-content ${pathname !== '/dashboard/weekend-permissie' ? 'lg:pl-64' : ''}`}>
         {/* Top bar */}
-        <div className="top-navigation sticky top-0 z-40 flex h-16 bg-white/80 dark:bg-gray-800/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-600/50 shadow-sm">
+        <div className="top-navigation sticky top-0 z-40 flex h-16 bg-card/80 backdrop-blur-xl border-b border-border shadow-sm">
           {pathname !== '/dashboard/weekend-permissie' && (
           <button
             type="button"
-            className="px-4 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 lg:hidden transition-colors"
+            className="px-4 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary lg:hidden transition-colors"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="h-6 w-6" />
@@ -616,7 +616,7 @@ export default function DashboardLayout({ children, className, onResidentSearch,
           {pathname === '/dashboard/weekend-permissie' && (
           <button
             type="button"
-            className="px-4 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 transition-colors"
+            className="px-4 text-primary hover:text-primary/80 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary transition-colors"
             onClick={() => router.back()}
           >
             <ArrowLeft className="h-6 w-6" />
@@ -627,47 +627,47 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               {pathname !== '/dashboard/residents-grid' && pathname !== '/dashboard/weekend-permissie' && (
                 <div className="relative w-full max-w-md" ref={searchRef}>
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 z-10">
-                  <Search className="h-5 w-5 text-gray-400 dark:text-gray-400" />
+                  <Search className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <input
                   type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleSearch}
-                  className="block w-full rounded-xl border border-gray-300/50 dark:border-gray-600/50 bg-white/50 dark:bg-gray-700/70 py-2.5 pl-10 pr-3 text-sm placeholder-gray-500 dark:placeholder-gray-300 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-black dark:text-gray-100 backdrop-blur-sm transition-all"
+                  className="block w-full rounded-xl border border-input bg-background py-2.5 pl-10 pr-3 text-sm placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring text-foreground backdrop-blur-sm transition-all"
                   placeholder="Zoek bewoners (min. 2 letters)... ESC = terug"
                 />
                 
                 {/* Search Results Dropdown */}
                 {showSearchResults && (
-                  <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50 max-h-96 overflow-y-auto">
+                  <div className="absolute top-full mt-2 w-full bg-popover rounded-xl shadow-2xl border border-border overflow-hidden z-50 max-h-96 overflow-y-auto">
                     <div className="p-2">
-                      <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-1 font-semibold">
+                      <div className="text-xs text-muted-foreground px-3 py-1 font-semibold">
                         {searchResults.length} resultaten gevonden
                       </div>
                       {searchResults.map((resident, index) => (
                         <button
                           key={`search-${resident.badge}-${index}`}
                           onClick={() => handleResultClick(resident)}
-                          className="w-full text-left px-3 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors group"
+                          className="w-full text-left px-3 py-2 rounded-lg hover:bg-accent transition-colors group"
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <div className="font-medium text-gray-900 dark:text-gray-100">
+                              <div className="font-medium text-popover-foreground">
                                 {resident.firstName} {resident.lastName}
                               </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                              <div className="text-xs text-muted-foreground">
                                 Badge: {resident.badge} • Kamer: {resident.room || 'N/A'}
                               </div>
                             </div>
-                            <div className="text-xs text-gray-400 dark:text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                            <div className="text-xs text-muted-foreground group-hover:text-primary">
                               →
                             </div>
                           </div>
                         </button>
                       ))}
                     </div>
-                    <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700">
+                    <div className="px-3 py-2 bg-muted text-xs text-muted-foreground border-t border-border">
                       <span className="font-semibold">Tip:</span> Druk Enter om alle resultaten te zien • ESC om te sluiten
                     </div>
                   </div>
@@ -679,41 +679,41 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               {mounted && (
                 <button 
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="relative p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105"
+                  className="relative p-2 text-muted-foreground hover:text-foreground rounded-xl hover:bg-accent transition-all duration-200 hover:scale-105"
                 >
                   {theme === 'dark' ? (
-                    <Moon className="h-5 w-5 text-blue-500" />
+                    <Moon className="h-5 w-5 text-primary" />
                   ) : (
-                    <Sun className="h-5 w-5 text-yellow-500" />
+                    <Sun className="h-5 w-5 text-primary" />
                   )}
                   <span className="sr-only">Toggle theme</span>
                 </button>
               )}
-              <button className="relative p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200">
+              <button className="relative p-2 text-muted-foreground hover:text-foreground rounded-xl hover:bg-accent transition-all duration-200">
                 <Bell className="h-5 w-5" />
                 {notificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex items-center justify-center h-5 w-5 text-xs font-bold text-white bg-gradient-to-r from-red-400 to-pink-500 rounded-full ring-2 ring-white dark:ring-gray-800">
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center h-5 w-5 text-xs font-bold text-primary-foreground bg-primary rounded-full ring-2 ring-background">
                     {notificationCount > 9 ? '9+' : notificationCount}
                   </span>
                 )}
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center text-sm text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200">
+                  <button className="flex items-center text-sm text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-accent transition-all duration-200">
                     <UserCircle className="h-7 w-7" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-3 py-2">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <p className="text-sm font-medium text-foreground">
                       {user?.email?.split('@')[0] || 'User'}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-muted-foreground">
                       {user?.email || 'user@example.com'}
                     </p>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => logout()} className="cursor-pointer text-red-600 dark:text-red-400">
+                  <DropdownMenuItem onClick={() => logout()} className="cursor-pointer text-destructive">
                     Uitloggen
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -723,7 +723,7 @@ export default function DashboardLayout({ children, className, onResidentSearch,
         </div>
 
         {/* Page content */}
-        <main className="flex-1 min-h-screen bg-gradient-to-br from-slate-50/50 to-blue-50/30 dark:from-gray-900/30 dark:to-slate-900/50">
+        <main className="flex-1 min-h-screen bg-background">
           <div className="p-1">
             {children}
           </div>

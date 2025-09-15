@@ -277,11 +277,11 @@ export default function ResidentsGridPage() {
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case 'meerderjarig':
-        return { color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200', label: '18+' };
+        return { color: 'bg-accent text-accent-foreground', label: '18+' };
       case 'leeftijdstwijfel':
-        return { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200', label: '?' };
+        return { color: 'bg-accent text-accent-foreground', label: '?' };
       case 'transfer':
-        return { color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200', label: 'T' };
+        return { color: 'bg-accent text-accent-foreground', label: 'T' };
       default:
         return null;
     }
@@ -303,17 +303,17 @@ export default function ResidentsGridPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-slate-900 min-h-screen print:p-4 print:bg-white">
+      <div className="p-6 bg-background min-h-screen print:p-4 print:bg-white">
         {/* Print Header - Only visible when printing */}
         <div className="hidden print:block mb-8">
           <div className="text-center border-b-2 border-gray-800 pb-4 mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-3xl font-bold text-foreground mb-2">
               OOC STEENOKKERZEEL
             </h1>
-            <h2 className="text-xl text-gray-700 mb-2">
+            <h2 className="text-xl text-muted-foreground mb-2">
               Bezetting ({filteredResidents.length})
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               {formatDate(new Date())}
             </p>
           </div>
@@ -321,17 +321,17 @@ export default function ResidentsGridPage() {
 
         {/* Screen Header - Hidden when printing */}
         <div className="mb-6 print:hidden">
-          <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 border dark:border-gray-700">
+          <div className="bg-card shadow-sm rounded-lg p-4 border border-border">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Grid3X3 className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                  <Grid3X3 className="h-7 w-7 text-primary" />
                   Bewoners Fotolijst
                 </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Visueel overzicht van alle {residents.length} bewoners
                 </p>
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-2">
+                <p className="text-sm font-semibold text-foreground mt-2">
                   {formatDate(new Date())}
                 </p>
               </div>
@@ -339,10 +339,10 @@ export default function ResidentsGridPage() {
               {/* Stats */}
               <div className="flex items-center gap-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                  <div className="text-3xl font-bold text-primary">
                     {filteredResidents.length}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Actief</div>
+                  <div className="text-xs text-muted-foreground">Actief</div>
                 </div>
               </div>
             </div>
@@ -352,19 +352,19 @@ export default function ResidentsGridPage() {
         {/* Search Bar and Upload Controls - Hidden when printing */}
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between print:hidden">
           <div className="relative max-w-md flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <input
               type="text"
               placeholder="Zoek op badge, naam of kamer..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-primary bg-background text-foreground"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           
           {/* Upload Instructions */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-200">
+          <div className="bg-accent border border-border rounded-lg p-3">
+            <div className="flex items-center gap-2 text-sm text-accent-foreground">
               <Camera className="h-4 w-4" />
               <span>Klik op een bewoner kaart om een foto te uploaden</span>
             </div>
@@ -404,7 +404,7 @@ export default function ResidentsGridPage() {
                     console.log(`⏹️ Photo exists, not triggering upload`);
                   }
                 }}
-                className={`group relative bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 overflow-hidden transform hover:scale-105 ${!resident.photoUrl ? 'cursor-pointer' : 'cursor-default'} ${shouldPageBreak ? 'print:break-after-page' : ''}`}
+                className={`group relative bg-card rounded-lg shadow-sm hover:shadow-lg transition-all duration-200 border border-border hover:border-primary overflow-hidden transform hover:scale-105 ${!resident.photoUrl ? 'cursor-pointer' : 'cursor-default'} ${shouldPageBreak ? 'print:break-after-page' : ''}`}
               >
                 {/* Status Badge */}
                 {statusBadge && (
@@ -421,7 +421,7 @@ export default function ResidentsGridPage() {
                 )}
 
                 {/* Photo/Avatar */}
-                <div className="aspect-square bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 flex items-center justify-center relative">
+                <div className="aspect-square bg-gradient-to-br from-muted to-accent flex items-center justify-center relative">
                   {resident.photoUrl ? (
                     <div className="w-full h-full relative group/image">
                       <img 
@@ -440,32 +440,32 @@ export default function ResidentsGridPage() {
                         <div className="transform scale-0 group-hover/image:scale-100 transition-transform duration-200 flex gap-2">
                           {/* Zoom button */}
                           <div 
-                            className="bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg hover:scale-110 transition-transform"
+                            className="bg-card rounded-full p-2 shadow-lg hover:scale-110 transition-transform"
                             onClick={(e) => openLightbox(resident.photoUrl!, resident, e)}
                           >
-                            <ZoomIn className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            <ZoomIn className="h-5 w-5 text-foreground" />
                           </div>
                           
                           {/* Delete button */}
                           <div 
-                            className="bg-red-500 hover:bg-red-600 rounded-full p-2 shadow-lg hover:scale-110 transition-all cursor-pointer"
+                            className="bg-destructive hover:bg-destructive/90 rounded-full p-2 shadow-lg hover:scale-110 transition-all cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation(); // Prevent opening lightbox
                               handlePhotoDelete(resident.badgeNumber, `${resident.voornaam} ${resident.naam}`);
                             }}
                             title={`Delete photo for ${resident.voornaam} ${resident.naam}`}
                           >
-                            <Trash2 className="h-5 w-5 text-white" />
+                            <Trash2 className="h-5 w-5 text-destructive-foreground" />
                           </div>
                         </div>
                       </div>
                     </div>
                   ) : (
                     <div className="text-center p-2">
-                      <div className="text-3xl font-bold text-gray-600 dark:text-gray-300 mb-1">
+                      <div className="text-3xl font-bold text-muted-foreground mb-1">
                         {resident.voornaam[0]?.toUpperCase()}{resident.naam[0]?.toUpperCase()}
                       </div>
-                      <Users className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto" />
+                      <Users className="h-8 w-8 text-muted-foreground mx-auto" />
                     </div>
                   )}
                   
@@ -473,8 +473,8 @@ export default function ResidentsGridPage() {
                   {!resident.photoUrl && (
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
                       <div className="transform scale-0 group-hover:scale-100 transition-transform duration-200">
-                        <div className="bg-white dark:bg-gray-800 rounded-full p-3 shadow-lg">
-                          <Upload className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                        <div className="bg-card rounded-full p-3 shadow-lg">
+                          <Upload className="h-6 w-6 text-primary" />
                         </div>
                       </div>
                     </div>
@@ -484,21 +484,21 @@ export default function ResidentsGridPage() {
                 {/* Info Section */}
                 <div className="p-2">
                   {/* Badge Number */}
-                  <div className="text-lg font-bold text-blue-600 dark:text-blue-400 text-center mb-1">
+                  <div className="text-lg font-bold text-primary text-center mb-1">
                     #{resident.badgeNumber}
                   </div>
                   
                   {/* Name */}
-                  <div className="text-xs text-gray-900 dark:text-gray-100 text-center font-medium truncate">
+                  <div className="text-xs text-foreground text-center font-medium truncate">
                     {resident.voornaam}
                   </div>
-                  <div className="text-xs text-gray-700 dark:text-gray-300 text-center truncate">
+                  <div className="text-xs text-muted-foreground text-center truncate">
                     {resident.naam}
                   </div>
                 </div>
 
                 {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-blue-600 bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 pointer-events-none" />
+                <div className="absolute inset-0 bg-foreground bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 pointer-events-none" />
               </div>
             );
           })}
@@ -507,26 +507,26 @@ export default function ResidentsGridPage() {
           {Array.from({ length: Math.max(0, Math.min(70 - residents.length, 10)) }).map((_, index) => (
             <div
               key={`empty-${index}`}
-              className="bg-gray-100 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 opacity-30"
+              className="bg-muted rounded-lg border-2 border-dashed border-border opacity-30"
             >
               <div className="aspect-square flex items-center justify-center">
-                <Users className="h-8 w-8 text-gray-400 dark:text-gray-600" />
+                <Users className="h-8 w-8 text-muted-foreground" />
               </div>
               <div className="p-2 text-center">
-                <div className="text-xs text-gray-500 dark:text-gray-600">Available</div>
+                <div className="text-xs text-muted-foreground">Available</div>
               </div>
             </div>
           ))}
         </div>
 
         {/* Footer Info - Hidden when printing */}
-        <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400 print:hidden">
+        <div className="mt-6 text-center text-sm text-muted-foreground print:hidden">
           <div>
             Tonen {filteredResidents.length} van {residents.length} bewoners • 
             Capaciteit: {residents.length}/70 ({Math.round((residents.length / 70) * 100)}%)
           </div>
           <div className="mt-2 text-xs">
-            <span className="inline-flex items-center px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+            <span className="inline-flex items-center px-2 py-1 rounded-full bg-accent text-accent-foreground">
               ⚠️ Opslag: localStorage (Database nog niet ingezet)
             </span>
           </div>
@@ -550,9 +550,9 @@ export default function ResidentsGridPage() {
                   e.stopPropagation();
                   closeLightbox();
                 }}
-                className="absolute top-4 right-4 z-60 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="absolute top-4 right-4 z-60 bg-card rounded-full p-2 shadow-lg hover:bg-accent transition-colors"
               >
-                <X className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                <X className="h-6 w-6 text-muted-foreground" />
               </button>
 
               {/* Instructions */}
@@ -577,14 +577,14 @@ export default function ResidentsGridPage() {
                 
                 {/* Resident Info Below Image */}
                 <div className="bg-black bg-opacity-80 text-white rounded-lg p-4 backdrop-blur-sm text-center">
-                  <div className="text-2xl font-bold text-blue-400 mb-1">
+                  <div className="text-2xl font-bold text-foreground mb-1">
                     #{lightboxImage.resident.badgeNumber}
                   </div>
                   <div className="text-lg font-semibold">
                     {lightboxImage.resident.voornaam} {lightboxImage.resident.naam}
                   </div>
                   {lightboxImage.resident.roomNumber && (
-                    <div className="text-sm text-gray-300">
+                    <div className="text-sm text-muted-foreground">
                       Room: {lightboxImage.resident.roomNumber}
                     </div>
                   )}

@@ -36,10 +36,10 @@ export default function LoginPage() {
 
   if (!mounted || authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -112,59 +112,59 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,#fff,rgba(255,255,255,0.6))] dark:bg-grid-slate-700/25 dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.5))]" />
       
       <div className="relative w-full max-w-md">
         {/* Logo Section */}
         <div className="text-center mb-8">
-          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/25 mb-6">
+          <div className="mx-auto w-20 h-20 bg-foreground rounded-3xl flex items-center justify-center shadow-2xl mb-6">
             <Sparkles className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 via-purple-600 to-indigo-700 dark:from-blue-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-foreground">
             OOC Steenokkerzeel
           </h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-2 text-sm text-muted-foreground">
             Beheersysteem Dashboard
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 dark:border-gray-700/50 p-8">
+        <div className="bg-card/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-border p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center gap-2">
-              <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
+              <Shield className="h-6 w-6 text-foreground" />
               Inloggen
             </h2>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            <p className="mt-2 text-sm text-muted-foreground">
               Voer uw gegevens in om toegang te krijgen
             </p>
           </div>
 
           {/* Success Message */}
           {success && (
-            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/50 border border-green-200 dark:border-green-700 rounded-xl flex items-center gap-3">
-              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-              <p className="text-sm text-green-700 dark:text-green-300 font-medium">{success}</p>
+            <div className="mb-6 p-4 bg-muted border border-border rounded-xl flex items-center gap-3">
+              <CheckCircle className="h-5 w-5 text-foreground" />
+              <p className="text-sm text-foreground font-medium">{success}</p>
             </div>
           )}
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded-xl flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-              <p className="text-sm text-red-700 dark:text-red-300 font-medium">{error}</p>
+            <div className="mb-6 p-4 bg-destructive/10 border border-destructive rounded-xl flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-foreground" />
+              <p className="text-sm text-foreground font-medium">{error}</p>
             </div>
           )}
 
           {/* Demo Credentials Info */}
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-700 rounded-xl">
+          <div className="mb-6 p-4 bg-muted border border-border rounded-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Demo Account</p>
-                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                <p className="text-sm font-medium text-foreground">Demo Account</p>
+                <p className="text-xs text-muted-foreground mt-1">
                   Email: admin@ooc.be<br />
                   Wachtwoord: admin123
                 </p>
@@ -172,7 +172,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={handleDemoLogin}
-                className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                className="px-3 py-1.5 text-xs bg-foreground hover:bg-foreground/90 text-background rounded-lg transition-colors font-medium"
               >
                 Gebruik Demo
               </button>
@@ -183,12 +183,12 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Input */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                 Email Adres
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <Mail className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <input
                   id="email"
@@ -198,7 +198,7 @@ export default function LoginPage() {
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all"
+                  className="block w-full pl-10 pr-3 py-3 border border-input rounded-xl bg-background backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground placeholder-muted-foreground transition-all"
                   placeholder="uw.email@ooc.be"
                 />
               </div>
@@ -206,12 +206,12 @@ export default function LoginPage() {
 
             {/* Password Input */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
                 Wachtwoord
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <input
                   id="password"
@@ -221,7 +221,7 @@ export default function LoginPage() {
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all"
+                  className="block w-full pl-10 pr-12 py-3 border border-input rounded-xl bg-background backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground placeholder-muted-foreground transition-all"
                   placeholder="Uw wachtwoord"
                 />
                 <button
@@ -230,9 +230,9 @@ export default function LoginPage() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
+                    <EyeOff className="h-5 w-5 text-muted-foreground" />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
+                    <Eye className="h-5 w-5 text-muted-foreground" />
                   )}
                 </button>
               </div>
@@ -247,15 +247,15 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={formData.rememberMe}
                   onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                  className="h-4 w-4 text-primary focus:ring-ring border-input rounded bg-white dark:bg-gray-700"
                 />
-                <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                <label htmlFor="rememberMe" className="ml-2 block text-sm text-foreground">
                   Ingelogd blijven
                 </label>
               </div>
               <Link
                 href="/forgot-password"
-                className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                className="text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
               >
                 Wachtwoord vergeten?
               </Link>
@@ -265,7 +265,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+              className="w-full flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
             >
               {isLoading ? (
                 <>
@@ -282,12 +282,12 @@ export default function LoginPage() {
           </form>
 
           {/* Footer Links */}
-          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+          <div className="mt-8 pt-6 border-t border-border">
+            <p className="text-center text-sm text-muted-foreground">
               Geen account?{' '}
               <Link
                 href="/signup"
-                className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                className="font-medium text-foreground hover:text-foreground/80 transition-colors"
               >
                 Registreren
               </Link>
@@ -297,7 +297,7 @@ export default function LoginPage() {
 
         {/* Support Info */}
         <div className="text-center mt-6">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-muted-foreground">
             Problemen met inloggen? Neem contact op met de IT-afdeling
           </p>
         </div>

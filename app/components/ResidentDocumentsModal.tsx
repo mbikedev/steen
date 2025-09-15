@@ -443,7 +443,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
       return <FileText className="w-5 h-5 text-indigo-500" />;
     }
     if (doc.documentType === 'passport') {
-      return <FileText className="w-5 h-5 text-blue-600" />;
+      return <FileText className="w-5 h-5 text-foreground" />;
     }
     if (doc.documentType === 'geboorteakte') {
       return <FileText className="w-5 h-5 text-teal-500" />;
@@ -452,19 +452,19 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
     // Default icons by file type
     switch (doc.type) {
       case 'pdf':
-        return <FileText className="w-5 h-5 text-red-500" />;
+        return <FileText className="w-5 h-5 text-foreground" />;
       case 'image':
-        return <Image className="w-5 h-5 text-blue-500" />;
+        return <Image className="w-5 h-5 text-foreground" />;
       case 'scan':
-        return <File className="w-5 h-5 text-green-500" />;
+        return <File className="w-5 h-5 text-foreground" />;
       case 'word':
-        return <FileText className="w-5 h-5 text-blue-600" />;
+        return <FileText className="w-5 h-5 text-foreground" />;
       case 'excel':
-        return <FileText className="w-5 h-5 text-green-600" />;
+        return <FileText className="w-5 h-5 text-foreground" />;
       case 'email':
         return <Mail className="w-5 h-5 text-purple-600" />;
       default:
-        return <File className="w-5 h-5 text-gray-500" />;
+        return <File className="w-5 h-5 text-muted-foreground" />;
     }
   };
 
@@ -487,7 +487,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
     <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
       <div className="flex items-center justify-center min-h-screen px-4">
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity" 
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -510,11 +510,11 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
         ></div>
         
         <div 
-          className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
+          className="relative bg-card rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+          <div className="bg-primary px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="relative">
@@ -526,7 +526,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                     />
                   ) : (
                     <div className="w-16 h-16 bg-white rounded-full p-3 flex items-center justify-center shadow-lg" title="Geen foto beschikbaar - Upload een foto in Bewoners Overzicht">
-                      <User className="w-10 h-10 text-blue-600" />
+                      <User className="w-10 h-10 text-foreground" />
                     </div>
                   )}
                 </div>
@@ -541,7 +541,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                     </span>
                     <span className="flex items-center bg-white/20 backdrop-blur-sm px-3 py-1 rounded-lg text-white">
                       <MapPin className="w-4 h-4 mr-1" />
-                      Kamer: <span className="text-green-300 font-semibold ml-1">{resident.room || 'Niet toegewezen'}</span>
+                      Kamer: <span className="text-foreground font-semibold ml-1">{resident.room || 'Niet toegewezen'}</span>
                     </span>
                   </div>
                 </div>
@@ -573,14 +573,14 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
           </div>
 
           {/* Tabs */}
-          <div className="border-b dark:border-gray-700">
+          <div className="border-b dark:border-border">
             <div className="flex space-x-8 px-6">
               <button
                 onClick={() => setActiveTab('overview')}
                 className={`py-3 border-b-2 transition-colors ${
                   activeTab === 'overview'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-foreground text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Overzicht
@@ -589,8 +589,8 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                 onClick={() => setActiveTab('documents')}
                 className={`py-3 border-b-2 transition-colors ${
                   activeTab === 'documents'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-foreground text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Documenten ({documents.length})
@@ -604,32 +604,32 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
             {activeTab === 'overview' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Personal Information */}
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                <div className="bg-muted rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-4 text-foreground dark:text-foreground">
                     Persoonlijke Informatie
                   </h3>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Volledige Naam:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                      <span className="text-muted-foreground dark:text-muted-foreground">Volledige Naam:</span>
+                      <span className="font-medium text-foreground dark:text-foreground">
                         {resident.firstName} {resident.lastName}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Badgenummer:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                      <span className="text-muted-foreground dark:text-muted-foreground">Badgenummer:</span>
+                      <span className="font-medium text-foreground dark:text-foreground">
                         {resident.badge}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">OV Nummer:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                      <span className="text-muted-foreground dark:text-muted-foreground">OV Nummer:</span>
+                      <span className="font-medium text-foreground dark:text-foreground">
                         {resident.ovNumber}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Nationaliteit:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                      <span className="text-muted-foreground dark:text-muted-foreground">Nationaliteit:</span>
+                      <span className="font-medium text-foreground dark:text-foreground">
                         {resident.nationality}
                       </span>
                     </div>
@@ -637,23 +637,23 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                 </div>
 
                 {/* Accommodation Details */}
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                <div className="bg-muted rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-4 text-foreground dark:text-foreground">
                     Verblijfsdetails
                   </h3>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Kamer:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                      <span className="text-muted-foreground dark:text-muted-foreground">Kamer:</span>
+                      <span className="font-medium text-foreground dark:text-foreground">
                         {resident.room || 'Niet toegewezen'}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Status:</span>
+                      <span className="text-muted-foreground dark:text-muted-foreground">Status:</span>
                       <span className={`font-medium ${
                         resident.status === 'Actief' 
-                          ? 'text-green-600 dark:text-green-400' 
-                          : 'text-red-600 dark:text-red-400'
+                          ? 'text-foreground dark:text-foreground' 
+                          : 'text-foreground'
                       }`}>
                         {resident.status}
                       </span>
@@ -667,19 +667,19 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
               <div>
                 {/* Upload Status Messages */}
                 {uploadStatus === 'uploading' && (
-                  <div className="mb-4 p-3 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700 dark:border-blue-300 mr-3"></div>
+                  <div className="mb-4 p-3 bg-accent text-accent-foreground rounded-lg flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-foreground mr-3"></div>
                     Documenten uploaden...
                   </div>
                 )}
                 {uploadStatus === 'success' && (
-                  <div className="mb-4 p-3 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-lg flex items-center">
+                  <div className="mb-4 p-3 bg-accent text-accent-foreground rounded-lg flex items-center">
                     <CheckCircle className="w-5 h-5 mr-2" />
                     Documenten succesvol geüpload!
                   </div>
                 )}
                 {uploadStatus === 'error' && (
-                  <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg flex items-center">
+                  <div className="mb-4 p-3 bg-accent text-accent-foreground rounded-lg flex items-center">
                     <AlertCircle className="w-5 h-5 mr-2" />
                     Fout bij uploaden documenten. Probeer opnieuw.
                   </div>
@@ -691,7 +691,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="px-4 py-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="px-4 py-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-foreground dark:text-foreground"
                     >
                       {categories.map(cat => (
                         <option key={cat} value={cat}>
@@ -699,7 +699,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                         </option>
                       ))}
                     </select>
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-muted-foreground dark:text-muted-foreground">
                       {filteredDocuments.length} document(en)
                     </span>
                   </div>
@@ -707,7 +707,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                     <select
                       value={selectedDocumentType}
                       onChange={(e) => setSelectedDocumentType(e.target.value)}
-                      className="px-3 py-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                      className="px-3 py-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-foreground dark:text-foreground text-sm"
                       title="Selecteer documenttype voor betere organisatie"
                     >
                       <option value="other">Selecteer Documenttype</option>
@@ -732,7 +732,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                     </select>
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+                      className="flex items-center space-x-2 bg-foreground hover:bg-foreground/90 text-white px-4 py-2 rounded-md transition-colors"
                     >
                       <Upload className="w-4 h-4" />
                       <span>Document Uploaden</span>
@@ -758,20 +758,20 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                       {/* Delete Confirmation */}
                       {deleteConfirm === doc.id && (
                         <div className="absolute inset-0 bg-white dark:bg-gray-700 rounded-lg p-4 flex flex-col justify-center items-center z-10">
-                          <AlertCircle className="w-8 h-8 text-red-500 mb-2" />
-                          <p className="text-sm text-center mb-3 text-gray-900 dark:text-gray-100">
+                          <AlertCircle className="w-8 h-8 text-foreground mb-2" />
+                          <p className="text-sm text-center mb-3 text-foreground dark:text-foreground">
                             Dit document verwijderen?
                           </p>
                           <div className="flex space-x-2">
                             <button
                               onClick={() => handleDeleteDocument(doc.id)}
-                              className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                              className="px-3 py-1 bg-foreground text-background rounded text-sm hover:bg-foreground/90"
                             >
                               Verwijderen
                             </button>
                             <button
                               onClick={() => setDeleteConfirm(null)}
-                              className="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-400"
+                              className="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-foreground dark:text-gray-300 rounded text-sm hover:bg-gray-400"
                             >
                               Annuleren
                             </button>
@@ -783,10 +783,10 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                         <div className="flex items-center space-x-3">
                           {getDocumentIcon(doc)}
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
+                            <h4 className="font-medium text-foreground dark:text-foreground text-sm truncate">
                               {doc.name}
                             </h4>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                            <p className="text-xs text-muted-foreground dark:text-muted-foreground">
                               {doc.size} • {doc.uploadDate}
                             </p>
                           </div>
@@ -796,30 +796,30 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                         <span className={`text-xs px-2 py-1 rounded ${
                           doc.documentType === 'bijlage26' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' :
                           doc.documentType === 'toewijzing' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' :
-                          doc.documentType === 'passport' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                          doc.documentType === 'passport' ? 'bg-accent text-accent-foreground' :
                           doc.documentType === 'geboorteakte' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300' :
-                          'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-300'
+                          'bg-gray-100 text-foreground dark:bg-gray-600 dark:text-gray-300'
                         }`}>
                           {getDocumentLabel(doc)}
                         </span>
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleViewDocument(doc)}
-                            className="text-blue-600 hover:text-blue-700 transition-colors"
+                            className="text-foreground hover:text-foreground/80 transition-colors"
                             title="Bekijken"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDownloadDocument(doc)}
-                            className="text-green-600 hover:text-green-700 transition-colors"
+                            className="text-foreground hover:text-foreground/80 transition-colors"
                             title="Downloaden"
                           >
                             <Download className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(doc.id)}
-                            className="text-red-600 hover:text-red-700 transition-colors"
+                            className="text-foreground hover:text-foreground/80 transition-colors"
                             title="Verwijderen"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -832,19 +832,19 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
 
                 {filteredDocuments.length === 0 && (
                   <div className="text-center py-12">
-                    <Folder className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400 mb-2">
+                    <Folder className="w-16 h-16 text-gray-300 dark:text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground dark:text-muted-foreground mb-2">
                       Nog geen documenten geüpload
                     </p>
-                    <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">
+                    <p className="text-sm text-muted-foreground dark:text-muted-foreground mb-4">
                       Upload PDF's, afbeeldingen, Word documenten (.docx), Excel bestanden (.xlsx) of gescande documenten voor deze bewoner
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+                    <p className="text-xs text-muted-foreground dark:text-muted-foreground italic">
                       Tip: Voor email bestanden (.eml), converteer ze eerst naar PDF
                     </p>
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                      className="mt-4 px-4 py-2 bg-foreground text-background rounded-md hover:bg-foreground/90 transition-colors"
                     >
                       <Upload className="w-4 h-4 inline-block mr-2" />
                       Eerste Document Uploaden

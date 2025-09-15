@@ -522,13 +522,13 @@ export default function WeekendPermissiePage() {
   // Get row background color based on age and arrival date
   const getRowBackgroundColor = (age: number, dateIn: string, index: number): string => {
     if (isUnder16(age)) {
-      return 'bg-red-100 dark:bg-red-900/30'; // Red for under 16
+      return 'bg-accent'; // Red for under 16
     }
     if (isNewArrival(dateIn)) {
-      return 'bg-green-100 dark:bg-green-900/30'; // Green for new arrivals (≤7 days)
+      return 'bg-accent'; // Green for new arrivals (≤7 days)
     }
     // Default alternating rows
-    return index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700';
+    return index % 2 === 0 ? 'bg-card' : 'bg-muted';
   };
 
   // Render editable cell
@@ -542,7 +542,7 @@ export default function WeekendPermissiePage() {
             <select
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="w-full px-1 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full px-1 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-ring"
               autoFocus
             >
               {options?.map(option => (
@@ -554,14 +554,14 @@ export default function WeekendPermissiePage() {
               type={type}
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="w-full px-1 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full px-1 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-ring"
               autoFocus
             />
           )}
-          <button onClick={saveEdit} className="text-green-600 hover:text-green-800">
+          <button onClick={saveEdit} className="text-foreground hover:text-foreground/80">
             <Check className="h-3 w-3" />
           </button>
-          <button onClick={cancelEdit} className="text-red-600 hover:text-red-800">
+          <button onClick={cancelEdit} className="text-destructive hover:text-destructive/80">
             <X className="h-3 w-3" />
           </button>
         </div>
@@ -605,11 +605,11 @@ export default function WeekendPermissiePage() {
           }
         }}
         disabled={isUnder16Resident}
-        className={`w-full px-1 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+        className={`w-full px-1 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-ring ${
           isUnder16Resident 
-            ? 'bg-gray-200 dark:bg-gray-600 cursor-not-allowed opacity-50' 
+            ? 'bg-gray-200 cursor-not-allowed opacity-50' 
             : dayPermission?.type === 'daily'
-              ? 'bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 border-green-300 dark:border-green-600 font-semibold'
+              ? 'bg-accent text-accent-foreground border-border font-semibold'
               : 'bg-white dark:bg-gray-700'
         }`}
         title={isUnder16Resident ? 'Geen permissies toegestaan voor bewoners onder 16 jaar' : ''}
@@ -625,7 +625,7 @@ export default function WeekendPermissiePage() {
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4"></div>
             <p>Laden van bewonersdata...</p>
           </div>
         </div>
@@ -635,18 +635,18 @@ export default function WeekendPermissiePage() {
 
   return (
     <DashboardLayout>
-      <div className="p-3 sm:p-6 bg-white dark:bg-gray-800 min-h-screen">
+      <div className="p-3 sm:p-6 bg-background min-h-screen">
         {/* Search Bar */}
         <div className="mb-4">
-          <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 border dark:border-gray-700">
+          <div className="bg-card shadow-sm rounded-lg p-4 border border-border">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <input
                     type="text"
                     placeholder="Zoek bewoners (min. 2 letters)... ESC = terug"
-                    className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full pl-10 pr-4 py-2 border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-primary bg-background text-foreground"
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
@@ -667,17 +667,17 @@ export default function WeekendPermissiePage() {
 
         {/* Header */}
         <div className="mb-6">
-          <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-4 border dark:border-gray-700">
+          <div className="bg-white shadow-sm rounded-lg p-4 mb-4 border dark:border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
               {/* Title */}
-              <div className="bg-purple-200 dark:bg-purple-600 px-3 py-2 text-center font-semibold rounded">
-                <div className="text-lg md:text-xl font-bold text-black dark:text-white">WEEKEND PERMISSIE</div>
-                <div className="text-sm mt-1 text-black dark:text-white">
+              <div className="bg-purple-200 px-3 py-2 text-center font-semibold rounded">
+                <div className="text-lg md:text-xl font-bold text-black">WEEKEND PERMISSIE</div>
+                <div className="text-sm mt-1 text-black">
                   Week {currentWeek.split('-W')[1]} - {currentWeek.split('-W')[0]}
-                  {isHolidayWeek && <span className="ml-2 px-2 py-1 bg-orange-200 dark:bg-orange-600 rounded text-xs">FEESTDAG</span>}
+                  {isHolidayWeek && <span className="ml-2 px-2 py-1 bg-accent rounded text-xs">FEESTDAG</span>}
                 </div>
                 {saveStatus && (
-                  <div className="text-xs mt-1 text-black dark:text-white">
+                  <div className="text-xs mt-1 text-black">
                     {saveStatus}
                   </div>
                 )}
@@ -688,24 +688,24 @@ export default function WeekendPermissiePage() {
                 <div className="flex items-center justify-center gap-2">
                   <button
                     onClick={() => navigateWeek('prev')}
-                    className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                    className="px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90 text-sm"
                   >
                     ← Vorige
                   </button>
                   <button
                     onClick={() => setCurrentWeek(getCurrentWeek())}
-                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                    className="px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90 text-sm"
                   >
                     Deze week
                   </button>
                   <button
                     onClick={() => navigateWeek('next')}
-                    className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                    className="px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90 text-sm"
                   >
                     Volgende →
                   </button>
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                <div className="text-xs text-muted-foreground mt-1">
                   {formatDate(weekDates.friday)} - {formatDate(weekDates.sunday)}
                   {isHolidayWeek && ` tot ${formatDate(weekDates.monday)}`}
                 </div>
@@ -713,12 +713,12 @@ export default function WeekendPermissiePage() {
               
               {/* Stats */}
               <div className="text-center md:text-right">
-                <div className="text-black dark:text-gray-100">
+                <div className="text-foreground">
                   Bewoners: <span className="font-bold">
                     {showOnlySearchResult ? '1' : dataMatchIt.length}
                   </span>
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">
+                <div className="text-xs text-muted-foreground">
                   Permissies: <span className="font-bold">{
                     permissions
                       .filter(permission => showOnlySearchResult ? permission.residentId === searchResult?.id : true)
@@ -746,7 +746,7 @@ export default function WeekendPermissiePage() {
                 lastModified: new Date().toISOString()
               })));
             }}
-            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+            className="px-3 py-1 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 text-sm"
           >
             Alle permissies wissen
           </button>
@@ -756,10 +756,10 @@ export default function WeekendPermissiePage() {
             <button
               onClick={() => savePermissionsToDB(permissions)}
               disabled={isSaving}
-              className={`px-3 py-1 text-white rounded text-sm flex items-center gap-1 ${
+              className={`px-3 py-1 text-primary-foreground rounded text-sm flex items-center gap-1 ${
                 isSaving 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-purple-600 hover:bg-purple-700'
+                  ? 'bg-muted cursor-not-allowed' 
+                  : 'bg-primary hover:bg-primary/90'
               }`}
             >
               <Save className="h-4 w-4" />
@@ -767,14 +767,14 @@ export default function WeekendPermissiePage() {
             </button>
             <button
               onClick={exportToCSV}
-              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm flex items-center gap-1"
+              className="px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90 text-sm flex items-center gap-1"
             >
               <FileText className="h-4 w-4" />
               Export CSV
             </button>
             <button
               onClick={printPermissions}
-              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex items-center gap-1"
+              className="px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90 text-sm flex items-center gap-1"
             >
               <Printer className="h-4 w-4" />
               Print
@@ -783,10 +783,10 @@ export default function WeekendPermissiePage() {
         </div>
 
         {/* Permissions Table */}
-        <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden border dark:border-gray-700">
+        <div className="bg-white shadow-sm rounded-lg overflow-hidden border dark:border-gray-700">
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs">
-              <thead className="bg-purple-700 dark:bg-purple-800 text-white">
+              <thead className="bg-purple-700 text-white">
                 <tr>
                   <th className="px-2 py-2 text-left font-bold border-r border-purple-600">Badge</th>
                   <th className="px-2 py-2 text-left font-bold border-r border-purple-600">Achternaam</th>
@@ -803,7 +803,7 @@ export default function WeekendPermissiePage() {
                     Zondag<br/>{formatDate(weekDates.sunday).split(' ')[0]}
                   </th>
                   {isHolidayWeek && (
-                    <th className="px-2 py-2 text-center font-bold border-r border-purple-600 bg-orange-600">
+                    <th className="px-2 py-2 text-center font-bold border-r border-purple-600 bg-foreground">
                       Maandag (Feestdag)<br/>{formatDate(weekDates.monday).split(' ')[0]}
                     </th>
                   )}
@@ -828,10 +828,10 @@ export default function WeekendPermissiePage() {
                   <tr 
                     key={permission.residentId}
                     id={`resident-row-${permission.residentId}`}
-                    className={`${rowBgColor} hover:bg-orange-500 dark:hover:bg-purple-900/20 border-b border-gray-200 dark:border-gray-600 ${
+                    className={`${rowBgColor} hover:bg-accent border-b border-border ${
                       isMinor ? 'relative' : ''
                     } ${
-                      highlightedResident === permission.residentId ? 'ring-4 ring-yellow-400 bg-yellow-100 dark:bg-yellow-900/30' : ''
+                      highlightedResident === permission.residentId ? 'ring-4 ring-yellow-400 bg-yellow-100' : ''
                     }`}
                     title={
                       isMinor 
@@ -870,7 +870,7 @@ export default function WeekendPermissiePage() {
                     
                     {/* Monday (Holiday) */}
                     {isHolidayWeek && permission.monday && (
-                      <td className="px-1 py-1 border-r border-gray-200 dark:border-gray-600 bg-orange-50 dark:bg-orange-900/20">
+                      <td className="px-1 py-1 border-r border-gray-200 bg-accent">
                         <div className="space-y-1">
                           {renderPermissionSelector(permission.residentId, 'monday')}
                           {permission.monday.type !== 'none' && (
@@ -893,16 +893,16 @@ export default function WeekendPermissiePage() {
                       <div className="space-y-1">
                         {/* Arrival Time Input */}
                         <div className="text-xs">
-                          <label className="block text-gray-600 dark:text-gray-400 mb-1">Aankomst:</label>
+                          <label className="block text-gray-600 mb-1">Aankomst:</label>
                           {renderEditableCell(permission.residentId, 'actualArrivalTime', permission.actualArrivalTime || '', 'time')}
                         </div>
                         {/* Status Display */}
                         <div className={`text-xs font-semibold px-2 py-1 rounded text-center ${
                           permission.status === 'OK' 
-                            ? 'bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100'
+                            ? 'bg-accent text-accent-foreground'
                             : permission.status === 'pending'
-                              ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                              : 'bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-100'
+                              ? 'bg-gray-100 text-gray-700 dark:text-gray-300'
+                              : 'bg-destructive/10 text-destructive'
                         }`}>
                           {permission.status}
                         </div>
@@ -917,19 +917,19 @@ export default function WeekendPermissiePage() {
         </div>
 
         {/* Legend */}
-        <div className="mt-4 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+        <div className="mt-4 bg-gray-50 p-4 rounded-lg">
           <h4 className="font-medium mb-2 text-gray-900 dark:text-gray-100">Legenda:</h4>
           
           {/* Permission Types */}
           <div className="mb-4">
-            <h5 className="font-medium mb-2 text-gray-800 dark:text-gray-200">Permissie Types:</h5>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300">
+            <h5 className="font-medium mb-2 text-foreground">Types:</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-100 dark:bg-green-800 border border-green-300 dark:border-green-600 rounded"></div>
+                <div className="w-4 h-4 bg-accent border border-border rounded"></div>
                 <span><strong>Dagpermissie:</strong> Voor één dag, terugkeer voor 20:00 dezelfde dag</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded"></div>
+                <div className="w-4 h-4 bg-white border border-gray-300 rounded"></div>
                 <span><strong>Geen permissie:</strong> Bewoner blijft in de faciliteit</span>
               </div>
             </div>
@@ -940,13 +940,13 @@ export default function WeekendPermissiePage() {
             <h5 className="font-medium mb-2 text-gray-800 dark:text-gray-200">Kleurcodering:</h5>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
+                <div className="w-4 h-4 bg-accent border border-border rounded"></div>
                 <span className="text-gray-600 dark:text-gray-300">
                   <strong>Rood:</strong> Onder 16 jaar (geen permissies toegestaan)
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+                <div className="w-4 h-4 bg-accent border border-border rounded"></div>
                 <span className="text-gray-600 dark:text-gray-300">
                   <strong>Groen:</strong> Nieuwe bewoner (≤7 dagen aanwezig)
                 </span>

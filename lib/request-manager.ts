@@ -11,8 +11,8 @@ class RequestManager {
   }> = []
   
   private activeRequests = 0
-  private maxConcurrentRequests = 6 // Increased for better throughput (mutable for resource exhaustion handling)
-  private readonly requestDelay = 50 // Reduced delay for faster processing
+  private maxConcurrentRequests = 2 // Very conservative to prevent resource exhaustion
+  private readonly requestDelay = 200 // Increased delay to prevent overwhelming the browser
   private isProcessing = false
   private lastRequestTime = 0
 
@@ -107,25 +107,22 @@ class RequestManager {
     } catch (error) {
       console.error(`❌ Request failed:`, error)
       // Check if it's a resource exhaustion error
-      if (error instanceof Error && error.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
-        console.warn('⚠️ Resource exhaustion detected, applying backoff')
-        // Wait longer before retrying
-        await new Promise(resolve => setTimeout(resolve, 2000))
+      if (error instanceof Error && (
+        error.message.includes('ERR_INSUFFICIENT_RESOURCES') ||
+        error.message.includes('ERR_CACHE_RACE') ||
+        error.message.includes('Failed to fetch')
+      )) {
+        console.warn('🚨 Resource exhaustion detected, applying emergency measures')
         
-        // Reduce concurrent requests temporarily
-        this.maxConcurrentRequests = Math.max(1, this.maxConcurrentRequests - 1)
-        console.warn(`⚠️ Reduced max concurrent requests to: ${this.maxConcurrentRequests}`)
+        // Clear the entire queue to prevent further overload
+        this.clearQueue()
         
-        // Retry once
-        try {
-          console.log(`🔄 Retrying request after resource exhaustion`)
-          const result = await request.fn()
-          console.log(`✅ Retry successful`)
-          request.resolve(result)
-        } catch (retryError) {
-          console.error(`❌ Retry also failed:`, retryError)
-          request.reject(retryError)
-        }
+        // Drastically reduce concurrent requests
+        this.maxConcurrentRequests = 1
+        console.warn(`🚨 Emergency: Reduced max concurrent requests to: ${this.maxConcurrentRequests}`)
+        
+        // Don't retry - just fail fast to prevent further resource exhaustion
+        request.reject(new Error(`Resource exhaustion: ${error.message}`))
       } else {
         request.reject(error)
       }
@@ -167,12 +164,12 @@ export async function executeWithResourceControl<T>(
   operationName?: string
 ): Promise<T> {
   if (operationName) {
-    console.log(`🔄 Executing ${operationName} (priority: ${priority}) - DIRECT MODE`)
+    console.log(`🔄 Queuing ${operationName} (priority: ${priority})`)
   }
   
   try {
-    // Temporarily bypass queue for debugging - execute directly
-    const result = await operation()
+    // Use the request queue to prevent ERR_INSUFFICIENT_RESOURCES
+    const result = await requestManager.queueRequest(operation, priority)
     if (operationName) {
       console.log(`✅ Completed ${operationName}`)
     }

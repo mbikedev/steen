@@ -191,26 +191,26 @@ function AdministrativeDocumentsPageContent() {
           {/* Header */}
           <div className="mb-8">
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 font-title">OOC STEENOKKERZEEL</h1>
+              <h1 className="text-2xl font-bold text-foreground font-title">OOC STEENOKKERZEEL</h1>
               <div className="flex items-center justify-center mt-2">
-                <span className="text-lg text-gray-700 dark:text-gray-300 mr-2">Administratieve Documenten</span>
+                <span className="text-lg text-muted-foreground mr-2">Administratieve Documenten</span>
                 <div className="relative dropdown-container">
                   <button
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="flex items-center space-x-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-lg font-semibold transition-colors"
+                    className="flex items-center space-x-1 px-3 py-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded-md text-lg font-semibold transition-colors"
                   >
                     <span>{selectedDocumentType}</span>
                     <ChevronDown className={`w-4 h-4 transform transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {isDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-md shadow-lg z-50 min-w-full">
+                    <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-md shadow-lg z-50 min-w-full">
                       <button
                         onClick={() => {
                           setSelectedDocumentType('IN');
                           setIsDropdownOpen(false);
                         }}
-                        className={`w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          selectedDocumentType === 'IN' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                        className={`w-full px-4 py-2 text-left hover:bg-accent transition-colors ${
+                          selectedDocumentType === 'IN' ? 'bg-accent text-accent-foreground' : 'text-foreground'
                         }`}
                       >
                         IN
@@ -220,8 +220,8 @@ function AdministrativeDocumentsPageContent() {
                           setSelectedDocumentType('OUT');
                           setIsDropdownOpen(false);
                         }}
-                        className={`w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          selectedDocumentType === 'OUT' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                        className={`w-full px-4 py-2 text-left hover:bg-accent transition-colors ${
+                          selectedDocumentType === 'OUT' ? 'bg-accent text-accent-foreground' : 'text-foreground'
                         }`}
                       >
                         OUT
@@ -229,21 +229,21 @@ function AdministrativeDocumentsPageContent() {
                     </div>
                   )}
                 </div>
-                <span className="text-lg text-gray-700 dark:text-gray-300 ml-2">- Bewonersoverzicht</span>
+                <span className="text-lg text-muted-foreground ml-2">- Bewonersoverzicht</span>
               </div>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-6 border dark:border-gray-700">
+            <div className="bg-card shadow-sm rounded-lg p-4 mb-6 border border-border">
               <div className="grid grid-cols-3 gap-4 items-center">
-                <div className={`px-3 py-2 text-center font-semibold text-black dark:text-white rounded ${
-                  selectedDocumentType === 'IN' ? 'bg-green-200 dark:bg-green-600' : 'bg-orange-200 dark:bg-orange-600'
+                <div className={`px-3 py-2 text-center font-semibold text-black rounded ${
+                  selectedDocumentType === 'IN' ? 'bg-primary' : 'bg-secondary'
                 }`}>
                   <FileText className="inline-block w-4 h-4 mr-2" />
                   Bewonersoverzicht ({selectedDocumentType})
                 </div>
-                <div className="text-center text-gray-900 dark:text-gray-100">
+                <div className="text-center text-foreground">
                   <span className="text-sm">Totaal Bewoners: {sortedResidents.length}</span>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Klik op een bewoner om documenten te bekijken</p>
+                  <p className="text-xs text-muted-foreground mt-1">Klik op een bewoner om documenten te bekijken</p>
                 </div>
                 <div className="text-right">
                 </div>
@@ -253,22 +253,22 @@ function AdministrativeDocumentsPageContent() {
 
           {/* Search and Filter Controls - Only show for IN */}
           {selectedDocumentType === 'IN' && (
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-6 border dark:border-gray-700">
+            <div className="bg-card shadow-sm rounded-lg p-4 mb-6 border border-border">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Zoek op naam, badgenummer, nationaliteit..."
-                  className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full pl-10 pr-4 py-2 border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-primary bg-background text-foreground"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <select
-                  className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full pl-10 pr-4 py-2 border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-primary bg-background text-foreground"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                 >
@@ -285,48 +285,48 @@ function AdministrativeDocumentsPageContent() {
           {selectedDocumentType === 'IN' ? (
             <div>
               {/* Resident Directory Table */}
-              <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden border dark:border-gray-700">
+              <div className="bg-card shadow-sm rounded-lg overflow-hidden border border-border">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <table className="min-w-full divide-y divide-border">
+                <thead className="bg-muted">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Badge Nr.
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Volledige Naam
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Kamer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Nationaliteit
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Status
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="bg-card divide-y divide-border">
                   {sortedResidents.map((resident, index) => (
                     <tr 
                       key={resident.badge} 
-                      className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-750'} hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer transition-colors`}
+                      className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} hover:bg-accent cursor-pointer transition-colors`}
                       onClick={() => handleResidentClick(resident)}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">
                         {resident.badge}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                         <div className="flex items-center">
                           <div className="font-medium">{resident.lastName}, {resident.firstName}</div>
-                          <FolderOpen className="w-4 h-4 ml-2 text-gray-400" />
+                          <FolderOpen className="w-4 h-4 ml-2 text-muted-foreground" />
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                         {resident.room || 'Niet toegewezen'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                         {resident.nationality}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -338,7 +338,7 @@ function AdministrativeDocumentsPageContent() {
                                 value={resident.status}
                                 onChange={(e) => handleStatusChange(resident.id, e.target.value)}
                                 onBlur={() => setEditingStatus({ ...editingStatus, [resident.id]: false })}
-                                className="text-xs font-semibold rounded-full px-2 py-1 border-2 border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="text-xs font-semibold rounded-full px-2 py-1 border-2 border-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <option value="Actief">Actief</option>
@@ -348,10 +348,10 @@ function AdministrativeDocumentsPageContent() {
                               <span 
                                 className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity ${
                                   resident.status === 'Actief' 
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                    ? 'bg-accent text-accent-foreground'
                                     : resident.status === 'OUT'
-                                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                    ? 'bg-secondary text-secondary-foreground'
+                                    : 'bg-destructive/10 text-destructive'
                                 }`}
                                 onClick={(e) => handleStatusClick(e, resident.id)}
                                 title="Klik om status te wijzigen"
@@ -360,7 +360,7 @@ function AdministrativeDocumentsPageContent() {
                               </span>
                             )}
                           </div>
-                          <ExternalLink className="w-4 h-4 text-gray-400" />
+                          <ExternalLink className="w-4 h-4 text-muted-foreground" />
                         </div>
                       </td>
                     </tr>
@@ -371,7 +371,7 @@ function AdministrativeDocumentsPageContent() {
               </div>
 
               {sortedResidents.length === 0 && (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <div className="text-center py-8 text-muted-foreground">
                   Geen bewoners gevonden die aan uw zoekcriteria voldoen.
                 </div>
               )}
@@ -380,19 +380,19 @@ function AdministrativeDocumentsPageContent() {
             /* OUT - Show residents with OUT status */
             <div>
               {/* Search and Filter Controls for OUT */}
-              <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-6 border dark:border-gray-700">
+              <div className="bg-card shadow-sm rounded-lg p-4 mb-6 border border-border">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <input
                       type="text"
                       placeholder="Zoek op naam, badgenummer, nationaliteit..."
-                      className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full pl-10 pr-4 py-2 border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-primary bg-background text-foreground"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  <div className="text-center text-gray-600 dark:text-gray-400">
+                  <div className="text-center text-muted-foreground">
                     <span className="text-sm">OUT Bewoners: {sortedResidents.length}</span>
                     <p className="text-xs mt-1">Bewoners die zijn uitgegaan</p>
                   </div>
@@ -401,48 +401,48 @@ function AdministrativeDocumentsPageContent() {
 
               {sortedResidents.length > 0 ? (
                 /* OUT Residents Table */
-                <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden border dark:border-gray-700">
+                <div className="bg-card shadow-sm rounded-lg overflow-hidden border border-border">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                      <thead className="bg-orange-50 dark:bg-orange-900/20">
+                    <table className="min-w-full divide-y divide-border">
+                      <thead className="bg-muted">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-foreground uppercase tracking-wider">
                             Badge Nr.
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-foreground uppercase tracking-wider">
                             Volledige Naam
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-foreground uppercase tracking-wider">
                             Kamer
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-foreground uppercase tracking-wider">
                             Nationaliteit
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-foreground uppercase tracking-wider">
                             Status
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      <tbody className="bg-card divide-y divide-border">
                         {sortedResidents.map((resident, index) => (
                           <tr 
                             key={resident.badge} 
-                            className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-orange-50/50 dark:bg-orange-900/10'} hover:bg-orange-50 dark:hover:bg-orange-900/20 cursor-pointer transition-colors`}
+                            className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted hover:bg-accent cursor-pointer transition-colors'}`}
                             onClick={() => handleResidentClick(resident)}
                           >
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-orange-600 dark:text-orange-400">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">
                               {resident.badge}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                               <div className="flex items-center">
                                 <div className="font-medium">{resident.lastName}, {resident.firstName}</div>
-                                <FolderOpen className="w-4 h-4 ml-2 text-gray-400" />
+                                <FolderOpen className="w-4 h-4 ml-2 text-muted-foreground" />
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                               {resident.room || 'Niet toegewezen'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                               {resident.nationality}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -454,7 +454,7 @@ function AdministrativeDocumentsPageContent() {
                                       value={resident.status}
                                       onChange={(e) => handleStatusChange(resident.id, e.target.value)}
                                       onBlur={() => setEditingStatus({ ...editingStatus, [resident.id]: false })}
-                                      className="text-xs font-semibold rounded-full px-2 py-1 border-2 border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      className="text-xs font-semibold rounded-full px-2 py-1 border-2 border-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <option value="Actief">Actief</option>
@@ -462,7 +462,7 @@ function AdministrativeDocumentsPageContent() {
                                     </select>
                                   ) : (
                                     <span 
-                                      className="inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                                      className="inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity bg-secondary text-secondary-foreground"
                                       onClick={(e) => handleStatusClick(e, resident.id)}
                                       title="Klik om status te wijzigen"
                                     >
@@ -470,7 +470,7 @@ function AdministrativeDocumentsPageContent() {
                                     </span>
                                   )}
                                 </div>
-                                <ExternalLink className="w-4 h-4 text-gray-400" />
+                                <ExternalLink className="w-4 h-4 text-muted-foreground" />
                               </div>
                             </td>
                           </tr>
@@ -481,18 +481,18 @@ function AdministrativeDocumentsPageContent() {
                 </div>
               ) : (
                 /* Empty state when no OUT residents */
-                <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-12 border dark:border-gray-700">
+                <div className="bg-card shadow-sm rounded-lg p-12 border border-border">
                   <div className="text-center">
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900/20">
-                      <FileText className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-muted">
+                      <FileText className="h-6 w-6 text-primary" />
                     </div>
-                    <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">
+                    <h3 className="mt-4 text-lg font-medium text-foreground">
                       Geen OUT bewoners
                     </h3>
-                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    <p className="mt-2 text-sm text-muted-foreground">
                       Er zijn momenteel geen bewoners met OUT status.
                     </p>
-                    <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Bewoners verschijnen hier wanneer hun status wordt gewijzigd naar OUT.
                     </p>
                   </div>

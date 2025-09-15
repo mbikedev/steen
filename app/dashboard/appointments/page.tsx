@@ -198,12 +198,12 @@ export default function AfsprakenPage() {
       `}</style>
 
       <DashboardLayout className="no-print">
-        <div className="p-6 bg-white dark:bg-gray-800 min-h-screen transition-colors">
+        <div className="p-6 bg-card min-h-screen transition-colors">
         {/* Header */}
         <div className="mb-8">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 font-title">Afspraken</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+            <h1 className="text-2xl font-bold text-foreground font-title">Afspraken</h1>
+            <p className="text-sm text-gray-600 mt-2">
               Afspraken worden gemaakt voor de volgende dag en automatisch opgeruimd
             </p>
           </div>
@@ -211,8 +211,8 @@ export default function AfsprakenPage() {
           {/* Date Selection */}
           <div className="flex items-center justify-center space-x-4 mb-6">
             <div className="flex items-center space-x-3">
-              <Calendar className="h-5 w-5 text-blue-600" />
-              <label htmlFor="appointment-date" className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              <Calendar className="h-5 w-5 text-foreground" />
+              <label htmlFor="appointment-date" className="text-sm font-medium text-foreground">
                 Afspraken voor:
               </label>
               <input
@@ -220,7 +220,7 @@ export default function AfsprakenPage() {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-gray-300 bg-white text-foreground rounded-lg focus:ring-2 focus:ring-ring"
               />
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-300">
@@ -229,11 +229,11 @@ export default function AfsprakenPage() {
           </div>
 
           {/* Info Banner */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+          <div className="bg-accent/10 border border-border rounded-lg p-4 mb-6">
             <div className="flex items-start justify-between">
               <div className="flex">
-                <Clock className="h-5 w-5 text-blue-400 mr-2" />
-                <div className="text-sm text-blue-700 dark:text-blue-300">
+                <Clock className="h-5 w-5 text-foreground mr-2" />
+                <div className="text-sm text-foreground">
                   <p><strong>Belangrijk:</strong> Afspraken worden automatisch opgeruimd na afloop van de dag.</p>
                   <p>Standaard worden afspraken voor <strong>overmorgen</strong> getoond.</p>
                 </div>
@@ -244,32 +244,32 @@ export default function AfsprakenPage() {
 
         {/* Summary Statistics */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 p-4">
+          <div className="bg-card rounded-lg shadow border border-border p-4">
             <div className="flex items-center">
-              <MessageSquare className="h-8 w-8 text-blue-600 mr-3" />
+              <MessageSquare className="h-8 w-8 text-foreground mr-3" />
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Totaal Opmerkingen</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{isClient ? remarksData.length : 0}</p>
+                <p className="text-sm text-muted-foreground">Opmerkingen</p>
+                <p className="text-2xl font-bold text-foreground">{isClient ? remarksData.length : 0}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 p-4">
+          <div className="bg-card rounded-lg shadow border border-border p-4">
             <div className="flex items-center">
-              <MapPin className="h-8 w-8 text-blue-600 mr-3" />
+              <MapPin className="h-8 w-8 text-foreground mr-3" />
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Noord</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-2xl font-bold text-foreground">
                   {isClient ? remarksData.filter(r => r.building === 'Noord').length : 0}
                 </p>
               </div>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 p-4">
+          <div className="bg-card rounded-lg shadow border border-border p-4">
             <div className="flex items-center">
-              <MapPin className="h-8 w-8 text-orange-600 mr-3" />
+              <MapPin className="h-8 w-8 text-foreground mr-3" />
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Zuid</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <p className="text-2xl font-bold text-foreground">
                   {isClient ? remarksData.filter(r => r.building === 'Zuid').length : 0}
                 </p>
               </div>
@@ -278,21 +278,21 @@ export default function AfsprakenPage() {
         </div>
 
         {/* Remarks List */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 overflow-hidden">
+        <div className="bg-card rounded-lg shadow border border-border overflow-hidden">
           <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100 mb-4">
+            <h3 className="text-lg leading-6 font-medium text-foreground mb-4">
               Opmerkingen per Bewoner
             </h3>
             
             {isClient && remarksData.length > 0 ? (
               <div className="space-y-4">
                 {remarksData.map((item) => (
-                  <div key={`${item.id}-${item.building}`} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                  <div key={`${item.id}-${item.building}`} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            item.building === 'Noord' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
+                            item.building === 'Noord' ? 'bg-accent text-accent-foreground' : 'bg-accent text-accent-foreground'
                           }`}>
                             {item.building}
                           </span>
@@ -300,20 +300,20 @@ export default function AfsprakenPage() {
                             Afspraak
                           </span>
                           {item.appointmentDate && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent text-accent-foreground">
                               {getShortFormattedDatePlusOne(item.appointmentDate)}
                             </span>
                           )}
-                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <span className="text-sm font-medium text-foreground">
                             Kamer {item.room} - Bed {item.bedNumber || 'N/A'}
                           </span>
-                          <span className="text-sm text-gray-500 dark:text-gray-400">#{item.badge}</span>
+                          <span className="text-sm text-gray-500 dark:text-muted-foreground">#{item.badge}</span>
                         </div>
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{item.name}</h4>
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-md p-3">
+                        <h4 className="text-lg font-semibold text-foreground mb-2">{item.name}</h4>
+                        <div className="bg-muted rounded-md p-3">
                           <div className="flex items-start">
-                            <MessageSquare className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
-                            <span className="inline-block text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 bg-yellow-100 dark:bg-yellow-800/40 px-2 py-1 rounded">
+                            <MessageSquare className="h-4 w-4 text-muted-foreground mr-2 mt-0.5 flex-shrink-0" />
+                            <span className="inline-block text-sm sm:text-base font-semibold text-foreground bg-yellow-100 px-2 py-1 rounded">
                               {item.remarks}
                             </span>
                           </div>
@@ -328,7 +328,7 @@ export default function AfsprakenPage() {
                               deleteAppointment(residentId);
                             }
                           }}
-                          className="inline-flex items-center p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors duration-200"
+                          className="inline-flex items-center p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors duration-200"
                           title="Afspraak verwijderen"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -340,8 +340,8 @@ export default function AfsprakenPage() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Geen opmerkingen</h3>
+                <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-2 text-sm font-medium text-foreground">Geen opmerkingen</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-300">
                   {isClient ? 
                     'Er zijn momenteel geen opmerkingen genoteerd voor bewoners.' :

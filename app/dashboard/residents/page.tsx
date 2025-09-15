@@ -122,11 +122,11 @@ export default function ResidentsPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 bg-white dark:bg-gray-800 min-h-screen transition-colors">
+      <div className="p-6 bg-card min-h-screen transition-colors">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 font-title">Residents Management</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-300">Manage asylum center residents and their information</p>
+          <h1 className="text-2xl font-bold text-foreground font-title">Residents Management</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage asylum center residents and their information</p>
         </div>
 
         {/* Filters and Search */}
@@ -135,11 +135,11 @@ export default function ResidentsPage() {
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Search by name or badge number..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-black dark:text-gray-100"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-white text-black dark:text-gray-100"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -149,7 +149,7 @@ export default function ResidentsPage() {
             {/* Filters */}
             <div className="flex gap-2">
               <select
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 bg-white text-foreground rounded-lg focus:ring-2 focus:ring-ring"
                 value={filterRoom}
                 onChange={(e) => setFilterRoom(e.target.value)}
               >
@@ -160,7 +160,7 @@ export default function ResidentsPage() {
               </select>
 
               <select
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 bg-white text-foreground rounded-lg focus:ring-2 focus:ring-ring"
                 value={filterNationality}
                 onChange={(e) => setFilterNationality(e.target.value)}
               >
@@ -172,7 +172,7 @@ export default function ResidentsPage() {
 
               <button 
                 onClick={() => setIsAddModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 flex items-center gap-2"
+                className="px-4 py-2 bg-foreground text-white rounded-lg hover:bg-foreground/90 flex items-center gap-2"
               >
                 <Plus className="h-5 w-5" />
                 Add Resident
@@ -182,7 +182,7 @@ export default function ResidentsPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden border dark:border-gray-700">
+        <div className="bg-card shadow-sm rounded-lg overflow-hidden border border-border">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-teal-700 dark:bg-teal-800">
               <tr>
@@ -212,17 +212,17 @@ export default function ResidentsPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
+            <tbody className="bg-card divide-y divide-gray-200 dark:divide-gray-600">
               {filteredResidents.map((resident) => (
                 <tr key={resident.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                     {resident.badge}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     {resident.name || `${resident.firstName} ${resident.lastName}`}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                    <span className="px-2 py-1 text-xs font-medium bg-accent text-accent-foreground rounded-full">
                       {resident.block}/{resident.room}
                     </span>
                   </td>
@@ -236,7 +236,7 @@ export default function ResidentsPage() {
                     {resident.daysOfStay} days
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-accent text-accent-foreground">
                       {resident.status}
                     </span>
                   </td>
@@ -244,7 +244,7 @@ export default function ResidentsPage() {
                     <div className="flex space-x-2">
                       <button 
                         onClick={() => handleViewResident(resident)}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="text-foreground hover:text-foreground/80"
                         title="View resident"
                       >
                         <Eye className="h-4 w-4" />
@@ -258,7 +258,7 @@ export default function ResidentsPage() {
                       </button>
                       <button 
                         onClick={() => handleDeleteResident(resident.id)}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-destructive hover:text-destructive/80"
                         title="Delete resident"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -278,10 +278,10 @@ export default function ResidentsPage() {
             <span className="font-medium">{residents.length}</span> residents
           </div>
           <div className="flex space-x-2">
-            <button className="px-3 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm hover:bg-gray-50 dark:hover:bg-gray-600">
+            <button className="px-3 py-1 border border-gray-300 bg-white text-foreground rounded-md text-sm hover:bg-gray-50 dark:hover:bg-gray-600">
               Previous
             </button>
-            <button className="px-3 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm hover:bg-gray-50 dark:hover:bg-gray-600">
+            <button className="px-3 py-1 border border-gray-300 bg-white text-foreground rounded-md text-sm hover:bg-gray-50 dark:hover:bg-gray-600">
               Next
             </button>
           </div>

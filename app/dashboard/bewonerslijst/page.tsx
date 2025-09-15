@@ -89,20 +89,20 @@ function BewonerslijstPageContent() {
         {/* Header - Matching PDF Layout */}
         <div className="mb-8">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 font-title">OOC STEENOKKERZEEL</h1>
+            <h1 className="text-2xl font-bold text-foreground font-title">OOC STEENOKKERZEEL</h1>
           </div>
           
-          <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-6 border dark:border-gray-700">
+          <div className="bg-card shadow-sm rounded-lg p-4 mb-6 border border-border">
             <div className="grid grid-cols-3 gap-4 items-center">
-              <div className="bg-yellow-200 dark:bg-yellow-600 px-3 py-2 text-center font-semibold text-black dark:text-white">
+              <div className="bg-yellow-200 px-3 py-2 text-center font-semibold text-black">
                 Bewonerslijst
               </div>
-              <div className="text-center text-gray-900 dark:text-gray-100">
+              <div className="text-center text-foreground">
                 {formatDate(new Date())}
               </div>
               <div className="text-right">
-                <div className="text-black dark:text-gray-100">Aantal: <span className="font-bold">{bewonerslijst.length}</span> jongeren</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Gemiddeld verblijf</div>
+                <div className="text-foreground">Aantal: <span className="font-bold">{bewonerslijst.length}</span> jongeren</div>
+                <div className="text-sm text-muted-foreground">Gemiddeld verblijf</div>
               </div>
             </div>
           </div>
@@ -114,11 +114,11 @@ function BewonerslijstPageContent() {
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Zoek op naam, badge, nationaliteit..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black dark:text-gray-100 bg-white dark:bg-gray-700"
+                  className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-primary text-foreground bg-background"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -127,7 +127,7 @@ function BewonerslijstPageContent() {
 
             {/* Status Filter */}
             <select
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-black dark:text-gray-100"
+              className="px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring bg-background text-foreground"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
@@ -140,7 +140,7 @@ function BewonerslijstPageContent() {
             <select
               value={printOrientation}
               onChange={(e) => setPrintOrientation(e.target.value as 'portrait' | 'landscape')}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-black dark:text-gray-100"
+              className="px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring bg-background text-foreground"
             >
               <option value="portrait">Portrait</option>
               <option value="landscape">Landscape</option>
@@ -149,7 +149,7 @@ function BewonerslijstPageContent() {
             {/* Print Button */}
             <button
               onClick={() => window.print()}
-              className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 flex items-center gap-2 transition-colors"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 focus:ring-2 focus:ring-ring flex items-center gap-2 transition-colors"
             >
               <Printer className="h-5 w-5" />
               Print ({printOrientation === 'portrait' ? 'Portrait' : 'Landscape'})
@@ -159,10 +159,10 @@ function BewonerslijstPageContent() {
         </div>
 
         {/* Table */}
-        <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden border dark:border-gray-700">
+        <div className="bg-card shadow-sm rounded-lg overflow-hidden border border-border">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
-              <thead className="bg-teal-700 dark:bg-teal-800 text-white">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-teal-700 text-white">
                 <tr>
                   <th className="px-2 py-2 text-left text-xs font-medium uppercase tracking-tight" style={{fontSize: '0.625rem'}}>
                     Badge
@@ -205,46 +205,46 @@ function BewonerslijstPageContent() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
+              <tbody className="bg-card divide-y divide-border">
                 {filteredResidents.map((resident, index) => (
-                  <tr key={resident.id} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} hover:bg-blue-50 dark:hover:bg-gray-600 transition-colors`}>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <tr key={resident.id} className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} hover:bg-accent transition-colors`}>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground">
                       {resident.badge}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.lastName}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.firstName}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.room}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.nationality}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.ovNumber}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.registerNumber}
                     </td>
-                    <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100" style={{minWidth: '90px'}}>
+                    <td className="px-2 py-3 whitespace-nowrap text-xs text-foreground" style={{minWidth: '90px'}}>
                       <span style={{display: 'inline-block', whiteSpace: 'nowrap'}}>{formatDate(resident.dateOfBirth)}</span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.age}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.gender === 'M' ? 'Mannelijk' : 'Vrouwelijk'}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.referencePerson}
                     </td>
-                    <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100" style={{minWidth: '90px'}}>
+                    <td className="px-2 py-3 whitespace-nowrap text-xs text-foreground" style={{minWidth: '90px'}}>
                       <span style={{display: 'inline-block', whiteSpace: 'nowrap'}}>{formatDate(resident.dateIn)}</span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.daysOfStay}
                     </td>
                   </tr>
@@ -255,7 +255,7 @@ function BewonerslijstPageContent() {
         </div>
 
         {/* Summary */}
-        <div className="mt-4 flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
+        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
           <div>
             Toont <span className="font-medium">{filteredResidents.length}</span> van{' '}
             <span className="font-medium">{bewonerslijst.length}</span> bewoners

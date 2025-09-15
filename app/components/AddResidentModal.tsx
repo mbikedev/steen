@@ -182,16 +182,16 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-card rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-hidden border border-border shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
-            <UserPlus className="h-6 w-6 text-blue-600" />
-            <h2 className="text-xl font-bold text-gray-900">Nieuwe Bewoner Toevoegen - Dashboard</h2>
+            <UserPlus className="h-6 w-6 text-primary" />
+            <h2 className="text-xl font-bold text-card-foreground">Nieuwe Bewoner Toevoegen - Dashboard</h2>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="h-6 w-6" />
           </button>
@@ -201,7 +201,7 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
           {/* Row 1: Badge, Naam, Voornaam */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Badge *
               </label>
               <input
@@ -210,13 +210,13 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
                 value={formData.badge}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
                 placeholder="Badge nummer"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Naam (Achternaam) *
               </label>
               <input
@@ -225,13 +225,13 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
                 value={formData.naam}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
                 placeholder="Achternaam"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Voornaam *
               </label>
               <input
@@ -240,7 +240,7 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
                 value={formData.voornaam}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
                 placeholder="Voornaam"
               />
             </div>
@@ -249,7 +249,7 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
           {/* Row 2: Blok, Nationaliteit, Taal */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Blok (Kamer) *
               </label>
               <input
@@ -258,13 +258,13 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
                 value={formData.blok}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
                 placeholder="Bijv. 2.17"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Nationaliteit *
               </label>
               <input
@@ -273,22 +273,22 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
                 value={formData.nationaliteit}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
                 placeholder="Nationaliteit"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Taal (Language)
-                <span className="text-xs text-gray-500 ml-1">(auto-filled)</span>
+                <span className="text-xs text-muted-foreground ml-1">(auto-filled)</span>
               </label>
               {availableLanguages.length > 0 ? (
                 <select
                   name="language"
                   value={formData.language}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                  className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
                 >
                   <option value="">Selecteer een taal...</option>
                   {availableLanguages.map((lang, index) => (
@@ -303,7 +303,7 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
                   name="language"
                   value={formData.language}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                  className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
                   placeholder="Voer eerst nationaliteit in"
                 />
               )}
@@ -313,31 +313,31 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
           {/* Row 3: OV Nummer, Rijkregisternr */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 OV Nummer
-                <span className="text-xs text-gray-500 ml-1">(leeg = 0000000)</span>
+                <span className="text-xs text-muted-foreground ml-1">(leeg = 0000000)</span>
               </label>
               <input
                 type="text"
                 name="ovNummer"
                 value={formData.ovNummer}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
                 placeholder="Laat leeg voor standaard (0000000)"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Rijkregisternr
-                <span className="text-xs text-gray-500 ml-1">(leeg = 0FICT+badge+A)</span>
+                <span className="text-xs text-muted-foreground ml-1">(leeg = 0FICT+badge+A)</span>
               </label>
               <input
                 type="text"
                 name="rijkregisternr"
                 value={formData.rijkregisternr}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
                 placeholder="Laat leeg voor standaard (0FICT+badge+A)"
               />
             </div>
@@ -346,7 +346,7 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
           {/* Row 4: Geboortedatum, Leeftijd, Geslacht */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Geboortedatum *
               </label>
               <input
@@ -355,12 +355,12 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
                 value={formData.geboortedatum}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Leeftijd
               </label>
               <input
@@ -368,14 +368,14 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
                 name="leeftijd"
                 value={formData.leeftijd}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black bg-gray-50"
+                className="w-full px-3 py-2 border border-input bg-muted rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
                 placeholder="Auto-berekend"
                 readOnly
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Geslacht *
               </label>
               <select
@@ -383,7 +383,7 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
                 value={formData.geslacht}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
               >
                 <option value="Mannelijk">Mannelijk</option>
                 <option value="Vrouwelijk">Vrouwelijk</option>
@@ -393,7 +393,7 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
 
           {/* Row 5: Referentiepersoon */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Referentiepersoon
             </label>
             <input
@@ -401,7 +401,7 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
               name="referentiepersoon"
               value={formData.referentiepersoon}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+              className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
               placeholder="Naam van referentiepersoon"
             />
           </div>
@@ -409,7 +409,7 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
           {/* Row 6: Datum In, Dagen Verblijf */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Datum In *
               </label>
               <input
@@ -418,12 +418,12 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
                 value={formData.datumIn}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                className="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Dagen Verblijf
               </label>
               <input
@@ -431,7 +431,7 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
                 name="dagenVerblijf"
                 value={formData.dagenVerblijf}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black bg-gray-50"
+                className="w-full px-3 py-2 border border-input bg-muted rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
                 placeholder="Auto-berekend"
                 readOnly
               />
@@ -440,8 +440,8 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
 
 
           {/* Info Note */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-800">
+          <div className="bg-muted border border-border rounded-lg p-3">
+            <p className="text-sm text-muted-foreground">
               <strong>Let op:</strong> 
               <br />• Leeftijd en Dagen Verblijf worden automatisch berekend op basis van de ingevoerde datums.
               <br />• Taal wordt automatisch ingevuld op basis van nationaliteit (kan handmatig aangepast worden).
@@ -451,17 +451,17 @@ export default function AddResidentModal({ isOpen, onClose, onSubmit }: AddResid
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 pt-4 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              className="flex-1 px-4 py-2 border border-input text-foreground rounded-lg hover:bg-accent"
             >
               Annuleren
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center justify-center gap-2"
             >
               <UserPlus className="h-4 w-4" />
               Bewoner Toevoegen

@@ -107,15 +107,15 @@ export default function KeukenlijstPage() {
         {/* Header - Matching PDF Layout */}
         <div className="mb-8">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 font-title">STEENOKKERZEEL KEUKENLIJST</h1>
+            <h1 className="text-2xl font-bold text-foreground font-title">STEENOKKERZEEL KEUKENLIJST</h1>
           </div>
           
-          <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-6 border dark:border-gray-700">
+          <div className="bg-card shadow-sm rounded-lg p-4 mb-6 border border-border">
             <div className="flex justify-between items-center">
-              <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <div className="text-lg font-semibold text-foreground">
                 {formatDate(new Date())}
               </div>
-              <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <div className="text-lg font-semibold text-foreground">
                 {keukenlijst.length} p
               </div>
             </div>
@@ -128,11 +128,11 @@ export default function KeukenlijstPage() {
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Zoek op naam, badge, kamer..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black dark:text-gray-100 bg-white dark:bg-gray-700"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -141,7 +141,7 @@ export default function KeukenlijstPage() {
 
             {/* Room Filter */}
             <select
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-black dark:text-gray-100"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ring bg-white text-black dark:text-gray-100"
               value={filterRoom}
               onChange={(e) => setFilterRoom(e.target.value)}
             >
@@ -155,7 +155,7 @@ export default function KeukenlijstPage() {
             <select
               value={printOrientation}
               onChange={(e) => setPrintOrientation(e.target.value as 'portrait' | 'landscape')}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-black dark:text-gray-100"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ring bg-white text-black dark:text-gray-100"
             >
               <option value="portrait">Portrait</option>
               <option value="landscape">Landscape</option>
@@ -164,7 +164,7 @@ export default function KeukenlijstPage() {
             {/* Print Button */}
             <button
               onClick={() => window.print()}
-              className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 flex items-center gap-2 transition-colors"
+              className="px-4 py-2 bg-foreground text-white rounded-lg hover:bg-foreground/90 focus:ring-2 focus:ring-ring flex items-center gap-2 transition-colors"
             >
               <Printer className="h-5 w-5" />
               Print ({printOrientation === 'portrait' ? 'Portrait' : 'Landscape'})
@@ -175,10 +175,10 @@ export default function KeukenlijstPage() {
 
 
         {/* Table */}
-        <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden border dark:border-gray-700">
+        <div className="bg-card shadow-sm rounded-lg overflow-hidden border border-border">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
-              <thead className="bg-teal-700 dark:bg-teal-800 text-white">
+              <thead className="bg-teal-700 text-white">
                 <tr>
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Badge
@@ -212,22 +212,22 @@ export default function KeukenlijstPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
+              <tbody className="bg-card divide-y divide-gray-200 dark:divide-gray-600">
                 {filteredData.map((resident, index) => (
-                  <tr key={resident.id} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} hover:bg-blue-50 dark:hover:bg-gray-600 transition-colors`}>
-                    <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <tr key={resident.id} className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} hover:bg-accent/50 transition-colors`}>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-foreground">
                       {resident.badge}
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.lastName}
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.firstName}
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-foreground">
                       {resident.room}
                     </td>
-                    <td className="px-3 py-3 text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-3 py-3 text-sm text-foreground">
                       {(() => {
                         // Check if this resident is being edited
                         const isEditing = editingRemarks[resident.id] !== undefined;
@@ -241,7 +241,7 @@ export default function KeukenlijstPage() {
                                 ...editingRemarks,
                                 [resident.id]: e.target.value
                               })}
-                              className="flex-1 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black dark:text-gray-100 bg-white dark:bg-gray-700"
+                              className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
                               placeholder="Opmerking toevoegen..."
                               autoFocus
                             />
@@ -254,7 +254,7 @@ export default function KeukenlijstPage() {
                                 delete newEditing[resident.id];
                                 setEditingRemarks(newEditing);
                               }}
-                              className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                              className="px-2 py-1 bg-foreground text-white text-xs rounded hover:bg-foreground/90"
                             >
                               ✓
                             </button>
@@ -277,14 +277,14 @@ export default function KeukenlijstPage() {
                                 [resident.id]: resident.remarks || ''
                               });
                             }}
-                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded min-h-[24px]"
+                            className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-[24px]"
                           >
                             {resident.remarks ? (
-                              <span className="bg-yellow-300 dark:bg-yellow-900 px-2 py-1 text-xs font-medium rounded text-blue-800 dark:text-blue-200">
+                              <span className="bg-yellow-300 px-2 py-1 text-xs font-medium rounded text-accent-foreground">
                                 {resident.remarks}
                               </span>
                             ) : (
-                              <span className="text-gray-400 text-xs">Klik om opmerking toe te voegen</span>
+                              <span className="text-muted-foreground text-xs">Klik om opmerking toe te voegen</span>
                             )}
                           </div>
                         );
@@ -296,7 +296,7 @@ export default function KeukenlijstPage() {
                         type="checkbox"
                         checked={resident.ontbijt || false}
                         onChange={() => handleMealTimeToggle(resident.id, 'ontbijt', resident.ontbijt)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                        className="h-4 w-4 text-foreground focus:ring-ring border-gray-300 rounded cursor-pointer"
                       />
                     </td>
                     {/* Middag */}
@@ -305,7 +305,7 @@ export default function KeukenlijstPage() {
                         type="checkbox"
                         checked={resident.middag || false}
                         onChange={() => handleMealTimeToggle(resident.id, 'middag', resident.middag)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                        className="h-4 w-4 text-foreground focus:ring-ring border-gray-300 rounded cursor-pointer"
                       />
                     </td>
                     {/* 16 u */}
@@ -314,7 +314,7 @@ export default function KeukenlijstPage() {
                         type="checkbox"
                         checked={resident.snack16 || false}
                         onChange={() => handleMealTimeToggle(resident.id, 'snack16', resident.snack16)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                        className="h-4 w-4 text-foreground focus:ring-ring border-gray-300 rounded cursor-pointer"
                       />
                     </td>
                     {/* Avond */}
@@ -323,7 +323,7 @@ export default function KeukenlijstPage() {
                         type="checkbox"
                         checked={resident.avond || false}
                         onChange={() => handleMealTimeToggle(resident.id, 'avond', resident.avond)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                        className="h-4 w-4 text-foreground focus:ring-ring border-gray-300 rounded cursor-pointer"
                       />
                     </td>
                     {/* 21 u */}
@@ -332,7 +332,7 @@ export default function KeukenlijstPage() {
                         type="checkbox"
                         checked={resident.snack21 || false}
                         onChange={() => handleMealTimeToggle(resident.id, 'snack21', resident.snack21)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                        className="h-4 w-4 text-foreground focus:ring-ring border-gray-300 rounded cursor-pointer"
                       />
                     </td>
                   </tr>

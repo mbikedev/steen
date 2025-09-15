@@ -664,7 +664,7 @@ function DataMatchItPageContent() {
               onChange={(e) => handleEditChange(resident.id, field, e.target.value)}
               onBlur={() => saveEdit(resident.id, field)}
               onKeyDown={(e) => handleKeyPress(e, resident.id, field)}
-              className="w-full px-1 py-1 text-xs border dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-black dark:text-gray-100"
+              className="w-full px-1 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-ring bg-background text-foreground"
               autoFocus
             >
               <option value="M">Mannelijk</option>
@@ -681,7 +681,7 @@ function DataMatchItPageContent() {
               onChange={(e) => handleEditChange(resident.id, field, e.target.value)}
               onBlur={() => saveEdit(resident.id, field)}
               onKeyDown={(e) => handleKeyPress(e, resident.id, field)}
-              className="w-full px-1 py-1 text-xs border dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-black dark:text-gray-100"
+              className="w-full px-1 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-ring bg-background text-foreground"
               autoFocus
             />
           </div>
@@ -691,7 +691,7 @@ function DataMatchItPageContent() {
 
     return (
       <div
-        className="cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-800/30 px-1 py-1 rounded text-xs"
+        className="cursor-pointer hover:bg-yellow-100 px-1 py-1 rounded text-xs"
         onClick={() => startEditing(resident.id, field, value)}
         title="Klik om te bewerken"
       >
@@ -1095,13 +1095,13 @@ function DataMatchItPageContent() {
 
   return (
     <DashboardLayout>
-      <div className="p-3 sm:p-6 bg-white dark:bg-gray-800 min-h-screen transition-colors">
+      <div className="p-3 sm:p-6 bg-card min-h-screen transition-colors">
         {/* Header - Responsive Layout */}
         <div className="mb-6 sm:mb-8">
-          <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 border dark:border-gray-700">
+          <div className="bg-card shadow-sm rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 border border-border">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
               {/* Title Section */}
-              <div className="bg-blue-200 dark:bg-blue-600 px-3 py-2 text-center font-semibold text-black dark:text-white rounded">
+              <div className="bg-primary px-3 py-2 text-center font-semibold text-primary-foreground rounded">
                 <div className="text-lg md:text-xl font-bold">DATA-MATCH-IT</div>
                 <div className="text-sm mt-1 capitalize">
                   {currentView === 'keukenlijst' ? 'Keukenlijst' : 'Bewonerslijst'}
@@ -1109,16 +1109,16 @@ function DataMatchItPageContent() {
               </div>
               
               {/* Date Section */}
-              <div className="text-center text-gray-900 dark:text-gray-100 order-3 md:order-2">
+              <div className="text-center text-foreground order-3 md:order-2">
                 <div className="text-sm md:text-base">{formatDate(new Date())}</div>
               </div>
               
               {/* Stats Section */}
               <div className="text-center md:text-right order-2 md:order-3">
-                <div className="text-black dark:text-gray-100 text-sm md:text-base">
+                <div className="text-black text-sm md:text-base">
                   Aantal: <span className="font-bold">{getCurrentDataSource().length}</span> bewoners
                 </div>
-                <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-xs md:text-sm text-muted-foreground">
                   Gefilterd: <span className="font-bold">{filteredData.length}</span>
                 </div>
               </div>
@@ -1129,15 +1129,15 @@ function DataMatchItPageContent() {
 
         {/* Data Loading Error Alert */}
         {error && dataMatchIt.length === 0 && !isLoading && (
-          <div className="mb-4 border rounded-lg p-3 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
+          <div className="mb-4 border rounded-lg p-3 bg-destructive/10 border-destructive">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-red-800 dark:text-red-200">
+                <p className="text-sm text-foreground">
                   ❌ Fout bij laden van data: {error}. Probeer de "Sync Database" knop om opnieuw te laden.
                 </p>
               </div>
@@ -1147,7 +1147,7 @@ function DataMatchItPageContent() {
 
         {/* No Data Alert */}
         {!error && dataMatchIt.length === 0 && !isLoading && (
-          <div className="mb-4 border rounded-lg p-3 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+          <div className="mb-4 border rounded-lg p-3 bg-yellow-50 border-yellow-200 dark:border-yellow-800">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1167,23 +1167,23 @@ function DataMatchItPageContent() {
         {dbSyncStatus.type && (
           <div className={`mb-4 border rounded-lg p-3 ${
             dbSyncStatus.type === 'success' 
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
+              ? 'bg-accent/10 border-border'
               : dbSyncStatus.type === 'error'
-              ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-              : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+              ? 'bg-destructive/10 border-destructive'
+              : 'bg-muted border-border'
           }`}>
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 {dbSyncStatus.type === 'success' ? (
-                  <svg className="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 ) : dbSyncStatus.type === 'error' ? (
-                  <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 ) : (
-                  <svg className="h-5 w-5 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-foreground animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -1192,10 +1192,10 @@ function DataMatchItPageContent() {
               <div className="ml-3">
                 <p className={`text-sm ${
                   dbSyncStatus.type === 'success' 
-                    ? 'text-green-800 dark:text-green-200' 
+                    ? 'text-foreground'
                     : dbSyncStatus.type === 'error'
-                    ? 'text-red-800 dark:text-red-200'
-                    : 'text-blue-800 dark:text-blue-200'
+                    ? 'text-destructive'
+                    : 'text-muted-foreground'
                 }`}>{dbSyncStatus.message}</p>
               </div>
             </div>
@@ -1204,15 +1204,15 @@ function DataMatchItPageContent() {
 
         {/* Debug Info */}
         {lastPasteDebug && (
-          <div className="mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+          <div className="mb-4 bg-accent/10 border border-border rounded-lg p-3">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-green-800 dark:text-green-200">{lastPasteDebug}</p>
+                <p className="text-sm text-foreground">{lastPasteDebug}</p>
               </div>
             </div>
           </div>
@@ -1223,11 +1223,11 @@ function DataMatchItPageContent() {
           {/* Search Bar */}
           <div className="w-full">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Zoek op badge, naam, nationaliteit, kamer..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-black dark:text-gray-100"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -1248,8 +1248,8 @@ function DataMatchItPageContent() {
               disabled={!canUndo}
               className={`px-2 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
                 !canUndo
-                  ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-800'
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-foreground text-white hover:bg-foreground/90 dark:hover:bg-foreground/80'
               }`}
               title="Ongedaan maken (Ctrl+Z)"
             >
@@ -1269,8 +1269,8 @@ function DataMatchItPageContent() {
               disabled={!canRedo}
               className={`px-2 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
                 !canRedo
-                  ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-800'
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-foreground text-white hover:bg-foreground/90 dark:hover:bg-foreground/80'
               }`}
               title="Opnieuw (Ctrl+Shift+Z)"
             >
@@ -1285,8 +1285,8 @@ function DataMatchItPageContent() {
               disabled={selectedResidents.size === 0}
               className={`px-2 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1 ${
                 selectedResidents.size === 0
-                  ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                  : 'bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800'
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-destructive text-white hover:bg-destructive/90 dark:hover:bg-destructive/80'
               }`}
             >
               <Trash2 className="h-4 w-4 flex-shrink-0" />
@@ -1299,7 +1299,7 @@ function DataMatchItPageContent() {
             <button 
               onClick={handlePasteUsers}
               disabled={isPasting}
-              className="px-2 sm:px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-800 flex items-center justify-center gap-1 sm:gap-2 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-xs sm:text-sm col-span-2 sm:col-span-1"
+              className="px-2 sm:px-4 py-2 bg-foreground text-white rounded-lg hover:bg-foreground/90 flex items-center justify-center gap-1 sm:gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed text-xs sm:text-sm col-span-2 sm:col-span-1"
             >
               <Clipboard className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">{isPasting ? 'Plakken...' : 'Plakken'}</span>
@@ -1308,7 +1308,7 @@ function DataMatchItPageContent() {
             {/* Excel Upload Button */}
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="px-2 sm:px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-800 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
+              className="px-2 sm:px-4 py-2 bg-foreground text-white rounded-lg hover:bg-foreground/90 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
             >
               <Upload className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Excel</span>
@@ -1326,7 +1326,7 @@ function DataMatchItPageContent() {
             {/* Add User Button */}
             <button 
               onClick={() => setIsAddUserModalOpen(true)}
-              className="px-2 sm:px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
+              className="px-2 sm:px-4 py-2 bg-foreground text-white rounded-lg hover:bg-foreground/90 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
             >
               <UserPlus className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Toevoegen</span>
@@ -1336,63 +1336,63 @@ function DataMatchItPageContent() {
         </div>
 
         {/* Data Table - Matching PDF Layout */}
-        <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden border dark:border-gray-700">
+        <div className="bg-card shadow-sm rounded-lg overflow-hidden border border-border">
           <div className="overflow-x-auto">
             <table className="min-w-full">
-              <thead className="bg-teal-700 dark:bg-teal-800 text-white">
+              <thead className="bg-teal-700 text-white">
                 <tr>
-                  <th className="px-1 py-2 text-center font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 w-8 sm:w-12 text-xs">
+                  <th className="px-1 py-2 text-center font-bold uppercase tracking-tight border-r border-teal-600 w-8 sm:w-12 text-xs">
                     <input
                       type="checkbox"
                       checked={selectedResidents.size === filteredData.length && filteredData.length > 0}
                       onChange={handleSelectAll}
-                      className="rounded border-blue-300 text-blue-600 focus:ring-blue-500 scale-75 sm:scale-100"
+                      className="rounded border-foreground text-foreground focus:ring-ring scale-75 sm:scale-100"
                     />
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs">
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 text-xs">
                     <span className="hidden sm:inline">Externe referentie</span>
                     <span className="sm:hidden">Badge</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs">
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 text-xs">
                     <span className="hidden sm:inline">Achternaam</span>
                     <span className="sm:hidden">Achtern.</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs">
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 text-xs">
                     <span className="hidden sm:inline">Voornaam</span>
                     <span className="sm:hidden">Voorn.</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs">
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 text-xs">
                     <span className="hidden sm:inline">Wooneenheid</span>
                     <span className="sm:hidden">Kamer</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden md:table-cell">
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 text-xs hidden md:table-cell">
                     <span className="hidden lg:inline">Nationaliteit</span>
                     <span className="lg:hidden">Land</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden lg:table-cell">
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 text-xs hidden lg:table-cell">
                     <span className="hidden xl:inline">OV Nummer</span>
                     <span className="xl:hidden">OV Nr</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden lg:table-cell">
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 text-xs hidden lg:table-cell">
                     <span className="hidden xl:inline">Nationaal Nummer</span>
                     <span className="xl:hidden">Nat. Nr</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden md:table-cell">
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 text-xs hidden md:table-cell">
                     <span className="hidden lg:inline">Geboortedatum</span>
                     <span className="lg:hidden">Geboorte</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs">
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 text-xs">
                     <span className="hidden sm:inline">Leeftijd</span>
                     <span className="sm:hidden">Lft</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden sm:table-cell">
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 text-xs hidden sm:table-cell">
                     <span className="hidden md:inline">Geslacht</span>
                     <span className="md:hidden">M/V</span>
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden lg:table-cell">
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 text-xs hidden lg:table-cell">
                     REFERENT
                   </th>
-                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 dark:border-teal-700 text-xs hidden md:table-cell">
+                  <th className="px-1 py-2 text-left font-bold uppercase tracking-tight border-r border-teal-600 text-xs hidden md:table-cell">
                     <span className="hidden lg:inline">Aankomstdatum</span>
                     <span className="lg:hidden">Aankomst</span>
                   </th>
@@ -1402,11 +1402,11 @@ function DataMatchItPageContent() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800">
+              <tbody className="bg-card">
                 {filteredData.length === 0 ? (
                   <tr>
                     <td colSpan={20} className="px-4 sm:px-6 py-8 sm:py-12 text-center">
-                      <div className="text-gray-500 dark:text-gray-400">
+                      <div className="text-gray-500 dark:text-muted-foreground">
                         {isLoading ? (
                           <div className="flex items-center justify-center gap-2">
                             <RefreshCw className="h-5 w-5 animate-spin" />
@@ -1427,54 +1427,54 @@ function DataMatchItPageContent() {
                     </td>
                   </tr>
                 ) : filteredData.map((resident, index) => (
-                  <tr key={`${resident.id}-${resident.badge}-${index}`} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} border-b border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-gray-600`}>
+                  <tr key={`${resident.id}-${resident.badge}-${index}`} className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} border-b border-gray-200 hover:bg-accent/50 dark:hover:bg-gray-600`}>
                     <td className="px-1 sm:px-2 py-2 text-center border-r border-gray-200 dark:border-gray-600">
                       <input
                         type="checkbox"
                         checked={selectedResidents.has(resident.id)}
                         onChange={() => handleSelectResident(resident.id)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 scale-75 sm:scale-100"
+                        className="rounded border-input text-foreground focus:ring-ring scale-75 sm:scale-100"
                       />
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 font-medium">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground border-r border-gray-200 font-medium">
                       {renderEditableCell(resident, 'badge', resident.badge, 'number')}
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground border-r border-gray-200 dark:border-gray-600">
                       {renderEditableCell(resident, 'lastName', resident.lastName)}
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground border-r border-gray-200 dark:border-gray-600">
                       {renderEditableCell(resident, 'firstName', resident.firstName)}
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground border-r border-gray-200 dark:border-gray-600">
                       {renderEditableCell(resident, 'room', resident.room)}
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden md:table-cell">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground border-r border-gray-200 hidden md:table-cell">
                       {renderEditableCell(resident, 'nationality', resident.nationality)}
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden lg:table-cell">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground border-r border-gray-200 hidden lg:table-cell">
                       {renderEditableCell(resident, 'ovNumber', resident.ovNumber)}
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden lg:table-cell">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground border-r border-gray-200 hidden lg:table-cell">
                       {renderEditableCell(resident, 'registerNumber', resident.registerNumber)}
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden md:table-cell">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground border-r border-gray-200 hidden md:table-cell">
                       {renderEditableCell(resident, 'dateOfBirth', resident.dateOfBirth, 'date')}
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground border-r border-gray-200 dark:border-gray-600">
                       <div className="px-1 py-1" title="Leeftijd wordt automatisch berekend uit geboortedatum">
                         {resident.age || 0}
                       </div>
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden sm:table-cell">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground border-r border-gray-200 hidden sm:table-cell">
                       {renderEditableCell(resident, 'gender', resident.gender)}
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden lg:table-cell">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground border-r border-gray-200 hidden lg:table-cell">
                       {renderEditableCell(resident, 'referencePerson', resident.referencePerson)}
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 hidden md:table-cell">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground border-r border-gray-200 hidden md:table-cell">
                       {renderEditableCell(resident, 'dateIn', resident.dateIn, 'date')}
                     </td>
-                    <td className="px-1 sm:px-2 py-2 text-xs text-gray-900 dark:text-gray-100">
+                    <td className="px-1 sm:px-2 py-2 text-xs text-foreground">
                       <div className="flex items-center gap-1">
                         {resident.dateIn ? (
                           <span title={`Automatisch berekend vanaf ${formatDate(resident.dateIn)}`}>
@@ -1506,7 +1506,7 @@ function DataMatchItPageContent() {
               </div>
               <button
                 onClick={() => setShowDebugPanel(!showDebugPanel)}
-                className="text-xs text-gray-400 hover:text-gray-600 underline"
+                className="text-xs text-muted-foreground hover:text-gray-600 underline"
               >
                 {showDebugPanel ? 'Verberg debug' : 'Toon debug'}
               </button>
@@ -1516,8 +1516,8 @@ function DataMatchItPageContent() {
 
         {/* Debug Panel */}
         {showDebugPanel && (
-          <div className="mt-4 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Debug Informatie - Data Persistentie</h4>
+          <div className="mt-4 bg-muted border rounded-lg p-4">
+            <h4 className="text-sm font-medium text-foreground mb-2">Debug Informatie - Data Persistentie</h4>
             <div className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
               {(() => {
                 const storageInfo = getStorageInfo();
@@ -1540,12 +1540,12 @@ function DataMatchItPageContent() {
                         <strong>Laatst opgeslagen:</strong> {storageInfo.lastUpdated}
                       </div>
                     )}
-                    <div className="text-green-600">
+                    <div className="text-foreground">
                       <strong>Persistentie:</strong> ✅ Data blijft behouden bij pagina refresh en browser herstart
                     </div>
                   </>
                 ) : (
-                  <div className="text-red-600">❌ Fout bij laden storage informatie</div>
+                  <div className="text-foreground">❌ Fout bij laden storage informatie</div>
                 );
               })()}
               <div className="pt-2 border-t border-gray-200">
@@ -1556,7 +1556,7 @@ function DataMatchItPageContent() {
                       setShowDebugPanel(false);
                     }
                   }}
-                  className="px-3 py-1 bg-red-600 dark:bg-red-700 text-white text-xs rounded hover:bg-red-700 dark:hover:bg-red-800"
+                  className="px-3 py-1 bg-destructive text-white text-xs rounded hover:bg-destructive/90 dark:hover:bg-destructive/80"
                 >
                   Alle data wissen
                 </button>

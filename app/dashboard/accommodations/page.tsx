@@ -57,48 +57,48 @@ export default function AccommodationsPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 bg-white dark:bg-gray-800 min-h-screen transition-colors">
+      <div className="p-6 bg-card min-h-screen transition-colors">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 font-title">Accommodations Management</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-300">Manage rooms and bed assignments</p>
+          <h1 className="text-2xl font-bold text-foreground font-title">Accommodations Management</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage rooms and bed assignments</p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="bg-card p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
-              <Home className="h-8 w-8 text-blue-500" />
+              <Home className="h-8 w-8 text-foreground" />
               <div className="ml-3">
-                <p className="text-sm text-gray-500 dark:text-gray-300">Total Rooms</p>
-                <p className="text-xl font-semibold text-gray-900 dark:text-gray-100">{rooms.length}</p>
+                <p className="text-sm text-muted-foreground">Rooms</p>
+                <p className="text-xl font-semibold text-foreground">{rooms.length}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="bg-card p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
-              <Bed className="h-8 w-8 text-green-500" />
+              <Bed className="h-8 w-8 text-foreground" />
               <div className="ml-3">
-                <p className="text-sm text-gray-500 dark:text-gray-300">Total Beds</p>
-                <p className="text-xl font-semibold text-gray-900 dark:text-gray-100">{totalBeds}</p>
+                <p className="text-sm text-muted-foreground">Beds</p>
+                <p className="text-xl font-semibold text-foreground">{totalBeds}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="bg-card p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
               <Users className="h-8 w-8 text-yellow-500" />
               <div className="ml-3">
                 <p className="text-sm text-gray-500 dark:text-gray-300">Occupied</p>
-                <p className="text-xl font-semibold text-gray-900 dark:text-gray-100">{occupiedBeds}</p>
+                <p className="text-xl font-semibold text-foreground">{occupiedBeds}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="bg-card p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
               <MapPin className="h-8 w-8 text-purple-500" />
               <div className="ml-3">
                 <p className="text-sm text-gray-500 dark:text-gray-300">Available</p>
-                <p className="text-xl font-semibold text-gray-900 dark:text-gray-100">{availableBeds}</p>
+                <p className="text-xl font-semibold text-foreground">{availableBeds}</p>
               </div>
             </div>
           </div>
@@ -108,18 +108,18 @@ export default function AccommodationsPage() {
         <div className="mb-6 flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search by room number or resident name..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-black dark:text-gray-100"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ring bg-white text-black dark:text-gray-100"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
           <select
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-gray-300 bg-white text-foreground rounded-lg focus:ring-2 focus:ring-ring"
             value={filterBuilding}
             onChange={(e) => setFilterBuilding(e.target.value)}
           >
@@ -128,7 +128,7 @@ export default function AccommodationsPage() {
             <option value="Zuid">Zuid</option>
           </select>
           <select
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-gray-300 bg-white text-foreground rounded-lg focus:ring-2 focus:ring-ring"
             value={filterAvailability}
             onChange={(e) => setFilterAvailability(e.target.value)}
           >
@@ -136,7 +136,7 @@ export default function AccommodationsPage() {
             <option value="available">Available</option>
             <option value="full">Full</option>
           </select>
-          <button className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 flex items-center gap-2">
+          <button className="px-4 py-2 bg-foreground text-background rounded-lg hover:bg-foreground/90 flex items-center gap-2">
             <Plus className="h-5 w-5" />
             Add Room
           </button>
@@ -145,18 +145,18 @@ export default function AccommodationsPage() {
         {/* Rooms Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredRooms.map((room) => (
-            <div key={room.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow">
+            <div key={room.id} className="bg-card rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Room {room.number}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-300">{room.building} Building - Floor {room.floor}</p>
+                  <h3 className="text-lg font-semibold text-foreground">Room {room.number}</h3>
+                  <p className="text-sm text-muted-foreground">Building - Floor {room.floor}</p>
                 </div>
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                   room.occupied === room.capacity 
-                    ? 'bg-red-100 text-red-800' 
+                    ? 'bg-foreground/10 text-foreground' 
                     : room.occupied > 0 
                     ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-green-100 text-green-800'
+                    : 'bg-foreground/10 text-foreground'
                 }`}>
                   {room.occupied === room.capacity ? 'Full' : room.occupied > 0 ? 'Partial' : 'Empty'}
                 </span>
@@ -165,12 +165,12 @@ export default function AccommodationsPage() {
               <div className="mb-3">
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-gray-500 dark:text-gray-300">Occupancy</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{room.occupied}/{room.capacity}</span>
+                  <span className="font-medium text-foreground">{room.occupied}/{room.capacity}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
                     className={`h-2 rounded-full ${
-                      room.occupied === room.capacity ? 'bg-red-500' : 'bg-blue-500'
+                      room.occupied === room.capacity ? 'bg-foreground' : 'bg-foreground/70'
                     }`}
                     style={{ width: `${(room.occupied / room.capacity) * 100}%` }}
                   />
@@ -178,26 +178,26 @@ export default function AccommodationsPage() {
               </div>
 
               <div className="space-y-1">
-                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Current Residents:</p>
+                <p className="text-xs font-medium text-muted-foreground">Residents:</p>
                 {room.residents.length > 0 ? (
                   <ul className="text-xs text-gray-600 space-y-0.5">
                     {room.residents.slice(0, 3).map((resident, idx) => (
                       <li key={idx} className="truncate">• {resident}</li>
                     ))}
                     {room.residents.length > 3 && (
-                      <li className="text-gray-400">+{room.residents.length - 3} more</li>
+                      <li className="text-muted-foreground">+{room.residents.length - 3} more</li>
                     )}
                   </ul>
                 ) : (
-                  <p className="text-xs text-gray-400 dark:text-gray-500 italic">No residents</p>
+                  <p className="text-xs text-muted-foreground italic">No residents</p>
                 )}
               </div>
 
               <div className="mt-4 flex gap-2">
-                <button className="flex-1 px-3 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50">
+                <button className="flex-1 px-3 py-1 text-xs bg-accent text-accent-foreground rounded hover:bg-accent/80">
                   View Details
                 </button>
-                <button className="flex-1 px-3 py-1 text-xs bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
+                <button className="flex-1 px-3 py-1 text-xs bg-muted text-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
                   Manage
                 </button>
               </div>

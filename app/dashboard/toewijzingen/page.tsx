@@ -85,9 +85,65 @@ export default function ToewijzingenPage() {
     console.log('🚀🚀🚀 TOEWIJZINGEN PAGE USEEFFECT TRIGGERED - You should see this on page load!', new Date().toLocaleTimeString());
     setIsMounted(true);
     
-    // Load saved data - try database first, then localStorage fallback
+    // Load saved data - try localStorage first for speed, then database
     const loadData = async () => {
       console.log('📥 Starting loadData function');
+      
+      // Debug: Check localStorage content
+      try {
+        const savedData = localStorage.getItem('toewijzingen_persistent_data');
+        console.log('🔍 localStorage content check:', savedData ? 'DATA EXISTS' : 'NO DATA');
+        if (savedData) {
+          console.log('📝 localStorage data preview:', savedData.substring(0, 200) + '...');
+        }
+      } catch (e) {
+        console.error('❌ Error checking localStorage:', e);
+      }
+      
+      // First, try to load from localStorage for immediate restoration after refresh
+      try {
+        const savedData = localStorage.getItem('toewijzingen_persistent_data');
+        if (savedData) {
+          const persistenceData = JSON.parse(savedData);
+          const loadedAt = new Date(persistenceData.loadedAt);
+          const hoursSinceLoaded = (Date.now() - loadedAt.getTime()) / (1000 * 60 * 60);
+          
+          console.log('🔍 localStorage data analysis:', {
+            hasTableData: !!persistenceData.tableData,
+            tableDataLength: persistenceData.tableData?.length,
+            hasLoadedData: persistenceData.hasLoadedData,
+            assignmentDate: persistenceData.assignmentDate,
+            hoursSinceLoaded: Math.round(hoursSinceLoaded * 100) / 100
+          });
+          
+          // Use localStorage data if it's less than 24 hours old
+          if (hoursSinceLoaded < 24 && persistenceData.tableData && persistenceData.hasLoadedData) {
+            console.log(`📱 Restoring data from localStorage (loaded ${Math.round(hoursSinceLoaded * 100) / 100} hours ago)`);
+            
+            setTableData(persistenceData.tableData);
+            if (persistenceData.staffColumns) {
+              setStaffColumns(persistenceData.staffColumns);
+            }
+            if (persistenceData.assignmentDate) {
+              setCurrentAssignmentDate(persistenceData.assignmentDate);
+            }
+            setHasLoadedData(true);
+            
+            console.log(`✅ Data restored from localStorage for date: ${persistenceData.assignmentDate}`);
+            console.log('📊 Restored table data sample:', persistenceData.tableData[0]?.slice(0, 3));
+            return; // Exit early - data restored from localStorage
+          } else {
+            console.log(`🔄 localStorage data is too old (${Math.round(hoursSinceLoaded)} hours), loading fresh data from database`);
+            localStorage.removeItem('toewijzingen_persistent_data'); // Clear old data
+          }
+        } else {
+          console.log('📭 No localStorage data found, proceeding with database load');
+        }
+      } catch (localStorageError) {
+        console.warn('⚠️ Failed to load from localStorage:', localStorageError);
+      }
+      
+      // If localStorage failed or data is old, load from database
       try {
         // First try to load from database using current assignment date
         let assignmentDate = new Date().toISOString().split('T')[0]; // Today's date as default
@@ -163,6 +219,7 @@ export default function ToewijzingenPage() {
             setTableData(newTableData);
             
             // Update staff columns with data from database
+            let updatedStaffColumns = getDefaultStaffColumns();
             if (staffData.length > 0) {
               const newStaffColumns = [...staffColumns];
               staffData.forEach((staff: any) => {
@@ -177,10 +234,28 @@ export default function ToewijzingenPage() {
               });
               console.log(`👥 Setting staff data with ${staffData.length} records from database`);
               setStaffColumns(newStaffColumns);
+              updatedStaffColumns = newStaffColumns;
             }
             
             // Mark that we have successfully loaded data
             setHasLoadedData(true);
+            
+            // Save to localStorage for persistence across page refreshes
+            try {
+              const persistenceData = {
+                tableData: newTableData,
+                staffColumns: updatedStaffColumns,
+                assignmentDate: assignmentDate,
+                loadedAt: new Date().toISOString(),
+                hasLoadedData: true
+              };
+              localStorage.setItem('toewijzingen_persistent_data', JSON.stringify(persistenceData));
+              console.log(`💾 Data saved to localStorage for persistence across refreshes`);
+              console.log('📊 Saved table data sample:', newTableData[0]?.slice(0, 3));
+            } catch (localStorageError) {
+              console.warn('⚠️ Failed to save to localStorage:', localStorageError);
+            }
+            
             console.log(`💾 Data loaded and persisted for ${assignmentDate} - hasLoadedData: true`);
             return; // Exit early - data has been loaded
           } else {
@@ -284,18 +359,20 @@ export default function ToewijzingenPage() {
     return assignments;
   };
 
-  // Sync referentiepersoon with current assignments whenever tableData changes
-  useEffect(() => {
-    if (isMounted && dataMatchIt && tableData) {
-      try {
-        const currentAssignments = getCurrentToewijzingenAssignments();
-        syncReferentiepersoonWithToewijzingen(currentAssignments);
-      } catch (error) {
-        console.error('Error syncing referentiepersoon:', error);
-        // Don't show error to user for sync operations as they run automatically
-      }
-    }
-  }, [tableData, isMounted, dataMatchIt, setDataMatchIt]);
+  // Temporarily disable referentiepersoon sync to prevent ERR_INSUFFICIENT_RESOURCES
+  // This was causing excessive API calls every time tableData changed
+  
+  // Sync referentiepersoon with current assignments whenever tableData changes (DISABLED)
+  // useEffect(() => {
+  //   if (isMounted && dataMatchIt && tableData) {
+  //     try {
+  //       const currentAssignments = getCurrentToewijzingenAssignments();
+  //       syncReferentiepersoonWithToewijzingen(currentAssignments);
+  //     } catch (error) {
+  //       console.error('Error syncing referentiepersoon:', error);
+  //     }
+  //   }
+  // }, [tableData, isMounted, dataMatchIt, setDataMatchIt]);
 
   // Helper function to calculate string similarity (Levenshtein distance based)
   const calculateSimilarity = (str1: string, str2: string): number => {
@@ -900,7 +977,57 @@ export default function ToewijzingenPage() {
     }
   }, [tableData, isMounted]);
 
+  // Effect to save to localStorage whenever data actually changes (after state updates)
+  useEffect(() => {
+    // Only save if we have mounted and have actual data
+    if (!isMounted || !hasLoadedData) {
+      return;
+    }
+
+    // Count non-empty cells to verify we have actual data
+    const nonEmptyCells = tableData.flat().filter(cell => cell.text && cell.text.trim() !== '').length;
+    
+    if (nonEmptyCells > 0) {
+      try {
+        const persistenceData = {
+          tableData,
+          staffColumns,
+          assignmentDate: currentAssignmentDate,
+          loadedAt: new Date().toISOString(),
+          hasLoadedData: true
+        };
+        localStorage.setItem('toewijzingen_persistent_data', JSON.stringify(persistenceData));
+        console.log(`🔄 Data state changed - saved to localStorage (${nonEmptyCells} non-empty cells)`);
+      } catch (error) {
+        console.warn('⚠️ Failed to save state change to localStorage:', error);
+      }
+    }
+  }, [tableData, staffColumns, currentAssignmentDate, hasLoadedData, isMounted]);
+
   // Auto-save function with debouncing
+  // Manual test function for localStorage
+  const testLocalStorageSave = () => {
+    console.log('🧪 Testing localStorage save manually');
+    console.log('📊 Current tableData length:', tableData.length);
+    console.log('👥 Current staffColumns length:', staffColumns.length);
+    console.log('📅 Current assignment date:', currentAssignmentDate);
+    
+    try {
+      const persistenceData = {
+        tableData,
+        staffColumns,
+        assignmentDate: currentAssignmentDate,
+        loadedAt: new Date().toISOString(),
+        hasLoadedData: true
+      };
+      localStorage.setItem('toewijzingen_persistent_data', JSON.stringify(persistenceData));
+      console.log('✅ Test save to localStorage successful');
+      console.log('📝 Saved data preview:', JSON.stringify(persistenceData).substring(0, 200) + '...');
+    } catch (error) {
+      console.error('❌ Test save failed:', error);
+    }
+  };
+
   const triggerAutoSave = () => {
     console.log('⚡⚡⚡ TRIGGER AUTO SAVE CALLED - This should show after editing:', {
       autoSaveEnabled,
@@ -909,8 +1036,11 @@ export default function ToewijzingenPage() {
       isMounted
     });
     
+    // localStorage save is now handled by useEffect to avoid timing issues
+    // The useEffect will save to localStorage when state actually changes
+    
     if (!autoSaveEnabled) {
-      console.log('❌ Auto-save disabled, skipping');
+      console.log('❌ Auto-save to database disabled, skipping database save');
       return;
     }
     
@@ -1293,21 +1423,24 @@ export default function ToewijzingenPage() {
       
       
       setTableData(newData);
-      console.log('📝 Cell data updated, triggering auto-save');
+      console.log('📝 Cell data updated, state should trigger localStorage save via useEffect');
       
-      // Trigger auto-save after cell change
+      // Trigger auto-save after cell change (for database sync)
       triggerAutoSave();
 
-      // Handle adding resident to IB column
-      if (editValue.trim() && editingCell.col < dynamicStaffColumns.length) {
-        const ibName = dynamicStaffColumns[editingCell.col].name;
-        updateResidentReferentiepersoon(editValue.trim(), ibName);
-      }
+      // Temporarily disable individual resident updates to prevent ERR_INSUFFICIENT_RESOURCES
+      // These will be handled in batch later to avoid overwhelming the system
       
-      // Handle removing resident from IB column (clear referentiepersoon only)
-      if (previousText && !editValue.trim() && editingCell.col < dynamicStaffColumns.length) {
-        clearResidentReferentiepersoon(previousText);
-      }
+      // Handle adding resident to IB column (disabled temporarily)
+      // if (editValue.trim() && editingCell.col < dynamicStaffColumns.length) {
+      //   const ibName = dynamicStaffColumns[editingCell.col].name;
+      //   updateResidentReferentiepersoon(editValue.trim(), ibName);
+      // }
+      
+      // Handle removing resident from IB column (disabled temporarily)
+      // if (previousText && !editValue.trim() && editingCell.col < dynamicStaffColumns.length) {
+      //   clearResidentReferentiepersoon(previousText);
+      // }
 
       setEditingCell(null);
       setEditValue('');
@@ -1434,6 +1567,16 @@ export default function ToewijzingenPage() {
       // Clear state
       console.log('Clearing assignment data');
       
+      // Clear localStorage when user explicitly clears all data
+      try {
+        localStorage.removeItem('toewijzingen_persistent_data');
+        console.log('🗑️ Cleared localStorage after clearing all cells');
+      } catch (error) {
+        console.warn('⚠️ Failed to clear localStorage:', error);
+      }
+      
+      // Reset persistence flags
+      setHasLoadedData(false);
       
       // Trigger auto-save after clear all
       triggerAutoSave();
@@ -1579,7 +1722,7 @@ export default function ToewijzingenPage() {
 
   // Get cell background class based on PDF color attributions
   const getCellClass = (text: string = '', type: string = '', color: string = 'white') => {
-    if (text === '') return 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-400';
+    if (text === '') return 'bg-card hover:bg-accent text-muted-foreground';
     
     // Check if this resident has a specific status in Permissielijst
     if (text && ageVerificationStatus) {
@@ -1597,13 +1740,13 @@ export default function ToewijzingenPage() {
         const status = (ageVerificationStatus[resident.badge.toString()] ?? '') as string;
         if (status === 'Meerderjarig') {
           // Override color to red for Meerderjarig residents
-          return 'bg-red-500 text-white hover:bg-red-600 font-bold transition-colors duration-200';
+          return 'bg-destructive text-white hover:bg-destructive/90 font-bold transition-colors duration-200';
         } else if (status === 'Leeftijdstwijfel') {
           // Override color to gray for Leeftijdstwijfel residents
-          return 'bg-gray-500 text-white hover:bg-gray-600 font-bold transition-colors duration-200';
+          return 'bg-muted text-muted-foreground hover:bg-muted/80 font-bold transition-colors duration-200';
         } else if (status === 'Transfer') {
           // Override color to blue for Transfer residents
-          return 'bg-blue-500 text-white hover:bg-blue-600 font-bold transition-colors duration-200';
+          return 'bg-foreground text-white hover:bg-foreground/90 font-bold transition-colors duration-200';
         }
       }
     }
@@ -1611,22 +1754,22 @@ export default function ToewijzingenPage() {
     // Use imported Excel colors or PDF color attributions
     switch(color.toLowerCase()) {
       case 'red': 
-        return 'bg-red-500 text-white hover:bg-red-600 transition-colors duration-200';
+        return 'bg-destructive text-white hover:bg-destructive/90 transition-colors duration-200';
       case 'gray': 
-        return 'bg-gray-500 text-white hover:bg-gray-600 transition-colors duration-200';
+        return 'bg-muted text-muted-foreground hover:bg-muted/80 transition-colors duration-200';
       case 'blue': 
-        return 'bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200';
+        return 'bg-foreground text-white hover:bg-foreground/90 transition-colors duration-200';
       case 'green':
-        return 'bg-green-500 text-white hover:bg-green-600 transition-colors duration-200';
+        return 'bg-foreground text-white hover:bg-foreground/90 transition-colors duration-200';
       case 'yellow':
         return 'bg-yellow-400 text-black hover:bg-yellow-500 transition-colors duration-200';
       case 'orange':
-        return 'bg-orange-500 text-white hover:bg-orange-600 transition-colors duration-200';
+        return 'bg-foreground text-white hover:bg-foreground/90 transition-colors duration-200';
       case 'purple':
         return 'bg-purple-500 text-white hover:bg-purple-600 transition-colors duration-200';
       case 'white':
       default: 
-        return 'bg-white dark:bg-gray-800 text-black dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200';
+        return 'bg-card text-foreground hover:bg-accent transition-colors duration-200';
     }
   };
 
@@ -1668,7 +1811,7 @@ export default function ToewijzingenPage() {
   }, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-gray-900 dark:via-indigo-950 dark:to-slate-900 relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
@@ -1677,24 +1820,24 @@ export default function ToewijzingenPage() {
       </div>
       <div className="p-4 relative z-10">
         {/* Header with search and back button */}
-        <div className="mb-6 flex justify-between items-center backdrop-blur-sm bg-white/30 dark:bg-gray-900/30 rounded-2xl p-3 shadow-xl border border-white/20">
+        <div className="mb-6 flex justify-between items-center backdrop-blur-sm bg-card/30 rounded-2xl p-3 shadow-xl border border-border">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push('/dashboard')}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 font-medium backdrop-blur-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 font-medium backdrop-blur-sm"
             >
               <Home className="h-5 w-5" />
               <span className="font-medium">Dashboard</span>
             </button>
             <div className="text-center">
-              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent drop-shadow-sm">
+              <h1 className="text-3xl font-extrabold text-foreground drop-shadow-sm">
                 Toewijzingen
               </h1>
-              <div className="mt-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200 dark:border-blue-700 shadow-sm">
-                <div className="text-lg font-bold text-blue-800 dark:text-blue-200">
+              <div className="mt-2 px-4 py-2 bg-card rounded-xl border border-border shadow-sm">
+                <div className="text-lg font-bold text-primary">
                   {formatDate(new Date(currentAssignmentDate))}
                 </div>
-                <div className="text-xs text-blue-600 dark:text-blue-300 uppercase tracking-wide">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">
                   {currentAssignmentDate === new Date().toISOString().split('T')[0] 
                     ? 'Vandaag' 
                     : `Data van ${currentAssignmentDate}`
@@ -1719,9 +1862,9 @@ export default function ToewijzingenPage() {
                 disabled={isUploading}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 ${
                   isUploading 
-                    ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed opacity-60'
-                    : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 transform hover:scale-105'
-                } text-white shadow-lg hover:shadow-2xl font-medium`}
+                    ? 'bg-muted cursor-not-allowed opacity-60'
+                    : 'bg-primary hover:bg-primary/90 transform hover:scale-105'
+                } text-primary-foreground shadow-lg hover:shadow-2xl font-medium`}
                 title="Upload Excel, CSV, txt of PDF bestand"
               >
                 <Upload className={`h-5 w-5 ${isUploading ? 'animate-bounce' : ''}`} />
@@ -1736,7 +1879,7 @@ export default function ToewijzingenPage() {
               <div className="flex gap-1">
                 <button
                   onClick={addColumn}
-                  className="flex items-center gap-1 px-3 py-2 rounded-lg transition-all duration-300 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 font-medium text-sm"
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg transition-all duration-300 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transform hover:scale-105 font-medium text-sm"
                   title="Add new column"
                 >
                   <Plus className="h-4 w-4" />
@@ -1744,7 +1887,7 @@ export default function ToewijzingenPage() {
                 </button>
                 <button
                   onClick={addRow}
-                  className="flex items-center gap-1 px-3 py-2 rounded-lg transition-all duration-300 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 font-medium text-sm"
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg transition-all duration-300 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transform hover:scale-105 font-medium text-sm"
                   title="Add new row"
                 >
                   <Plus className="h-4 w-4" />
@@ -1758,43 +1901,43 @@ export default function ToewijzingenPage() {
               {/* Toggle Button */}
               <button
                 onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                   autoSaveEnabled 
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
-                    : 'bg-gray-400 dark:bg-gray-600'
+                    ? 'bg-primary' 
+                    : 'bg-muted'
                 }`}
                 title={autoSaveEnabled ? 'Klik om auto-save uit te zetten' : 'Klik om auto-save aan te zetten'}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                  className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform duration-200 ${
                     autoSaveEnabled ? 'translate-x-6' : 'translate-x-1'
                   } shadow-lg`}
                 />
               </button>
               
               {/* Status Display */}
-              <div className="flex items-center gap-2 px-3 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-600">
+              <div className="flex items-center gap-2 px-3 py-2 bg-card/80 backdrop-blur-sm rounded-xl border border-border">
                 {isSaving ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Auto-saving...</span>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-foreground"></div>
+                    <span className="text-sm text-muted-foreground">Auto-saving...</span>
                   </>
                 ) : lastAutoSave && autoSaveEnabled ? (
                   <>
-                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600 dark:text-gray-300">
+                    <div className="h-2 w-2 bg-foreground rounded-full"></div>
+                    <span className="text-sm text-muted-foreground">
                       Auto-saved {new Date(lastAutoSave).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </>
                 ) : autoSaveEnabled ? (
                   <>
-                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Auto-save actief</span>
+                    <div className="h-2 w-2 bg-foreground rounded-full"></div>
+                    <span className="text-sm text-muted-foreground">Auto-save actief</span>
                   </>
                 ) : (
                   <>
-                    <div className="h-2 w-2 bg-red-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Auto-save uit</span>
+                    <div className="h-2 w-2 bg-destructive rounded-full"></div>
+                    <span className="text-sm text-muted-foreground">Auto-save uit</span>
                   </>
                 )}
               </div>
@@ -1804,22 +1947,31 @@ export default function ToewijzingenPage() {
             <div className="flex gap-2">
               <button
                 onClick={clearAllCells}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 font-medium"
+                className="flex items-center gap-2 px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 font-medium"
                 title="Wis alle cellen (Ctrl+Delete)"
               >
                 <Trash2 className="h-5 w-5" />
                 <span className="font-medium">Alles Wissen</span>
               </button>
+              
+              {/* Temporary debug button */}
+              <button
+                onClick={testLocalStorageSave}
+                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 font-medium"
+                title="Test localStorage save"
+              >
+                <span className="font-medium">Debug Save</span>
+              </button>
             </div>
 
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
               <input
                 type="text"
                 placeholder="Zoeken..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:text-white shadow-sm hover:shadow-md transition-all duration-200"
+                className="pl-10 pr-4 py-2 bg-card/80 backdrop-blur-sm border border-border rounded-xl focus:ring-2 focus:ring-ring focus:border-primary text-foreground shadow-sm hover:shadow-md transition-all duration-200"
               />
             </div>
           </div>
@@ -1828,9 +1980,9 @@ export default function ToewijzingenPage() {
         {/* Upload Status */}
         {uploadStatus.message && (
           <div className={`mb-4 p-3 rounded-xl backdrop-blur-md shadow-xl border animate-slideIn ${
-            uploadStatus.type === 'success' ? 'bg-gradient-to-r from-green-100/90 to-emerald-100/90 dark:from-green-900/50 dark:to-emerald-900/50 text-green-700 dark:text-green-300 border-green-300/50' :
-            uploadStatus.type === 'error' ? 'bg-gradient-to-r from-red-100/90 to-rose-100/90 dark:from-red-900/50 dark:to-rose-900/50 text-red-700 dark:text-red-300 border-red-300/50' :
-            'bg-gradient-to-r from-blue-100/90 to-indigo-100/90 dark:from-blue-900/50 dark:to-indigo-900/50 text-blue-700 dark:text-blue-300 border-blue-300/50'
+            uploadStatus.type === 'success' ? 'bg-accent text-accent-foreground border-border' :
+            uploadStatus.type === 'error' ? 'bg-destructive/10 text-destructive border-destructive' :
+            'bg-accent text-accent-foreground border-border'
           }`}>
             <div className="flex items-center gap-2">
               <FileText className={`h-4 w-4 ${uploadStatus.type === 'info' ? 'animate-pulse' : ''}`} />
@@ -1841,7 +1993,7 @@ export default function ToewijzingenPage() {
 
         {/* Save Status - only show errors */}
         {saveStatus.message && saveStatus.type === 'error' && (
-          <div className="mb-4 p-3 rounded-xl backdrop-blur-md shadow-xl border animate-slideIn bg-gradient-to-r from-red-100/90 to-rose-100/90 dark:from-red-900/50 dark:to-rose-900/50 text-red-700 dark:text-red-300 border-red-300/50">
+          <div className="mb-4 p-3 rounded-xl backdrop-blur-md shadow-xl border animate-slideIn bg-destructive/10 text-destructive border-destructive">
             <div className="flex items-center gap-2">
               <Save className="h-4 w-4" />
               <span className="text-sm font-medium">{saveStatus.message}</span>
@@ -1852,34 +2004,34 @@ export default function ToewijzingenPage() {
         {/* Status labels moved from last column */}
         <div className="mb-4 flex flex-col items-center gap-2">
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-sm font-bold shadow-md">Aantal jongeren:</span>
-            <span className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white text-base font-bold shadow-lg transform hover:scale-105 transition-transform duration-200 cursor-default">{total}</span>
+            <span className="px-3 py-1 rounded-lg bg-accent text-accent-foreground text-sm font-bold shadow-md">Aantal jongeren:</span>
+            <span className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-base font-bold shadow-lg transform hover:scale-105 transition-transform duration-200 cursor-default">{total}</span>
           </div>
           <div className="flex justify-center gap-2">
-            <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-red-500 to-rose-600 text-white text-xs font-bold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 cursor-default">meerderjarig</span>
-            <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-gray-500 to-slate-600 text-white text-xs font-bold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 cursor-default">leeftijdstwijfel</span>
-            <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 cursor-default">transfer</span>
+            <span className="px-3 py-1 rounded-lg bg-destructive text-white text-xs font-bold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 cursor-default">meerderjarig</span>
+            <span className="px-3 py-1 rounded-lg bg-muted text-muted-foreground text-xs font-bold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 cursor-default">leeftijdstwijfel</span>
+            <span className="px-3 py-1 rounded-lg bg-foreground text-white text-xs font-bold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 cursor-default">transfer</span>
           </div>
         </div>
 
         {/* Main table */}
-        <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-300 dark:border-gray-700 hover:shadow-3xl transition-shadow duration-300">
+        <div className="overflow-x-auto bg-card rounded-2xl shadow-2xl border border-border hover:shadow-3xl transition-shadow duration-300">
           <table className="border-collapse w-full">
             <tbody>
               {/* Staff Column Headers with Remove Buttons */}
               <tr>
-                <td className="border-2 border-black dark:border-gray-300 px-2 py-1 text-xs font-bold text-center bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 text-black dark:text-gray-200">
+                <td className="border-2 border-border px-2 py-1 text-xs font-bold text-center bg-muted text-foreground">
                   Staff
                 </td>
                 {dynamicStaffColumns.map((staff, colIndex) => (
-                  <td key={colIndex} className="border-2 border-black dark:border-gray-300 px-1 py-1 text-xs font-bold text-center bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 text-black dark:text-gray-200 relative group">
+                  <td key={colIndex} className="border-2 border-border px-1 py-1 text-xs font-bold text-center bg-muted text-foreground relative group">
                     <div className="flex flex-col items-center gap-1">
                       <div className="flex items-center justify-center gap-1 min-h-[20px]">
                         <input
                           type="text"
                           value={staff.name}
                           onChange={(e) => handleStaffEdit(colIndex, 'name', e.target.value)}
-                          className="bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded text-center text-xs font-bold w-full min-w-[60px] text-black dark:text-gray-200"
+                          className="bg-transparent border-0 focus:ring-1 focus:ring-ring rounded text-center text-xs font-bold w-full min-w-[60px] text-foreground"
                           title="Click to edit staff name"
                         />
                         <button
@@ -1887,13 +2039,13 @@ export default function ToewijzingenPage() {
                             e.stopPropagation();
                             removeColumn(colIndex);
                           }}
-                          className="opacity-0 group-hover:opacity-70 hover:opacity-100 p-0.5 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all"
+                          className="opacity-0 group-hover:opacity-70 hover:opacity-100 p-0.5 rounded-lg bg-destructive hover:bg-destructive/90 text-white transition-all"
                           title={`Remove column "${staff.name}"`}
                         >
                           <Minus className="h-2 w-2" />
                         </button>
                       </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                      <div className="text-xs text-muted-foreground">
                         ({staff.count})
                       </div>
                       {staff.annotation && (
@@ -1901,7 +2053,7 @@ export default function ToewijzingenPage() {
                           type="text"
                           value={staff.annotation}
                           onChange={(e) => handleStaffEdit(colIndex, 'annotation', e.target.value)}
-                          className="bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded text-center text-xs italic w-full text-gray-600 dark:text-gray-400"
+                          className="bg-transparent border-0 focus:ring-1 focus:ring-ring rounded text-center text-xs italic w-full text-muted-foreground"
                           title="Click to edit annotation"
                           placeholder="Add note..."
                         />
@@ -1912,7 +2064,7 @@ export default function ToewijzingenPage() {
               </tr>
               {tableData.map((row, rowIndex) => (
                 <tr key={rowIndex} className={searchTerm && !row.some(cell => isVisible(cell.text)) ? 'hidden' : ''}>
-                  <td className={`border-2 border-black dark:border-gray-300 px-2 py-1 ${rowIndex === 1 ? 'text-base' : 'text-xs'} font-bold text-center bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-black dark:text-gray-300 relative group`}>
+                  <td className={`border-2 border-border px-2 py-1 ${rowIndex === 1 ? 'text-base' : 'text-xs'} font-bold text-center bg-muted text-foreground relative group`}>
                     <div className="flex items-center justify-center gap-1">
                       <span>{rowIndex === 0 ? 'Aantal' : rowIndex === 1 ? "IB's" : rowIndex - 1}</span>
                       {rowIndex >= 2 && (
@@ -1921,7 +2073,7 @@ export default function ToewijzingenPage() {
                             e.stopPropagation();
                             removeRow(rowIndex);
                           }}
-                          className="opacity-0 group-hover:opacity-70 hover:opacity-100 p-0.5 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all ml-1"
+                          className="opacity-0 group-hover:opacity-70 hover:opacity-100 p-0.5 rounded-lg bg-destructive hover:bg-destructive/90 text-white transition-all ml-1"
                           title={`Remove row ${rowIndex - 1}`}
                         >
                           <Minus className="h-2 w-2" />
@@ -1932,14 +2084,14 @@ export default function ToewijzingenPage() {
                   {row.map((cell, colIndex) => (
                     <td 
                       key={colIndex}
-                      className={`border-2 border-black dark:border-gray-300 px-1 py-1 ${rowIndex === 1 ? 'text-base font-bold' : 'text-xs'} cursor-pointer relative text-center group transition-all duration-200 hover:z-10 hover:transform hover:scale-105 ${getCellClass(cell.text, cell.type, cell.color)} ${
+                      className={`border-2 border-border px-1 py-1 ${rowIndex === 1 ? 'text-base font-bold' : 'text-xs'} cursor-pointer relative text-center group transition-all duration-200 hover:z-10 hover:transform hover:scale-105 ${getCellClass(cell.text, cell.type, cell.color)} ${
                         selectedCell?.row === rowIndex && selectedCell?.col === colIndex ? 'ring-2 ring-purple-500 ring-inset shadow-lg' : ''
                       }`}
                       onClick={() => handleCellClick(rowIndex, colIndex, cell.text, cell.type)}
                     >
                       {editingCell?.row === rowIndex && editingCell?.col === colIndex ? (
                         <div 
-                          className="flex flex-col gap-1 p-1 bg-white border border-blue-500 rounded"
+                          className="flex flex-col gap-1 p-1 bg-card border border-primary rounded"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <input
@@ -1950,14 +2102,14 @@ export default function ToewijzingenPage() {
                               if (e.key === 'Enter') handleSaveCell();
                               if (e.key === 'Escape') handleCancelEdit();
                             }}
-                            className={`w-full px-1 py-0 ${rowIndex === 1 ? 'text-base font-bold' : 'text-xs'} bg-white text-black border border-gray-300 rounded text-center`}
+                            className={`w-full px-1 py-0 ${rowIndex === 1 ? 'text-base font-bold' : 'text-xs'} bg-background text-foreground border border-input rounded text-center`}
                             placeholder="Bewoner naam..."
                             autoFocus
                           />
                           <select
                             value={editType}
                             onChange={handleTypeChange}
-                            className="w-full px-1 py-0 text-xs bg-white text-black border border-gray-300 rounded text-center"
+                            className="w-full px-1 py-0 text-xs bg-background text-foreground border border-input rounded text-center"
                           >
                             <option value="">Geen type</option>
                             <option value="meerderjarig">Meerderjarig</option>
@@ -1965,10 +2117,10 @@ export default function ToewijzingenPage() {
                             <option value="transfer">Transfer</option>
                           </select>
                           <div className="flex gap-1">
-                            <button onClick={handleSaveCell} className="flex-1 p-0.5 bg-green-500 text-white rounded-lg text-xs">
+                            <button onClick={handleSaveCell} className="flex-1 p-0.5 bg-foreground text-white rounded-lg text-xs">
                               <Save className="h-3 w-3 mx-auto" />
                             </button>
-                            <button onClick={handleCancelEdit} className="flex-1 p-0.5 bg-red-500 text-white rounded-lg text-xs">
+                            <button onClick={handleCancelEdit} className="flex-1 p-0.5 bg-destructive text-white rounded-lg text-xs">
                               <X className="h-3 w-3 mx-auto" />
                             </button>
                           </div>
@@ -1984,7 +2136,7 @@ export default function ToewijzingenPage() {
                                   e.stopPropagation();
                                   deleteCell(rowIndex, colIndex);
                                 }}
-                                className="opacity-0 group-hover:opacity-70 hover:opacity-100 absolute top-1 left-1 p-0.5 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all"
+                                className="opacity-0 group-hover:opacity-70 hover:opacity-100 absolute top-1 left-1 p-0.5 rounded-lg bg-destructive hover:bg-destructive/90 text-white transition-all"
                                 title="Wis cel (Delete)"
                               >
                                 <Trash2 className="h-2 w-2" />
@@ -1999,21 +2151,21 @@ export default function ToewijzingenPage() {
               ))}
               {/* Footer title row - Backups section */}
               <tr>
-                <td colSpan={11} className="border-2 border-black dark:border-gray-300 px-2 py-2 text-sm font-bold text-center bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 text-black dark:text-gray-200">
+                <td colSpan={11} className="border-2 border-border px-2 py-2 text-sm font-bold text-center bg-muted text-foreground">
                   Backups
                 </td>
               </tr>
               {/* Footer rows - IB, GB, NB */}
               {Object.entries(bottomData).map(([key, values]) => (
                 <tr key={key}>
-                  <td className="border-2 border-black dark:border-gray-300 px-2 py-1 text-xs font-bold bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 text-center text-black dark:text-gray-200">{key}</td>
+                  <td className="border-2 border-border px-2 py-1 text-xs font-bold bg-muted text-foreground text-center">{key}</td>
                   {values.map((value, idx) => (
-                    <td key={idx} className="border-2 border-black dark:border-gray-300 px-2 py-1 text-xs bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200" title={key}>
+                    <td key={idx} className="border-2 border-border px-2 py-1 text-xs bg-card hover:bg-accent transition-colors duration-200" title={key}>
                       <input
                         type="text"
                         value={value}
                         onChange={(e) => handleBottomEdit(key as 'IB' | 'GB' | 'NB', idx, e.target.value)}
-                        className="w-full bg-transparent border-0 focus:ring-2 focus:ring-purple-500 rounded-lg text-center text-black dark:text-gray-300 placeholder-gray-400"
+                        className="w-full bg-transparent border-0 focus:ring-2 focus:ring-ring rounded-lg text-center text-foreground placeholder-muted-foreground"
                         placeholder={key}
                       />
                     </td>

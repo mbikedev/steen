@@ -161,13 +161,13 @@ export default function UploadDocModal({ isOpen, onClose, onUpload }: UploadDocM
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-card rounded-lg p-6 w-full max-w-md border border-border shadow-lg">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Documenten Uploaden</h2>
+          <h2 className="text-xl font-bold text-card-foreground">Documenten Uploaden</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="h-6 w-6" />
           </button>
@@ -177,20 +177,20 @@ export default function UploadDocModal({ isOpen, onClose, onUpload }: UploadDocM
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center ${
               dragOver 
-                ? 'border-blue-500 bg-blue-50' 
-                : 'border-gray-300 hover:border-gray-400'
+                ? 'border-foreground bg-accent' 
+                : 'border-border hover:border-input'
             }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <Upload className="mx-auto h-12 w-12 text-gray-400" />
+            <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
             <div className="mt-4">
               <label htmlFor="file-upload" className="cursor-pointer">
-                <span className="text-blue-600 hover:text-blue-500 font-medium">
+                <span className="text-foreground hover:text-foreground/80 font-medium">
                   Klik om te uploaden
                 </span>
-                <span className="text-gray-500"> of sleep en zet neer</span>
+                <span className="text-muted-foreground"> of sleep en zet neer</span>
                 <input
                   id="file-upload"
                   type="file"
@@ -201,19 +201,19 @@ export default function UploadDocModal({ isOpen, onClose, onUpload }: UploadDocM
                 />
               </label>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               PDF, DOC, DOCX, Excel (XLS/XLSX/XLSM), Afbeeldingen (JPG, PNG, GIF), PowerPoint, Tekstbestanden tot 10MB elk
             </p>
           </div>
 
           {selectedFiles && selectedFiles.length > 0 && (
             <div className="mt-4">
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Geselecteerde bestanden:</h4>
-              <ul className="text-sm text-gray-600 space-y-1">
+              <h4 className="text-sm font-medium text-foreground mb-2">Geselecteerde bestanden:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
                 {Array.from(selectedFiles).map((file, index) => (
                   <li key={index} className="flex items-center justify-between">
                     <span>{file.name}</span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted-foreground">
                       {(file.size / 1024 / 1024).toFixed(1)} MB
                     </span>
                   </li>
@@ -226,14 +226,14 @@ export default function UploadDocModal({ isOpen, onClose, onUpload }: UploadDocM
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              className="flex-1 px-4 py-2 border border-input text-foreground rounded-lg hover:bg-accent"
             >
               Annuleren
             </button>
             <button
               type="submit"
               disabled={!selectedFiles || selectedFiles.length === 0 || isProcessing}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed"
             >
               {isProcessing ? 'Verwerken...' : 'Uploaden'}
             </button>

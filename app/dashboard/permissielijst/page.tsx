@@ -397,16 +397,16 @@ export default function PermissielijstPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-slate-900">
-      <div className="h-screen flex flex-col bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
+      <div className="h-screen flex flex-col bg-background">
         {/* Header with Return Button */}
-        <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-4">
+        <div className="flex-shrink-0 bg-card border-b px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {/* Return to Dashboard button */}
               <button
                 onClick={() => router.push('/dashboard')}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-foreground to-foreground hover:from-foreground/90 hover:to-foreground/90 text-background rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
                 title="Terug naar Dashboard"
               >
                 <Home className="h-5 w-5" />
@@ -415,7 +415,7 @@ export default function PermissielijstPage() {
               {hasAgeDoubtJa && (
                 <button
                   onClick={handleEscapeToNormalView}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                  className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-accent rounded-lg transition-colors text-foreground"
                   title="Terug naar volledig overzicht (ESC)"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -423,10 +423,10 @@ export default function PermissielijstPage() {
                 </button>
               )}
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 font-title">
+                <h1 className="text-2xl font-bold text-foreground font-title">
                   {hasAgeDoubtJa ? 'LEEFTIJDSTWIJFEL MODUS' : 'OVERZICHT JONGEREN'}
                 </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   {hasAgeDoubtJa 
                     ? 'Focus op leeftijdsverificatie - alleen relevante kolommen zichtbaar' 
                     : 'Beheer en volg alle jongeren in het systeem'
@@ -434,7 +434,7 @@ export default function PermissielijstPage() {
                 </p>
               </div>
             </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-muted-foreground">
               {hasAgeDoubtJa 
                 ? 'Klik ESC om terug te gaan naar volledig overzicht' 
                 : 'Gebruik Ctrl+V om data vanuit Excel te plakken'
@@ -445,10 +445,10 @@ export default function PermissielijstPage() {
 
         {/* Age Doubt Resident Display */}
         {hasAgeDoubtJa && (
-          <div className="bg-red-50 dark:bg-red-900/30 border-2 border-red-500 dark:border-red-400 px-6 py-4 mb-2">
+          <div className="bg-destructive/10 border-2 border-destructive px-6 py-4 mb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="bg-red-600 text-white px-3 py-1 rounded font-bold text-sm">
+                <div className="bg-destructive text-destructive-foreground px-3 py-1 rounded font-bold text-sm">
                   LEEFTIJDSTWIJFEL
                 </div>
                 <div className="flex flex-wrap gap-4">
@@ -458,11 +458,11 @@ export default function PermissielijstPage() {
                     const twijfelValue = savedValue !== undefined ? savedValue : record.twijfel;
                     return twijfelValue === 'Ja';
                   }).map(resident => (
-                    <div key={resident.badge} className="bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border-2 border-red-400 dark:border-red-500">
-                      <span className="font-bold text-2xl text-red-700 dark:text-red-300">
+                    <div key={resident.badge} className="bg-card px-4 py-2 rounded-lg border-2 border-destructive">
+                      <span className="font-bold text-2xl text-destructive">
                         {resident.voornaam} {resident.naam}
                       </span>
-                      <span className="ml-3 text-xl font-semibold text-gray-700 dark:text-gray-300">
+                      <span className="ml-3 text-xl font-semibold text-muted-foreground">
                         Badge: {resident.badge}
                       </span>
                     </div>
@@ -474,15 +474,15 @@ export default function PermissielijstPage() {
         )}
 
         {/* Tabs and Search */}
-        <div className="flex-shrink-0 bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-3">
+        <div className="flex-shrink-0 bg-muted border-b border-border px-6 py-3">
           <div className="flex items-center justify-between mb-4">
             <div className="flex gap-4">
               <button
                 onClick={() => setActiveTab('IN')}
                 className={`px-4 py-2 font-medium rounded-lg transition-colors ${
                   activeTab === 'IN'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-card text-foreground hover:bg-accent'
                 }`}
               >
                 IN ({inDataCount})
@@ -491,8 +491,8 @@ export default function PermissielijstPage() {
                 onClick={() => setActiveTab('OUT')}
                 className={`px-4 py-2 font-medium rounded-lg transition-colors ${
                   activeTab === 'OUT'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-card text-foreground hover:bg-accent'
                 }`}
               >
                 OUT ({outDataCount})
@@ -501,52 +501,52 @@ export default function PermissielijstPage() {
 
             <div className="flex items-center gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <input
                   type="text"
                   placeholder="Zoek op badge, naam..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                  className="pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring dark:text-gray-100"
                 />
               </div>
               
               {/* Scroll Control Buttons */}
-              <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg p-1 shadow-md border border-gray-200 dark:border-gray-600">
-                <span className="text-xs text-gray-500 dark:text-gray-400 px-2 font-medium">Scroll:</span>
+              <div className="flex items-center gap-1 bg-card rounded-lg p-1 shadow-md border border-gray-200 dark:border-gray-600">
+                <span className="text-xs text-gray-500 px-2 font-medium">Scroll:</span>
                 
                 {/* Horizontal arrows */}
                 <div className="flex gap-1">
                   <button
                     onClick={() => scrollTable('left')}
-                    className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
+                    className="p-2 bg-gradient-to-r from-foreground to-foreground hover:from-foreground/90 hover:to-foreground/90 text-background rounded-lg transition-all duration-200 hover:shadow-md"
                     title="Scroll Links"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => scrollTable('right')}
-                    className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
+                    className="p-2 bg-gradient-to-r from-foreground to-foreground hover:from-foreground/90 hover:to-foreground/90 text-background rounded-lg transition-all duration-200 hover:shadow-md"
                     title="Scroll Rechts"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
                 
-                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+                <div className="w-px h-6 bg-gray-300 mx-1" />
                 
                 {/* Vertical arrows */}
                 <div className="flex gap-1">
                   <button
                     onClick={() => scrollTable('up')}
-                    className="p-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
+                    className="p-2 bg-gradient-to-r from-foreground to-foreground hover:from-foreground/90 hover:to-foreground/90 text-background rounded-lg transition-all duration-200 hover:shadow-md"
                     title="Scroll Omhoog"
                   >
                     <ChevronUp className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => scrollTable('down')}
-                    className="p-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
+                    className="p-2 bg-gradient-to-r from-foreground to-foreground hover:from-foreground/90 hover:to-foreground/90 text-background rounded-lg transition-all duration-200 hover:shadow-md"
                     title="Scroll Omlaag"
                   >
                     <ChevronDown className="h-4 w-4" />
@@ -560,25 +560,25 @@ export default function PermissielijstPage() {
         {/* Table with Scroll Arrows */}
         <div className="flex-1 overflow-hidden relative">
           <div ref={tableContainerRef} className="h-full overflow-auto">
-            <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
-              <thead className="sticky top-0 bg-white dark:bg-gray-800 z-10">
+            <table className="min-w-full border-collapse border border-border dark:border-gray-600">
+              <thead className="sticky top-0 bg-card z-10">
                 {/* First header row - Group headers */}
-                <tr className="bg-blue-50 dark:bg-blue-900">
-                  <th className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-xs font-bold bg-gray-700 dark:bg-gray-600 text-white text-center" colSpan={8}>Bewoners</th>
-                  <th className="border border-amber-400 dark:border-amber-500 px-2 py-1 text-xs font-bold bg-amber-600 dark:bg-amber-700 text-white text-center" colSpan={6}>Aankomst</th>
-                  <th className="border border-indigo-400 dark:border-indigo-500 px-2 py-1 text-xs font-bold bg-indigo-900 dark:bg-indigo-700 text-white text-center" colSpan={4}>Aanvullen op MATCH-IT: OK?</th>
-                  <th className="border border-purple-400 dark:border-purple-500 px-2 py-1 text-xs font-bold bg-purple-600 dark:bg-purple-700 text-white text-center" colSpan={8}>Leeftijdstwijfel</th>
-                  <th className="border border-blue-400 dark:border-blue-500 px-2 py-1 text-xs font-bold bg-blue-600 dark:bg-blue-700 text-white text-center" colSpan={4}>IBP</th>
-                  <th className="border border-green-400 dark:border-green-500 px-2 py-1 text-xs font-bold bg-green-600 dark:bg-green-700 text-white text-center" colSpan={4}>Gesprekken</th>
-                  <th className="border border-cyan-400 dark:border-cyan-500 px-2 py-1 text-xs font-bold bg-cyan-600 dark:bg-cyan-700 text-white text-center" colSpan={4}>Permissies (Aanvullen bijzondere profielen)</th>
-                  <th className="border border-orange-400 dark:border-orange-500 px-2 py-1 text-xs font-bold bg-orange-600 dark:bg-orange-700 text-white text-center" colSpan={5}>Transferaanvraag</th>
-                  <th className="border border-pink-400 dark:border-pink-500 px-2 py-1 text-xs font-bold bg-pink-600 dark:bg-pink-700 text-white text-center" colSpan={2}>IJH</th>
-                  <th className="border border-red-400 dark:border-red-500 px-2 py-1 text-xs font-bold bg-red-600 dark:bg-red-700 text-white text-center" colSpan={3}>Out</th>
+                <tr className="bg-accent">
+                  <th className="border border-border px-2 py-1 text-xs font-bold bg-foreground text-background text-center" colSpan={8}>Bewoners</th>
+                  <th className="border border-border px-2 py-1 text-xs font-bold bg-foreground text-background text-center" colSpan={6}>Aankomst</th>
+                  <th className="border border-border px-2 py-1 text-xs font-bold bg-foreground text-background text-center" colSpan={4}>Aanvullen op MATCH-IT: OK?</th>
+                  <th className="border border-border px-2 py-1 text-xs font-bold bg-foreground text-background text-center" colSpan={8}>Leeftijdstwijfel</th>
+                  <th className="border border-border px-2 py-1 text-xs font-bold bg-foreground text-background text-center" colSpan={4}>IBP</th>
+                  <th className="border border-border px-2 py-1 text-xs font-bold bg-foreground text-background text-center" colSpan={4}>Gesprekken</th>
+                  <th className="border border-border px-2 py-1 text-xs font-bold bg-foreground text-background text-center" colSpan={4}>Permissies (Aanvullen bijzondere profielen)</th>
+                  <th className="border border-border px-2 py-1 text-xs font-bold bg-foreground text-background text-center" colSpan={5}>Transferaanvraag</th>
+                  <th className="border border-border px-2 py-1 text-xs font-bold bg-foreground text-background text-center" colSpan={2}>IJH</th>
+                  <th className="border border-border px-2 py-1 text-xs font-bold bg-foreground text-background text-center" colSpan={3}>Out</th>
                 </tr>
                 
                 {/* Second header row - Column headers */}
-                <tr className="bg-teal-700 dark:bg-teal-800 text-white">
-                  <th className="border border-teal-600 dark:border-teal-700 px-2 py-2 text-center text-xs font-medium text-white w-12">
+                <tr className="bg-foreground text-background">
+                  <th className="border border-border px-2 py-2 text-center text-xs font-medium text-background w-12">
                     <input
                       type="checkbox"
                       checked={filteredData.length > 0 && filteredData.every(record => selectedRecords.has(record.badge))}
@@ -593,7 +593,7 @@ export default function PermissielijstPage() {
                         }
                         setSelectedRecords(newSelected);
                       }}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-border text-foreground focus:ring-ring"
                     />
                   </th>
                   {columns.map((col) => {
@@ -611,24 +611,24 @@ export default function PermissielijstPage() {
                         key={col.key}
                         className={`border px-2 py-2 text-left text-xs font-medium ${
                           isAankomstColumn
-                            ? 'bg-amber-600 dark:bg-amber-700 border-amber-500 dark:border-amber-600 text-white'
+                            ? 'bg-foreground border-border text-background'
                             : isMatchITColumn
-                            ? 'bg-indigo-600 dark:bg-indigo-700 border-indigo-500 dark:border-indigo-600 text-white'
+                            ? 'bg-foreground border-border text-background'
                             : isLeeftijdstwijfelColumn
-                            ? 'bg-purple-600 dark:bg-purple-700 border-purple-500 dark:border-purple-600 text-white'
+                            ? 'bg-foreground border-border text-background'
                             : isIBPColumn 
-                            ? 'bg-blue-600 dark:bg-blue-700 border-blue-500 dark:border-blue-600 text-white'
+                            ? 'bg-foreground border-border text-background'
                             : isGesprekkenColumn
-                            ? 'bg-green-600 dark:bg-green-700 border-green-500 dark:border-green-600 text-white'
+                            ? 'bg-foreground border-border text-background'
                             : isPermissiesColumn
-                            ? 'bg-cyan-600 dark:bg-cyan-700 border-cyan-500 dark:border-cyan-600 text-white'
+                            ? 'bg-foreground border-border text-background'
                             : isTransferColumn
-                            ? 'bg-orange-600 dark:bg-orange-700 border-orange-500 dark:border-orange-600 text-white'
+                            ? 'bg-foreground border-border text-background'
                             : isIJHColumn
-                            ? 'bg-pink-600 dark:bg-pink-700 border-pink-500 dark:border-pink-600 text-white'
+                            ? 'bg-foreground border-border text-background'
                             : isOutColumn
-                            ? 'bg-red-600 dark:bg-red-700 border-red-500 dark:border-red-600 text-white'
-                            : 'border-teal-600 dark:border-teal-700 text-white'
+                            ? 'bg-foreground border-border text-background'
+                            : 'border-border text-background'
                         }`}
                         style={{ minWidth: col.width, width: col.width }}
                       >
@@ -647,11 +647,11 @@ export default function PermissielijstPage() {
                       key={record.badge} 
                       className={`transition-colors ${
                         isSelected 
-                          ? 'bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/40' 
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                          ? 'bg-accent hover:bg-accent/80'
+                          : 'hover:bg-muted'
                       }`}
                     >
-                      <td className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">
+                      <td className="border border-border px-2 py-1 text-center">
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -664,7 +664,7 @@ export default function PermissielijstPage() {
                             }
                             setSelectedRecords(newSelected);
                           }}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-border text-foreground focus:ring-ring"
                         />
                       </td>
                       {columns.map((col) => {
@@ -676,7 +676,7 @@ export default function PermissielijstPage() {
                         return (
                           <td
                             key={col.key}
-                            className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm text-gray-900 dark:text-gray-100"
+                            className="border border-border px-2 py-1 text-sm text-foreground"
                             style={{ minWidth: col.width, width: col.width }}
                             onClick={() => !isEditing && handleCellClick(record.badge, col.key, value)}
                           >
@@ -703,13 +703,13 @@ export default function PermissielijstPage() {
                                     setEditingCell(null);
                                     setEditValue('');
                                   }}
-                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  className="rounded border-border text-foreground focus:ring-ring"
                                   autoFocus
                                 />
                                 <span className="text-sm">Verzonden</span>
                                 <button
                                   onClick={handleCancelEdit}
-                                  className="p-0.5 text-red-600 hover:text-red-700"
+                                  className="p-0.5 text-destructive hover:text-destructive/80"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
@@ -721,7 +721,7 @@ export default function PermissielijstPage() {
                                   type="date"
                                   value={editValue}
                                   onChange={(e) => setEditValue(e.target.value)}
-                                  className="w-full px-1 py-0.5 border border-blue-500 rounded text-sm dark:bg-gray-700 dark:text-gray-100"
+                                  className="w-full px-1 py-0.5 border border-foreground rounded text-sm bg-background text-foreground"
                                   autoFocus
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') handleSaveCell();
@@ -730,13 +730,13 @@ export default function PermissielijstPage() {
                                 />
                                 <button
                                   onClick={handleSaveCell}
-                                  className="p-0.5 text-green-600 hover:text-green-700"
+                                  className="p-0.5 text-foreground hover:text-foreground/80"
                                 >
                                   <Save className="h-3 w-3" />
                                 </button>
                                 <button
                                   onClick={handleCancelEdit}
-                                  className="p-0.5 text-red-600 hover:text-red-700"
+                                  className="p-0.5 text-destructive hover:text-destructive/80"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
@@ -770,7 +770,7 @@ export default function PermissielijstPage() {
                                     setEditingCell(null);
                                     setEditValue('');
                                   }}
-                                  className="w-full px-1 py-0.5 border border-blue-500 rounded text-sm dark:bg-gray-700 dark:text-gray-100"
+                                  className="w-full px-1 py-0.5 border border-foreground rounded text-sm bg-background text-foreground"
                                   autoFocus
                                 >
                                   <option value="">-</option>
@@ -779,13 +779,13 @@ export default function PermissielijstPage() {
                                 </select>
                                 <button
                                   onClick={handleSaveCell}
-                                  className="p-0.5 text-green-600 hover:text-green-700"
+                                  className="p-0.5 text-foreground hover:text-foreground/80"
                                 >
                                   <Save className="h-3 w-3" />
                                 </button>
                                 <button
                                   onClick={handleCancelEdit}
-                                  className="p-0.5 text-red-600 hover:text-red-700"
+                                  className="p-0.5 text-destructive hover:text-destructive/80"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
@@ -798,7 +798,7 @@ export default function PermissielijstPage() {
                                   value={editValue}
                                   onChange={(e) => setEditValue(e.target.value)}
                                   placeholder="Naam opvoeder..."
-                                  className="w-full px-1 py-0.5 border border-blue-500 rounded text-sm dark:bg-gray-700 dark:text-gray-100"
+                                  className="w-full px-1 py-0.5 border border-foreground rounded text-sm bg-background text-foreground"
                                   autoFocus
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') handleSaveCell();
@@ -807,13 +807,13 @@ export default function PermissielijstPage() {
                                 />
                                 <button
                                   onClick={handleSaveCell}
-                                  className="p-0.5 text-green-600 hover:text-green-700"
+                                  className="p-0.5 text-foreground hover:text-foreground/80"
                                 >
                                   <Save className="h-3 w-3" />
                                 </button>
                                 <button
                                   onClick={handleCancelEdit}
-                                  className="p-0.5 text-red-600 hover:text-red-700"
+                                  className="p-0.5 text-destructive hover:text-destructive/80"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
@@ -844,7 +844,7 @@ export default function PermissielijstPage() {
                                     setEditingCell(null);
                                     setEditValue('');
                                   }}
-                                  className="w-full px-1 py-0.5 border border-blue-500 rounded text-sm dark:bg-gray-700 dark:text-gray-100"
+                                  className="w-full px-1 py-0.5 border border-foreground rounded text-sm bg-background text-foreground"
                                   autoFocus
                                 >
                                   <option value="">-</option>
@@ -869,13 +869,13 @@ export default function PermissielijstPage() {
                                 </select>
                                 <button
                                   onClick={handleSaveCell}
-                                  className="p-0.5 text-green-600 hover:text-green-700"
+                                  className="p-0.5 text-foreground hover:text-foreground/80"
                                 >
                                   <Save className="h-3 w-3" />
                                 </button>
                                 <button
                                   onClick={handleCancelEdit}
-                                  className="p-0.5 text-red-600 hover:text-red-700"
+                                  className="p-0.5 text-destructive hover:text-destructive/80"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
@@ -886,7 +886,7 @@ export default function PermissielijstPage() {
                                   type="text"
                                   value={editValue}
                                   onChange={(e) => setEditValue(e.target.value)}
-                                  className="w-full px-1 py-0.5 border border-blue-500 rounded text-sm dark:bg-gray-700"
+                                  className="w-full px-1 py-0.5 border border-foreground rounded text-sm bg-background text-foreground"
                                   autoFocus
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') handleSaveCell();
@@ -895,82 +895,82 @@ export default function PermissielijstPage() {
                                 />
                                 <button
                                   onClick={handleSaveCell}
-                                  className="p-0.5 text-green-600 hover:text-green-700"
+                                  className="p-0.5 text-foreground hover:text-foreground/80"
                                 >
                                   <Save className="h-3 w-3" />
                                 </button>
                                 <button
                                   onClick={handleCancelEdit}
-                                  className="p-0.5 text-red-600 hover:text-red-700"
+                                  className="p-0.5 text-destructive hover:text-destructive/80"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
                               </div>
                             ) : (
-                              <div className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
+                              <div className="cursor-pointer hover:bg-accent p-1 rounded">
                                 {col.key === 'uitnodiging' ? (
                                   // Uitnodiging: Show checkbox status
                                   value === 'true' || value === true ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
                                       ✓ Verzonden
                                     </span>
                                   ) : (
-                                    <span className="text-gray-400 italic">Klik om te selecteren</span>
+                                    <span className="text-muted-foreground italic">Klik om te selecteren</span>
                                   )
                                 ) : col.key === 'test' ? (
                                   // Test: Show formatted date
                                   value ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
                                       📅 {value}
                                     </span>
                                   ) : (
-                                    <span className="text-gray-400 italic">Klik voor datum</span>
+                                    <span className="text-muted-foreground italic">Klik voor datum</span>
                                   )
                                 ) : col.key === 'resultaat' ? (
                                   // Resultaat: Show age result
                                   value === 'Meerderjarig' ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
                                       👤 Meerderjarig
                                     </span>
                                   ) : value === 'Minderjarig' ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
                                       👶 Minderjarig
                                     </span>
                                   ) : (
-                                    <span className="text-gray-400 italic">Klik om te bepalen</span>
+                                    <span className="text-muted-foreground italic">Klik om te bepalen</span>
                                   )
                                 ) : col.key === 'opvolgingDoor' ? (
                                   // Opvolging door: Show educator name
                                   value ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
                                       👨‍🏫 {value}
                                     </span>
                                   ) : (
-                                    <span className="text-gray-400 italic">Klik om opvoeder toe te wijzen</span>
+                                    <span className="text-muted-foreground italic">Klik om opvoeder toe te wijzen</span>
                                   )
                                 ) : col.key === 'twijfel' ? (
                                   value === 'Ja' ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
                                       ⚠ Ja
                                     </span>
                                   ) : value === 'Nee' ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
                                       ✓ Nee
                                     </span>
                                   ) : (
-                                    <span className="text-gray-400 italic">Klik om te kiezen</span>
+                                    <span className="text-muted-foreground italic">Klik om te kiezen</span>
                                   )
                                 ) : col.key === 'hr' || col.key === 'procedure' || col.key === 'voogd' || col.key === 'advocaat' ? (
                                   value === 'OK' ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
                                       ✓ OK
                                     </span>
                                   ) : value === 'GEEN VOOGD' || value === 'GEEN ADVOCAAT' ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
                                       ✗ {value}
                                     </span>
                                   ) : (
-                                    <span className="text-gray-400 italic">Klik om OK te zetten</span>
+                                    <span className="text-muted-foreground italic">Klik om OK te zetten</span>
                                   )
                                 ) : col.key === 'datumIn' ? (
                                   // Datum In: Display with no-wrap styling and formatted date
@@ -978,7 +978,7 @@ export default function PermissielijstPage() {
                                     {value ? formatDate(value) : '-'}
                                   </span>
                                 ) : (
-                                  value || <span className="text-gray-400">-</span>
+                                  value || <span className="text-muted-foreground">-</span>
                                 )}
                               </div>
                             )}
@@ -990,7 +990,7 @@ export default function PermissielijstPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={columns.length + 1} className="text-center py-8 text-gray-500">
+                    <td colSpan={columns.length + 1} className="text-center py-8 text-muted-foreground">
                       {isClient ? 
                         (activeTab === 'OUT' ? 'Geen uitgaande bewoners' : 'Geen data gevonden') :
                         'Laden...'
