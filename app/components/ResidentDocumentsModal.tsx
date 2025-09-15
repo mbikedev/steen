@@ -26,7 +26,7 @@ import { residentPhotosApi, apiService } from '../../lib/api-service';
 interface Document {
   id: string;
   name: string;
-  type: 'pdf' | 'image' | 'scan' | 'other';
+  type: 'pdf' | 'image' | 'scan' | 'word' | 'excel' | 'email' | 'other';
   size: string;
   uploadDate: string;
   url?: string;
@@ -51,6 +51,50 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
   const [selectedDocumentType, setSelectedDocumentType] = useState<string>('other');
   const [residentPhoto, setResidentPhoto] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        
+        // Store current URL to prevent any navigation
+        const currentPath = window.location.pathname;
+        const currentSearch = window.location.search;
+        
+        onClose();
+        
+        // Ensure we stay on the current page
+        setTimeout(() => {
+          if (window.location.pathname !== currentPath || window.location.search !== currentSearch) {
+            console.log('Navigation detected after modal close, restoring location');
+            window.history.replaceState({}, '', currentPath + currentSearch);
+          }
+        }, 10);
+      }
+    };
+
+    if (isOpen) {
+      // Store current body overflow style
+      const originalOverflow = document.body.style.overflow;
+      
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+      
+      // Add event listener when modal opens with capture phase and highest priority
+      document.addEventListener('keydown', handleEscKey, { capture: true, passive: false });
+      
+      return () => {
+        // Restore body overflow
+        document.body.style.overflow = originalOverflow;
+        
+        // Remove event listeners
+        document.removeEventListener('keydown', handleEscKey, { capture: true });
+      };
+    }
+  }, [isOpen, onClose]);
 
   // Load resident photo from database and localStorage fallback
   useEffect(() => {
@@ -101,7 +145,10 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
               id: doc.id.toString(),
               name: doc.file_name,
               type: doc.mime_type?.includes('pdf') ? 'pdf' 
-                  : doc.mime_type?.includes('image') ? 'image' 
+                  : doc.mime_type?.includes('image') ? 'image'
+                  : doc.mime_type?.includes('word') || doc.file_name?.endsWith('.docx') || doc.file_name?.endsWith('.doc') ? 'word'
+                  : doc.mime_type?.includes('sheet') || doc.file_name?.endsWith('.xlsx') || doc.file_name?.endsWith('.xls') ? 'excel'
+                  : doc.file_name?.endsWith('.eml') ? 'email'
                   : 'other',
               size: formatFileSize(doc.file_size || 0),
               uploadDate: new Date(doc.created_at).toISOString().split('T')[0],
@@ -230,7 +277,10 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
           
           // Determine file type for UI
           const fileType = file.type.includes('pdf') ? 'pdf' 
-            : file.type.includes('image') ? 'image' 
+            : file.type.includes('image') ? 'image'
+            : file.type.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc') ? 'word'
+            : file.type.includes('sheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls') ? 'excel'
+            : file.name.endsWith('.eml') ? 'email'
             : 'other';
           
           // Determine category based on document type (IN/OUT)
@@ -320,23 +370,30 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
   const handleViewDocument = async (doc: Document) => {
     try {
       if (doc.url) {
-        // If it's a blob URL (temporary), open directly
-        if (doc.url.startsWith('blob:')) {
-          window.open(doc.url, '_blank');
-        } else {
-          // For Supabase Storage URLs, check if accessible
-          console.log('🔍 Opening document:', doc.id, doc.url);
-          
-          // Try to open the document
-          const newWindow = window.open(doc.url, '_blank');
-          
-          // If the URL fails (404), show helpful error
-          setTimeout(() => {
-            if (newWindow && newWindow.closed) {
-              alert('⚠️ Document niet gevonden. De Supabase storage bucket "administrative-documents" moet aangemaakt worden.');
-            }
-          }, 1000);
+        // Store current state to prevent any navigation issues
+        const currentPath = window.location.pathname;
+        const currentSearch = window.location.search;
+        
+        // Mark return path so the app can restore after closing the doc tab
+        try {
+          const returnPath = currentPath + currentSearch;
+          const timestamp = Date.now();
+          sessionStorage.setItem('adminDocsReturnPath', returnPath);
+          sessionStorage.setItem('adminDocsReturnSetAt', String(timestamp));
+        } catch (e) {
+          // Silently handle storage errors
         }
+        
+        // Open document in new tab/window
+        window.open(doc.url, '_blank', 'noopener,noreferrer');
+        
+        // Ensure we stay on the current page
+        setTimeout(() => {
+          if (window.location.pathname !== currentPath || window.location.search !== currentSearch) {
+            console.log('Navigation detected after file open, restoring location');
+            window.history.replaceState({}, '', currentPath + currentSearch);
+          }
+        }, 100);
       }
       setPreviewDocument(doc);
     } catch (error) {
@@ -350,14 +407,26 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
       if (doc.url) {
         console.log('📥 Downloading document:', doc.name);
         
-        // Create download link
+        // Create download link with proper attributes to prevent navigation
         const link = document.createElement('a');
         link.href = doc.url;
         link.download = doc.name;
         link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.style.display = 'none';
+        
+        // Prevent default behavior
+        link.onclick = (e) => {
+          e.stopPropagation();
+        };
+        
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+        
+        // Remove link after a short delay to ensure download starts
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
       }
     } catch (error) {
       console.error('❌ Error downloading document:', error instanceof Error ? error.message : 'Unknown error');
@@ -388,6 +457,12 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
         return <Image className="w-5 h-5 text-blue-500" />;
       case 'scan':
         return <File className="w-5 h-5 text-green-500" />;
+      case 'word':
+        return <FileText className="w-5 h-5 text-blue-600" />;
+      case 'excel':
+        return <FileText className="w-5 h-5 text-green-600" />;
+      case 'email':
+        return <Mail className="w-5 h-5 text-purple-600" />;
       default:
         return <File className="w-5 h-5 text-gray-500" />;
     }
@@ -409,11 +484,35 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
       <div className="flex items-center justify-center min-h-screen px-4">
-        <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose}></div>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Store current URL to prevent any navigation
+            const currentPath = window.location.pathname;
+            const currentSearch = window.location.search;
+            
+            onClose();
+            
+            // Ensure we stay on the current page
+            setTimeout(() => {
+              if (window.location.pathname !== currentPath || window.location.search !== currentSearch) {
+                console.log('Navigation detected after background click, restoring location');
+                window.history.replaceState({}, '', currentPath + currentSearch);
+              }
+            }, 10);
+          }}
+          aria-hidden="true"
+        ></div>
         
-        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+        <div 
+          className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
             <div className="flex items-center justify-between">
@@ -448,7 +547,24 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                 </div>
               </div>
               <button
-                onClick={onClose}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  // Store current URL to prevent any navigation
+                  const currentPath = window.location.pathname;
+                  const currentSearch = window.location.search;
+                  
+                  onClose();
+                  
+                  // Ensure we stay on the current page
+                  setTimeout(() => {
+                    if (window.location.pathname !== currentPath || window.location.search !== currentSearch) {
+                      console.log('Navigation detected after X button click, restoring location');
+                      window.history.replaceState({}, '', currentPath + currentSearch);
+                    }
+                  }, 10);
+                }}
                 className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
               >
                 <X className="w-6 h-6" />
@@ -625,7 +741,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                       ref={fileInputRef}
                       type="file"
                       multiple
-                      accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.tiff"
+                      accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.doc,.docx,.xls,.xlsx"
                       onChange={handleFileUpload}
                       className="hidden"
                     />
@@ -721,7 +837,10 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
                       Nog geen documenten geüpload
                     </p>
                     <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">
-                      Upload PDF's, afbeeldingen of gescande documenten voor deze bewoner
+                      Upload PDF's, afbeeldingen, Word documenten (.docx), Excel bestanden (.xlsx) of gescande documenten voor deze bewoner
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+                      Tip: Voor email bestanden (.eml), converteer ze eerst naar PDF
                     </p>
                     <button
                       onClick={() => fileInputRef.current?.click()}

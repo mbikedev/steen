@@ -83,8 +83,20 @@ function AdministrativeDocumentsPageContent() {
   };
 
   const handleCloseModal = () => {
+    // Store current URL to prevent any navigation
+    const currentPath = window.location.pathname;
+    const currentSearch = window.location.search;
+    
     setIsModalOpen(false);
     setSelectedResident(null);
+    
+    // Ensure we stay on the current page
+    setTimeout(() => {
+      if (window.location.pathname !== currentPath || window.location.search !== currentSearch) {
+        console.log('Navigation detected after modal close, restoring location');
+        window.history.replaceState({}, '', currentPath + currentSearch);
+      }
+    }, 10);
   };
 
   const handleStatusChange = (residentId: number, newStatus: string) => {

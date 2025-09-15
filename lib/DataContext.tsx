@@ -980,9 +980,6 @@ export function DataProvider({ children }: DataProviderProps) {
           return roomStructure.map(roomConfig => {
             const roomResidents = residents.filter(resident => {
               const match = resident.room === roomConfig.roomNumber;
-              if (match) {
-                console.log(`✅ Found resident ${resident.first_name} ${resident.last_name} in room ${roomConfig.roomNumber}`);
-              }
               return match;
             });
             

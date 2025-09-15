@@ -705,14 +705,25 @@ export class ApiService {
     return data || []
   }
 
+  private sanitizeFileName(fileName: string): string {
+    // Replace special characters and normalize accented characters
+    return fileName
+      .normalize('NFD') // Decompose accented characters
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+      .replace(/[^a-zA-Z0-9._-]/g, '_') // Replace invalid characters with underscore
+      .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+      .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
+  }
+
   async uploadAdministrativeDocument(file: File, metadata: {
     resident_id?: number
     document_type: 'IN' | 'OUT'
     description?: string
     uploaded_by?: string
   }): Promise<AdministrativeDocument> {
-    // Upload file to Supabase Storage
-    const fileName = `${metadata.document_type}/${Date.now()}_${file.name}`
+    // Upload file to Supabase Storage with sanitized filename
+    const sanitizedName = this.sanitizeFileName(file.name)
+    const fileName = `${metadata.document_type}/${Date.now()}_${sanitizedName}`
     const { data: uploadData, error: uploadError } = await this.supabase.storage
       .from('administrative-documents')
       .upload(fileName, file)

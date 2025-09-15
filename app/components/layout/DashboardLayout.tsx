@@ -140,10 +140,64 @@ export default function DashboardLayout({ children, className, onResidentSearch,
   
   // Global Escape key handler
   useEffect(() => {
+    let lastFocusTime = Date.now();
+    let returnGuardTimeout: number | undefined;
+    
+    // Track when window gains focus (e.g., returning from another tab)
+    const handleFocus = () => {
+      lastFocusTime = Date.now();
+      
+      // Check immediately
+      try {
+        const returnPath = sessionStorage.getItem('adminDocsReturnPath');
+        const setAt = Number(sessionStorage.getItem('adminDocsReturnSetAt') || '0');
+        const recentlySet = Date.now() - setAt < 5 * 60 * 1000; // 5 minutes
+        
+        if (returnPath && recentlySet) {
+          // Keep the flags for delayed check
+          const current = window.location.pathname;
+          if (current !== returnPath) {
+            router.push(returnPath);
+            sessionStorage.removeItem('adminDocsReturnPath');
+            sessionStorage.removeItem('adminDocsReturnSetAt');
+          } else {
+            // We're already on the right page, but check again after a delay
+            // in case something redirects us
+            setTimeout(() => {
+              const delayedCurrent = window.location.pathname;
+              const stillHasReturn = sessionStorage.getItem('adminDocsReturnPath');
+              
+              if (stillHasReturn && delayedCurrent !== returnPath) {
+                router.push(returnPath);
+              }
+              
+              // Clean up
+              sessionStorage.removeItem('adminDocsReturnPath');
+              sessionStorage.removeItem('adminDocsReturnSetAt');
+            }, 500);
+          }
+        }
+      } catch (e) {
+        // Silently handle errors
+      }
+    };
+    
     const handleEscapeKey = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
-        // Don't handle ESC on Weekend Permissie page - it has its own handler
-        if (pathname === '/dashboard/weekend-permissie') {
+        // Don't handle ESC on pages that have their own handler or when modals are open
+        if (pathname === '/dashboard/weekend-permissie' || pathname === '/dashboard/administrative-documents') {
+          return;
+        }
+        
+        // Check if any modal is currently open by looking for modal elements
+        const modalElement = document.querySelector('[role="dialog"][aria-modal="true"]');
+        if (modalElement) {
+          // A modal is open, don't handle ESC here
+          return;
+        }
+        
+        // Don't handle ESC within 1 second of window gaining focus (prevents issues when returning from file view)
+        if (Date.now() - lastFocusTime < 1000) {
           return;
         }
         
@@ -158,8 +212,13 @@ export default function DashboardLayout({ children, className, onResidentSearch,
       }
     };
     
+    window.addEventListener('focus', handleFocus);
     document.addEventListener('keydown', handleEscapeKey);
-    return () => document.removeEventListener('keydown', handleEscapeKey);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
   }, [showSearchResults, router, pathname]);
   
   const handleSearch = (e: KeyboardEvent<HTMLInputElement>) => {
