@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useData } from "../../../lib/DataContext";
 import { formatDate } from "../../../lib/utils";
 import * as XLSX from 'xlsx';
-import { staffAssignmentsApi, toewijzingenGridApi } from "../../../lib/api-service";
+import { staffAssignmentsApi, toewijzingenGridApi, apiService } from "../../../lib/api-service";
 
 console.log('🔍 API import check - toewijzingenGridApi:', !!toewijzingenGridApi);
 
@@ -29,12 +29,14 @@ export default function ToewijzingenPage() {
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [currentAssignmentDate, setCurrentAssignmentDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
   
   // Create template structure matching the PDF exactly
   const getDefaultTableData = () => {
     // Create 10 main rows (numbered 1-10, removing row 4) with empty cells
     const mainRows = Array.from({ length: 13 }, () => 
-      Array.from({ length: 9 }, () => ({ text: '', color: 'white', type: '' }))
+      Array.from({ length: 9 }, () => ({ text: '', color: 'white', type: '', isFromDatabase: false }))
     );
     
     return mainRows;
@@ -87,33 +89,77 @@ export default function ToewijzingenPage() {
     const loadData = async () => {
       console.log('📥 Starting loadData function');
       try {
-        // Try to load from database using current assignment date
-        const assignmentDate = new Date().toISOString().split('T')[0]; // Today's date as default
+        // First try to load from database using current assignment date
+        let assignmentDate = new Date().toISOString().split('T')[0]; // Today's date as default
         console.log(`🔄 Loading toewijzingen data for date: ${assignmentDate}`);
         
-        const result = await toewijzingenGridApi.loadGrid(assignmentDate);
-        console.log(`📊 Database load result:`, result);
+        let result = await toewijzingenGridApi.loadGrid(assignmentDate);
+        console.log(`📊 Database load result for ${assignmentDate}:`, result);
+        
+        // If no data found for today, try to find the most recent date with data
+        if (result.success && result.data && 
+            (result.data.gridData.length === 0 && result.data.staffData.length === 0)) {
+          console.log(`ℹ️ No data found for ${assignmentDate}, searching for most recent data...`);
+          
+          try {
+            // Get the most recent date that has data by calling the apiService method directly
+            // We'll use a simple approach - try a few recent dates
+            const recentDates = [];
+            const today = new Date();
+            for (let i = 1; i <= 7; i++) { // Check last 7 days
+              const date = new Date(today);
+              date.setDate(today.getDate() - i);
+              recentDates.push(date.toISOString().split('T')[0]);
+            }
+            
+            let foundRecentData = false;
+            for (const testDate of recentDates) {
+              console.log(`🔄 Trying date: ${testDate}`);
+              const testResult = await toewijzingenGridApi.loadGrid(testDate);
+              
+              if (testResult.success && testResult.data && 
+                  (testResult.data.gridData.length > 0 || testResult.data.staffData.length > 0)) {
+                console.log(`✅ Found data for date: ${testDate}`);
+                result = testResult;
+                assignmentDate = testDate;
+                setCurrentAssignmentDate(testDate); // Update the displayed date
+                foundRecentData = true;
+                break;
+              }
+            }
+            
+            if (!foundRecentData) {
+              console.log('⚠️ No recent data found in the last 7 days');
+            }
+          } catch (recentError) {
+            console.warn('⚠️ Failed to find recent data:', recentError);
+          }
+        }
         
         if (result.success && result.data) {
           const { gridData, staffData } = result.data;
           
           if (gridData.length > 0 || staffData.length > 0) {
             console.log(`✅ Found data - Grid cells: ${gridData.length}, Staff records: ${staffData.length}`);
+            console.log(`📊 Loading data persistently for date: ${assignmentDate}`);
             
-            // Convert database data back to table format
+            // Convert database data back to table format - PRESERVE existing data structure
             const newTableData = getDefaultTableData();
             
-            // Populate grid cells
+            // Populate grid cells from database
             gridData.forEach((cell: any) => {
               if (cell.row_index < newTableData.length && cell.col_index < newTableData[0].length) {
                 newTableData[cell.row_index][cell.col_index] = {
                   text: cell.resident_full_name || '',
                   color: 'white',
-                  type: ''
+                  type: '',
+                  // Add persistence flag to track loaded data
+                  isFromDatabase: true
                 };
               }
             });
             
+            console.log(`📝 Setting table data with ${gridData.length} cells from database`);
             setTableData(newTableData);
             
             // Update staff columns with data from database
@@ -129,10 +175,14 @@ export default function ToewijzingenPage() {
                   };
                 }
               });
+              console.log(`👥 Setting staff data with ${staffData.length} records from database`);
               setStaffColumns(newStaffColumns);
             }
             
-            return;
+            // Mark that we have successfully loaded data
+            setHasLoadedData(true);
+            console.log(`💾 Data loaded and persisted for ${assignmentDate} - hasLoadedData: true`);
+            return; // Exit early - data has been loaded
           } else {
             console.log(`ℹ️ No assignment data found for ${assignmentDate}`);
           }
@@ -141,10 +191,21 @@ export default function ToewijzingenPage() {
         }
       } catch (dbError) {
         console.warn('⚠️ Failed to load from database:', dbError);
-        // If database load fails, start with default empty data
-        setTableData(getDefaultTableData());
-        setStaffColumns(getDefaultStaffColumns());
-        setBottomData(getDefaultBottomData());
+        // Show user-friendly error message
+        setSaveStatus({
+          type: 'error', 
+          message: `Database connection issue: ${dbError instanceof Error ? dbError.message : 'Connection failed'}`
+        });
+        // If database load fails, only initialize with default data if we haven't loaded any data yet
+        // This preserves data that was already loaded or manually entered
+        if (!hasLoadedData && tableData.every(row => row.every(cell => !cell.text.trim()))) {
+          console.log('🔧 No existing data found and none previously loaded, initializing with defaults');
+          setTableData(getDefaultTableData());
+          setStaffColumns(getDefaultStaffColumns());
+          setBottomData(getDefaultBottomData());
+        } else {
+          console.log('💾 Preserving existing table data after database error (hasLoadedData:', hasLoadedData, ')');
+        }
       }
     };
     
@@ -154,6 +215,7 @@ export default function ToewijzingenPage() {
   }, []);
 
   // Ensure table has the desired number of rows/columns even if old data is loaded
+  // Only adjust dimensions, preserve existing cell content
   useEffect(() => {
     if (!isMounted) return;
     const desiredRows = 13;
@@ -164,17 +226,21 @@ export default function ToewijzingenPage() {
         if (row.length < desiredCols) {
           changed = true;
           return [
-            ...row,
-            ...Array.from({ length: desiredCols - row.length }, () => ({ text: '', color: 'white', type: '' }))
+            ...row, // Preserve existing cells
+            ...Array.from({ length: desiredCols - row.length }, () => ({ text: '', color: 'white', type: '', isFromDatabase: false }))
           ];
         }
-        return row;
+        return row; // Keep existing row unchanged
       });
       if (rows.length < desiredRows) {
         changed = true;
         for (let i = rows.length; i < desiredRows; i++) {
-          rows.push(Array.from({ length: desiredCols }, () => ({ text: '', color: 'white', type: '' })));
+          rows.push(Array.from({ length: desiredCols }, () => ({ text: '', color: 'white', type: '', isFromDatabase: false })));
         }
+      }
+      // Only update if structural changes are needed
+      if (changed) {
+        console.log('🔧 Adjusting table dimensions while preserving data');
       }
       return changed ? rows : prev;
     });
@@ -226,6 +292,7 @@ export default function ToewijzingenPage() {
         syncReferentiepersoonWithToewijzingen(currentAssignments);
       } catch (error) {
         console.error('Error syncing referentiepersoon:', error);
+        // Don't show error to user for sync operations as they run automatically
       }
     }
   }, [tableData, isMounted, dataMatchIt, setDataMatchIt]);
@@ -684,7 +751,7 @@ export default function ToewijzingenPage() {
     
     // Create template structure - always 10x9
     const newTableData = Array(templateRows).fill(null).map(() => 
-      Array(templateCols).fill(null).map(() => ({ text: '', color: 'white', type: '' }))
+      Array(templateCols).fill(null).map(() => ({ text: '', color: 'white', type: '', isFromDatabase: false }))
     );
     
     // Fill table with Excel data - fit to template limits (11 rows, 9 cols)
@@ -751,7 +818,8 @@ export default function ToewijzingenPage() {
             newTableData[rowIndex][colIndex] = {
               text: cellText,
               color: cellColor,
-              type: ''
+              type: '',
+              isFromDatabase: false // File imports are not from database
             };
           }
         });
@@ -776,7 +844,7 @@ export default function ToewijzingenPage() {
     
     // Create template structure - always 10x9
     const newTableData = Array(templateRows).fill(null).map(() => 
-      Array(templateCols).fill(null).map(() => ({ text: '', color: 'white', type: '' }))
+      Array(templateCols).fill(null).map(() => ({ text: '', color: 'white', type: '', isFromDatabase: false }))
     );
     
     // Parse each line as comma-separated, tab-separated, semicolon or pipe-separated values
@@ -809,7 +877,8 @@ export default function ToewijzingenPage() {
               newTableData[rowIndex][colIndex] = {
                 text: cellText,
                 color: cellColor,
-                type: ''
+                type: '',
+                isFromDatabase: false // File imports are not from database
               };
             }
           }
@@ -876,8 +945,8 @@ export default function ToewijzingenPage() {
     
     try {
       
-      // Get current date for assignments
-      const assignmentDate = new Date().toISOString().split('T')[0];
+      // Get current assignment date (might be from a previous day if that's what was loaded)
+      const assignmentDate = currentAssignmentDate;
       
       // Get staff names from staffColumns  
       const staffNames = staffColumns.map(col => col.name);
@@ -930,7 +999,9 @@ export default function ToewijzingenPage() {
             });
           }
         } else {
-          throw new Error(result.error || 'Toewijzingen Grid API call failed');
+          const errorMsg = result.error || 'Toewijzingen Grid API call failed';
+          console.error('API call failed:', errorMsg);
+          throw new Error(errorMsg);
         }
       } catch (apiError) {
         console.warn('⚠️ Toewijzingen Grid API not available, using localStorage backup:', apiError);
@@ -1215,7 +1286,9 @@ export default function ToewijzingenPage() {
         ...currentCell,
         text: editValue,
         type: editType,
-        color: finalColor
+        color: finalColor,
+        // Preserve database origin flag if it exists
+        isFromDatabase: currentCell.isFromDatabase || false
       };
       
       
@@ -1321,11 +1394,13 @@ export default function ToewijzingenPage() {
     const previousText = currentCell.text.trim();
     
     
-    // Clear the cell content
+    // Clear the cell content but preserve structure
     newData[rowIndex][colIndex] = {
       text: '',
       color: 'white',
-      type: ''
+      type: '',
+      // Cell is no longer from database since it's been manually cleared
+      isFromDatabase: false
     };
     
     // If this was an IB assignment, clear the resident's referentiepersoon
@@ -1408,7 +1483,7 @@ export default function ToewijzingenPage() {
     // Add a new column to all table rows
     const newTableData = tableData.map(row => [
       ...row,
-      { text: '', color: 'white', type: '' }
+      { text: '', color: 'white', type: '', isFromDatabase: false }
     ]);
     setTableData(newTableData);
 
@@ -1464,7 +1539,8 @@ export default function ToewijzingenPage() {
     const newRow = Array.from({ length: staffColumns.length }, () => ({ 
       text: '', 
       color: 'white', 
-      type: '' 
+      type: '',
+      isFromDatabase: false
     }));
     
     // Insert the new row before the "Backups" section (which starts after the main table)
@@ -1616,10 +1692,13 @@ export default function ToewijzingenPage() {
               </h1>
               <div className="mt-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200 dark:border-blue-700 shadow-sm">
                 <div className="text-lg font-bold text-blue-800 dark:text-blue-200">
-                  {formatDate(new Date())}
+                  {formatDate(new Date(currentAssignmentDate))}
                 </div>
                 <div className="text-xs text-blue-600 dark:text-blue-300 uppercase tracking-wide">
-                  Vandaag
+                  {currentAssignmentDate === new Date().toISOString().split('T')[0] 
+                    ? 'Vandaag' 
+                    : `Data van ${currentAssignmentDate}`
+                  }
                 </div>
               </div>
             </div>

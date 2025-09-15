@@ -5,6 +5,7 @@ import { apiService } from '@/lib/api-service'
 import { getOfficialLanguageByNationality } from './language-utils'
 import type { Database } from '@/lib/supabase/database.types'
 import { ALL_ROOMS, CAPACITY } from '@/lib/bedConfig'
+import { executeWithResourceControl, requestManager } from '@/lib/request-manager'
 
 type Tables = Database['public']['Tables']
 type Resident = Tables['residents']['Row']
@@ -167,10 +168,18 @@ export function DataProvider({ children }: DataProviderProps) {
         IN: inResidents.length,
         OUT: outResidentsFromDB.length
       })
-    } catch (err) {
-      console.error('Error fetching residents:', err)
-      setError('Failed to load residents')
+    } catch (err: any) {
+      // Handle different types of errors gracefully
+      const errorMessage = err?.message || 'Unknown error'
+      console.warn('⚠️ Failed to fetch residents:', errorMessage)
+      
+      // Only set error state for critical errors, not network issues
+      if (err?.code !== 'NETWORK_ERROR' && !errorMessage.includes('fetch')) {
+        setError('Database connection issue')
+      }
+      
       // Don't retry automatically to prevent infinite loops
+      // Let the UI handle showing a retry button if needed
     }
   }
 
@@ -247,17 +256,30 @@ export function DataProvider({ children }: DataProviderProps) {
     setError(null)
     
     try {
-      // Only load essential data for bed management
-      await refreshResidents()
-      await new Promise(resolve => setTimeout(resolve, 100))
-      await refreshRooms()
+      // Check resource status before proceeding
+      const queueStatus = requestManager.getStatus()
+      console.log('📊 Request queue status:', queueStatus)
       
-      // Calculate dashboard stats
+      if (queueStatus.queueLength > 10) {
+        console.warn('⚠️ Request queue is full, clearing to prevent resource exhaustion')
+        requestManager.clearQueue()
+      }
+      
+      // Only load essential data for bed management with controlled requests
+      await executeWithResourceControl(refreshResidents, 3, 'refresh residents')
+      await new Promise(resolve => setTimeout(resolve, 200)) // Increased delay
+      await executeWithResourceControl(refreshRooms, 2, 'refresh rooms')
+      
+      // Calculate dashboard stats with low priority
       try {
-        const stats = await apiService.getDashboardStats()
+        const stats = await executeWithResourceControl(
+          () => apiService.getDashboardStats(), 
+          1, 
+          'dashboard stats'
+        )
         setDashboardStats(stats)
       } catch (err) {
-        console.log('⚠️ Dashboard stats failed, using fallback values')
+        console.warn('⚠️ Dashboard stats failed, using fallback values')
         // Set fallback dashboard stats to prevent infinite loading
         setDashboardStats({
           totalResidents: residents.length,
@@ -270,9 +292,18 @@ export function DataProvider({ children }: DataProviderProps) {
       }
       
       console.log('✅ Essential data loaded (residents and rooms)')
-    } catch (err) {
-      console.error('❌ Error loading essential data:', err)
-      setError('Failed to load essential data')
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Unknown error'
+      console.warn('⚠️ Error loading essential data:', errorMessage)
+      
+      // Check for resource exhaustion
+      if (errorMessage.includes('ERR_INSUFFICIENT_RESOURCES')) {
+        console.error('🚨 Resource exhaustion detected in refreshEssential')
+        requestManager.clearQueue()
+        setError('System overloaded - please wait and refresh')
+      } else if (!errorMessage.includes('fetch') && !errorMessage.includes('network')) {
+        setError('Database connection issue')
+      }
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
@@ -355,15 +386,31 @@ export function DataProvider({ children }: DataProviderProps) {
   }
 
   const updateResident = async (id: number, updates: Partial<Resident>) => {
-    const updatedResident = await apiService.updateResident(id, updates)
-    await refreshResidents()
-    await apiService.logActivity({
-      action: 'update',
-      entity_type: 'resident',
-      entity_id: id,
-      details: updates
-    })
-    return updatedResident
+    try {
+      const updatedResident = await apiService.updateResident(id, updates)
+      await refreshResidents()
+      
+      // Log activity if logging is available
+      try {
+        await apiService.logActivity({
+          action: 'update',
+          entity_type: 'resident',
+          entity_id: id,
+          details: updates
+        })
+      } catch (logError) {
+        console.warn('⚠️ Failed to log activity:', logError)
+        // Continue execution even if logging fails
+      }
+      
+      return updatedResident
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Unknown error'
+      console.warn('⚠️ Failed to update resident:', errorMessage)
+      
+      // Re-throw error for the calling component to handle
+      throw new Error(`Failed to update resident: ${errorMessage}`)
+    }
   }
   
   // Batch update function to prevent ERR_INSUFFICIENT_RESOURCES

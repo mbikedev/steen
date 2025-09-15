@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/database.types'
+import { executeWithResourceControl } from '@/lib/request-manager'
 
 type Tables = Database['public']['Tables']
 type Resident = Tables['residents']['Row']
@@ -19,13 +20,15 @@ export class ApiService {
 
   // Residents
   async getResidents() {
-    const { data, error } = await this.supabase
-      .from('residents')
-      .select('*')
-      .order('badge', { ascending: true })
+    return executeWithResourceControl(async () => {
+      const { data, error } = await this.supabase
+        .from('residents')
+        .select('*')
+        .order('badge', { ascending: true })
 
-    if (error) throw error
-    return data
+      if (error) throw error
+      return data
+    }, 2, 'fetch all residents')
   }
 
   async getResident(id: number) {
@@ -138,13 +141,15 @@ export class ApiService {
     
     if (!updates || Object.keys(updates).length === 0) {
       console.warn('⚠️ updateResident called with no updates, skipping');
-      // Return existing data without making a database call
-      const { data } = await this.supabase
-        .from('residents')
-        .select('*')
-        .eq('id', id)
-        .single();
-      return data;
+      // Return existing data without making a database call with resource control
+      return executeWithResourceControl(async () => {
+        const { data } = await this.supabase
+          .from('residents')
+          .select('*')
+          .eq('id', id)
+          .single();
+        return data;
+      }, 2, `fetch resident ${id}`);
     }
     
     // Create a copy of updates and sanitize fields
@@ -161,17 +166,23 @@ export class ApiService {
     // Log what we're updating for debugging
     console.log(`🔄 Updating resident ${id} with fields:`, Object.keys(updateData));
     
-    try {
-      const { data, error } = await this.supabase
-        .from('residents')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single()
+    return executeWithResourceControl(async () => {
+      try {
+        // Log network connectivity check
+        if (typeof window !== 'undefined' && !window.navigator.onLine) {
+          throw new Error('No internet connection detected')
+        }
+        
+        const { data, error } = await this.supabase
+          .from('residents')
+          .update(updateData)
+          .eq('id', id)
+          .select()
+          .single()
 
-      if (error) throw error
-      return data
-    } catch (error: any) {
+        if (error) throw error
+        return data
+      } catch (error: any) {
       // Properly serialize the error for logging
       const errorDetails = {
         message: error?.message || 'Unknown error',
@@ -190,7 +201,17 @@ export class ApiService {
         }
       }
       
-      console.error('❌ updateResident error:', error?.message || 'Unknown error')
+      // Categorize the error
+      let errorCategory = 'DATABASE_ERROR'
+      if (error?.message?.includes('fetch') || error?.name === 'TypeError' && error?.message?.includes('Failed to fetch')) {
+        errorCategory = 'NETWORK_ERROR'
+        console.warn('🌐 Network error detected - likely connectivity issue')
+      } else if (error?.code === '401' || error?.message?.includes('auth')) {
+        errorCategory = 'AUTH_ERROR'
+        console.warn('🔐 Authentication error detected')
+      }
+      
+      console.warn(`⚠️ updateResident ${errorCategory}:`, error?.message || 'Unknown error')
       console.error('❌ Error details:', JSON.stringify(errorDetails, null, 2))
 
       // Handle specific database errors with migrations not applied
@@ -214,6 +235,30 @@ export class ApiService {
         }
         if (updateData.nationality && updateData.nationality.length > 100) {
           updateData.nationality = updateData.nationality.substring(0, 100)
+        }
+      } else if (errorCategory === 'NETWORK_ERROR') {
+        console.warn('🔄 Network error detected, retrying once after delay...')
+        // Wait 1 second and retry once for network errors
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        try {
+          const { data, error: retryError } = await this.supabase
+            .from('residents')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single()
+
+          if (retryError) {
+            console.error('❌ Network retry also failed:', retryError.message)
+            throw new Error(`Network error: ${retryError.message}`)
+          }
+          
+          console.log('✅ Network retry succeeded')
+          return data
+        } catch (retryError) {
+          console.error('❌ Network retry failed:', retryError)
+          throw new Error(`Network connectivity issue: ${error?.message}`)
         }
       } else {
         // For other errors, don't retry
@@ -245,6 +290,7 @@ export class ApiService {
         throw retryError
       }
     }
+    }, 3, `update resident ${id}`) // High priority for updates
   }
 
   async deleteResident(id: number) {
@@ -870,52 +916,56 @@ export class ApiService {
 
   // Toewijzingen Grid methods
   async getToewijzingenGrid(assignmentDate: string) {
-    try {
-      const { data, error } = await this.supabase
-        .from('toewijzingen_grid')
-        .select('*')
-        .eq('assignment_date', assignmentDate)
-        .order('row_index')
-        .order('col_index')
+    return executeWithResourceControl(async () => {
+      try {
+        const { data, error } = await this.supabase
+          .from('toewijzingen_grid')
+          .select('*')
+          .eq('assignment_date', assignmentDate)
+          .order('row_index')
+          .order('col_index')
 
-      if (error) {
-        console.error('❌ getToewijzingenGrid error:', error)
-        if (error.message?.includes('relation "public.toewijzingen_grid" does not exist')) {
-          console.error('🚨 URGENT: toewijzingen_grid table does not exist! Please apply migration 002/003.')
+        if (error) {
+          console.error('❌ getToewijzingenGrid error:', error)
+          if (error.message?.includes('relation "public.toewijzingen_grid" does not exist')) {
+            console.error('🚨 URGENT: toewijzingen_grid table does not exist! Please apply migration 002/003.')
+          }
+          throw error
         }
+        
+        console.log(`📥 getToewijzingenGrid: Found ${data?.length || 0} records for date ${assignmentDate}`)
+        return data || []
+      } catch (error) {
+        console.error('❌ Exception in getToewijzingenGrid:', error)
         throw error
       }
-      
-      console.log(`📥 getToewijzingenGrid: Found ${data?.length || 0} records for date ${assignmentDate}`)
-      return data || []
-    } catch (error) {
-      console.error('❌ Exception in getToewijzingenGrid:', error)
-      throw error
-    }
+    }, 2, `load grid data for ${assignmentDate}`)
   }
 
   async getToewijzingenStaff(assignmentDate: string) {
-    try {
-      const { data, error } = await this.supabase
-        .from('toewijzingen_staff')
-        .select('*')
-        .eq('assignment_date', assignmentDate)
-        .order('staff_index')
+    return executeWithResourceControl(async () => {
+      try {
+        const { data, error } = await this.supabase
+          .from('toewijzingen_staff')
+          .select('*')
+          .eq('assignment_date', assignmentDate)
+          .order('staff_index')
 
-      if (error) {
-        console.error('❌ getToewijzingenStaff error:', error)
-        if (error.message?.includes('relation "public.toewijzingen_staff" does not exist')) {
-          console.error('🚨 URGENT: toewijzingen_staff table does not exist! Please apply migration 009.')
+        if (error) {
+          console.error('❌ getToewijzingenStaff error:', error)
+          if (error.message?.includes('relation "public.toewijzingen_staff" does not exist')) {
+            console.error('🚨 URGENT: toewijzingen_staff table does not exist! Please apply migration 009.')
+          }
+          throw error
         }
+        
+        console.log(`📥 getToewijzingenStaff: Found ${data?.length || 0} records for date ${assignmentDate}`)
+        return data || []
+      } catch (error) {
+        console.error('❌ Exception in getToewijzingenStaff:', error)
         throw error
       }
-      
-      console.log(`📥 getToewijzingenStaff: Found ${data?.length || 0} records for date ${assignmentDate}`)
-      return data || []
-    } catch (error) {
-      console.error('❌ Exception in getToewijzingenStaff:', error)
-      throw error
-    }
+    }, 2, `load staff data for ${assignmentDate}`)
   }
 
   async clearToewijzingenGrid(assignmentDate: string) {
@@ -954,6 +1004,22 @@ export class ApiService {
   async testToewijzingenTables() {
     try {
       console.log('🧪 Testing toewijzingen table access...')
+      
+      // First test basic connectivity
+      try {
+        const { data: testData, error: connectError } = await this.supabase
+          .from('residents')
+          .select('id')
+          .limit(1)
+        
+        if (connectError) {
+          console.error('❌ Basic database connectivity failed:', connectError)
+          return { success: false, error: `Database connection failed: ${connectError.message}` }
+        }
+      } catch (connectError) {
+        console.error('❌ Network connectivity failed:', connectError)
+        return { success: false, error: `Network error: ${connectError instanceof Error ? connectError.message : 'Connection failed'}` }
+      }
       
       // Test toewijzingen_grid table
       const { data: gridData, error: gridError } = await this.supabase
