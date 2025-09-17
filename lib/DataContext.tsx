@@ -53,7 +53,6 @@ interface DataContextType {
   dashboardStats: any
   
   // Legacy functions for backward compatibility
-  syncWithToewijzingen: () => void
   addToDataMatchIt: (resident: any) => Promise<boolean>
   addMultipleToDataMatchIt: (residents: any[]) => Promise<void>
   updateInDataMatchIt: (id: number, updates: any) => void
@@ -358,6 +357,16 @@ export function DataProvider({ children }: DataProviderProps) {
       const newResident = await apiService.createResident(resident)
       await refreshResidents()
       
+      // Sync administrative documents for the new resident
+      try {
+        const syncResult = await apiService.syncResidentDocuments(resident.badge, newResident.id)
+        if (syncResult.synced > 0) {
+          console.log(`✅ Synced ${syncResult.synced} documents for resident ${resident.badge}`)
+        }
+      } catch (syncError) {
+        console.error('Failed to sync documents for resident:', resident.badge, syncError)
+      }
+      
       // Refresh dashboard stats after creating a resident
       try {
         const stats = await apiService.getDashboardStats()
@@ -376,10 +385,17 @@ export function DataProvider({ children }: DataProviderProps) {
       return newResident
     } catch (error: any) {
       // Handle duplicate key errors gracefully
-      if (error?.code === '23505' || error?.message?.includes('duplicate') || error?.message?.includes('409')) {
-        console.warn(`⚠️ Resident with badge ${resident.badge} already exists in database - skipping`)
+      if (error?.code === '23505' || error?.message?.includes('duplicate') || error?.message?.includes('409') || error?.status === 409) {
+        // Duplicate is already logged in api-service, just return null
         return null
       }
+      // Log unexpected errors before re-throwing
+      console.error('Unexpected error in createResident:', error)
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        residentBadge: resident.badge
+      })
       // Re-throw other errors
       throw error
     }
@@ -603,11 +619,6 @@ export function DataProvider({ children }: DataProviderProps) {
   }
 
   // Legacy functions for backward compatibility
-  const syncWithToewijzingen = () => {
-    console.log('📋 syncWithToewijzingen called - using Supabase staff assignments instead')
-    // In Supabase version, this would sync with staff_assignments table
-    // For now, just log that it was called
-  }
 
   const addToDataMatchIt = async (resident: any): Promise<boolean> => {
     console.log('🔄 addToDataMatchIt called - converting to createResident')
@@ -648,16 +659,26 @@ export function DataProvider({ children }: DataProviderProps) {
       }
       const result = await createResident(supabaseResident)
       if (result === null) {
-        // Duplicate was skipped
-        console.log(`ℹ️ Resident with badge ${resident.badge} was skipped (already exists)`)
+        // Duplicate was skipped - no need for additional logging
         return false
       }
       return true
     } catch (error: any) {
+      // Check if it's a known duplicate error
+      const isDuplicate = error?.code === '23505' || 
+                         error?.message?.includes('duplicate') || 
+                         error?.message?.includes('409') ||
+                         error?.status === 409;
+      
+      if (isDuplicate) {
+        // Duplicate already logged, just return false
+        return false
+      }
+      
       // For unexpected errors, log and continue (don't break the whole import)
-      console.error('Error in addToDataMatchIt:', {
-        error,
-        message: error?.message,
+      console.error('Unexpected error in addToDataMatchIt:', error)
+      console.error('Additional error details:', {
+        message: error?.message || 'No error message',
         code: error?.code,
         details: error?.details,
         hint: error?.hint,
@@ -689,6 +710,35 @@ export function DataProvider({ children }: DataProviderProps) {
     }
     
     console.log(`✅ Batch import complete: ${successCount} added, ${skipCount} skipped (duplicates or errors)`)
+    
+    // After adding all residents, sync documents for newly added ones
+    console.log(`📄 Starting document sync for imported residents...`)
+    let documentsSync = 0
+    try {
+      // Only sync documents for residents that were successfully added
+      const allResidents = await apiService.getResidents()
+      for (const importedResident of residents) {
+        // Find the resident in the database by badge
+        const dbResident = allResidents.find(r => r.badge === importedResident.badge)
+        if (dbResident) {
+          try {
+            const syncResult = await apiService.syncResidentDocuments(dbResident.badge, dbResident.id)
+            if (syncResult.synced > 0) {
+              documentsSync += syncResult.synced
+              console.log(`📄 Synced ${syncResult.synced} documents for ${dbResident.badge}`)
+            }
+          } catch (syncError) {
+            console.error(`Failed to sync documents for ${dbResident.badge}:`, syncError)
+          }
+        }
+      }
+      
+      if (documentsSync > 0) {
+        console.log(`✅ Total documents synced: ${documentsSync}`)
+      }
+    } catch (error) {
+      console.error('Error during batch document sync:', error)
+    }
     
     // Only refresh if we added at least one resident
     if (successCount > 0) {
@@ -1094,7 +1144,6 @@ export function DataProvider({ children }: DataProviderProps) {
         deleteDocument,
         
         // Legacy functions
-        syncWithToewijzingen,
         addToDataMatchIt,
         addMultipleToDataMatchIt,
         updateInDataMatchIt,

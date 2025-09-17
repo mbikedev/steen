@@ -3,10 +3,11 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { Search, Filter, FileText, FolderOpen, ExternalLink, ChevronDown } from 'lucide-react';
+import { Search, Filter, FileText, FolderOpen, ExternalLink, ChevronDown, RefreshCw } from 'lucide-react';
 import { useData } from "../../../lib/DataContext";
 import { formatDate } from "../../../lib/utils";
 import ResidentDocumentsModal from '../../components/ResidentDocumentsModal';
+import { apiService } from '../../../lib/api-service';
 
 function AdministrativeDocumentsPageContent() {
   const { bewonerslijst, outResidents, moveToOutAndDelete } = useData();
@@ -18,6 +19,7 @@ function AdministrativeDocumentsPageContent() {
   const [selectedDocumentType, setSelectedDocumentType] = useState('IN');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [editingStatus, setEditingStatus] = useState<{[key: number]: boolean}>({});
+  const [isSyncing, setIsSyncing] = useState(false);
   
   // Handle search from URL parameters
   useEffect(() => {
@@ -40,6 +42,47 @@ function AdministrativeDocumentsPageContent() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isDropdownOpen]);
+
+  // Sync documents for all residents
+  const handleSyncDocuments = async () => {
+    setIsSyncing(true);
+    let totalSynced = 0;
+    let totalResidents = 0;
+    
+    try {
+      const residentsToSync = selectedDocumentType === 'IN' ? inResidents : outResidents;
+      console.log(`Starting document sync for ${residentsToSync.length} ${selectedDocumentType} residents...`);
+      
+      for (const resident of residentsToSync) {
+        if (resident.badge && resident.id) {
+          try {
+            const result = await apiService.syncResidentDocuments(resident.badge, resident.id);
+            if (result.synced > 0) {
+              totalSynced += result.synced;
+              totalResidents++;
+              console.log(`Synced ${result.synced} documents for ${resident.badge}`);
+            }
+          } catch (error) {
+            console.error(`Failed to sync documents for ${resident.badge}:`, error);
+          }
+        }
+      }
+      
+      if (totalSynced > 0) {
+        alert(`Successfully synced ${totalSynced} documents for ${totalResidents} residents!`);
+      } else {
+        alert('No new documents found to sync.');
+      }
+      
+      // Reload the page to refresh the document counts
+      window.location.reload();
+    } catch (error) {
+      console.error('Error during document sync:', error);
+      alert('An error occurred while syncing documents. Please check the console for details.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // IN residents are all current residents in bewonerslijst (OUT residents are already excluded)
   // OUT residents come from separate outResidents state
@@ -235,8 +278,8 @@ function AdministrativeDocumentsPageContent() {
             
             <div className="bg-card shadow-sm rounded-lg p-4 mb-6 border border-border">
               <div className="grid grid-cols-3 gap-4 items-center">
-                <div className={`px-3 py-2 text-center font-semibold text-black rounded ${
-                  selectedDocumentType === 'IN' ? 'bg-primary' : 'bg-secondary'
+                <div className={`px-3 py-2 text-center font-semibold rounded ${
+                  selectedDocumentType === 'IN' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'
                 }`}>
                   <FileText className="inline-block w-4 h-4 mr-2" />
                   Bewonersoverzicht ({selectedDocumentType})
@@ -245,7 +288,50 @@ function AdministrativeDocumentsPageContent() {
                   <span className="text-sm">Totaal Bewoners: {sortedResidents.length}</span>
                   <p className="text-xs text-muted-foreground mt-1">Klik op een bewoner om documenten te bekijken</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex gap-2 justify-end">
+                  <button
+                    onClick={async () => {
+                      // Example: Create a document record for testing
+                      const testResident = sortedResidents[0]
+                      if (testResident) {
+                        const fileName = `${testResident.badge}_bijlage26.pdf`
+                        const result = await apiService.createDocumentRecord(
+                          testResident.id,
+                          testResident.badge,
+                          fileName,
+                          'IN'
+                        )
+                        console.log('Test document creation result:', result)
+                        alert(`Test: Created document record for ${testResident.badge}. Check console for details.`)
+                        window.location.reload()
+                      }
+                    }}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    title="Create test document record"
+                  >
+                    Test Doc
+                  </button>
+                  <button
+                    onClick={async () => {
+                      console.log('🔍 Starting storage debug...')
+                      const result = await apiService.debugListAllDocuments()
+                      console.log('Debug result:', result)
+                      alert('Check console for storage debug information')
+                    }}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    title="Debug storage structure"
+                  >
+                    Debug Storage
+                  </button>
+                  <button
+                    onClick={handleSyncDocuments}
+                    disabled={isSyncing}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    title="Sync documents from storage for all residents"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                    {isSyncing ? 'Syncing...' : 'Sync Documents'}
+                  </button>
                 </div>
               </div>
             </div>

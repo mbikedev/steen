@@ -56,8 +56,21 @@ export class ApiService {
       if (error) throw error
       return data
     } catch (error: any) {
-      console.error('createResident error details:', {
-        error,
+      // Check if it's a duplicate error (409 or unique constraint violation)
+      const isDuplicate = error?.code === '23505' || 
+                         error?.message?.includes('duplicate') || 
+                         error?.message?.includes('409') ||
+                         error?.status === 409;
+      
+      if (isDuplicate) {
+        // For duplicates, just log a simple warning
+        console.warn(`⚠️ Resident with badge ${residentData.badge} already exists - will be skipped`)
+        throw error // Still throw to be handled by the caller
+      }
+      
+      // For other errors, log more details
+      console.error('createResident unexpected error:', error)
+      console.error('Error details:', {
         message: error?.message,
         code: error?.code,
         details: error?.details,
@@ -751,6 +764,310 @@ export class ApiService {
     return data || []
   }
 
+  async debugListAllDocuments() {
+    try {
+      console.log('🔍 Debugging storage bucket structure...')
+      
+      // List root
+      const { data: rootData, error: rootError } = await this.supabase.storage
+        .from('administrative-documents')
+        .list('', {
+          limit: 100
+        })
+      
+      if (rootError) {
+        console.error('Error listing root:', rootError)
+      } else {
+        console.log('📁 Root contents:', rootData)
+        if (rootData && rootData.length > 0) {
+          console.log('Root files/folders:', rootData.map(f => f.name))
+        }
+      }
+      
+      // List IN folder
+      const { data: inData, error: inError } = await this.supabase.storage
+        .from('administrative-documents')
+        .list('IN', {
+          limit: 200
+        })
+      
+      if (inError) {
+        console.error('Error listing IN folder:', inError)
+      } else {
+        console.log('📁 IN folder contents:', inData)
+        if (inData && inData.length > 0) {
+          console.log('📄 First 10 files in IN folder:')
+          inData.slice(0, 10).forEach(file => {
+            console.log(`  - ${file.name} (${file.metadata?.size || 'size unknown'})`)
+          })
+          
+          // Extract badge patterns
+          const badges = new Set()
+          inData.forEach(file => {
+            // Try to extract badge number from filename
+            const match = file.name.match(/(\d{4,6})/g)
+            if (match) {
+              match.forEach(m => badges.add(m))
+            }
+          })
+          console.log('🔢 Unique badge numbers found in filenames:', Array.from(badges).slice(0, 20))
+        }
+      }
+      
+      return { root: rootData, in: inData }
+    } catch (error) {
+      console.error('Debug error:', error)
+      return null
+    }
+  }
+
+  async batchCreateDocumentRecords(residents: any[], documentPatterns: string[] = ['bijlage26.pdf', 'toewijzing.pdf', 'passport.pdf']) {
+    let created = 0
+    let skipped = 0
+    
+    for (const resident of residents) {
+      if (!resident.badge || !resident.id) continue
+      
+      for (const pattern of documentPatterns) {
+        // Create filename with badge
+        const fileName = `${resident.badge}_${pattern}`
+        
+        try {
+          const result = await this.createDocumentRecord(resident.id, resident.badge, fileName, 'IN')
+          if (result.success) {
+            created++
+          } else {
+            skipped++
+          }
+        } catch (error) {
+          console.error(`Error creating document for ${resident.badge}:`, error)
+        }
+      }
+    }
+    
+    return { created, skipped }
+  }
+
+  async createDocumentRecord(residentId: number, residentBadge: string, fileName: string, documentType: 'IN' | 'OUT' = 'IN') {
+    try {
+      // Create the public URL for the document
+      const publicUrl = `https://xxcbpsjefpogxgfellui.supabase.co/storage/v1/object/public/administrative-documents/${documentType}/${fileName}`
+      
+      // Check if document already exists
+      const { data: existing } = await this.supabase
+        .from('administrative_documents')
+        .select('id')
+        .eq('resident_id', residentId)
+        .eq('file_name', fileName)
+        .single()
+      
+      if (existing) {
+        console.log(`Document ${fileName} already exists for resident ${residentBadge}`)
+        return { success: false, message: 'Already exists' }
+      }
+      
+      // Create document record
+      const { data, error } = await this.supabase
+        .from('administrative_documents')
+        .insert({
+          resident_id: residentId,
+          resident_badge: residentBadge,
+          document_type: documentType,
+          file_name: fileName,
+          file_path: publicUrl,
+          file_size: 0, // We don't know the size without fetching the file
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Error creating document record:', error)
+        return { success: false, error }
+      }
+      
+      console.log(`✅ Created document record for ${fileName}`)
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error in createDocumentRecord:', error)
+      return { success: false, error }
+    }
+  }
+
+  async syncResidentDocuments(residentBadge: string | number, residentId: number) {
+    try {
+      console.log(`📄 Syncing documents for resident ${residentBadge} (ID: ${residentId})`)
+      
+      // List all files in IN folder
+      const { data: inFiles, error: inError } = await this.supabase.storage
+        .from('administrative-documents')
+        .list('IN', {
+          limit: 1000
+        })
+      
+      if (inError) {
+        console.error('Error listing IN folder:', inError)
+        return { synced: 0, error: inError }
+      }
+
+      if (!inFiles || inFiles.length === 0) {
+        console.log(`No files found in IN folder`)
+        return { synced: 0 }
+      }
+
+      console.log(`Found ${inFiles.length} files in IN folder`)
+      
+      // Convert badge to string for consistent handling
+      const badgeStr = String(residentBadge)
+      console.log(`🔍 DEBUG: Looking for badge ${badgeStr}`)
+      
+      let syncedCount = 0
+      let matchedFiles = []
+      
+      // Create a more flexible matching approach
+      // Since we see 5-digit resident badges vs 8-digit file badges, we need name-based matching
+      for (const file of inFiles) {
+        // Skip if it's not a file (could be a folder)
+        if (!file.name || file.name.endsWith('/')) continue
+        
+        // Try multiple matching strategies:
+        let isMatch = false
+        let matchReason = ''
+        
+        // Strategy 1: Exact badge number match (any length)
+        const allNumbers = file.name.match(/(\d+)/g) || []
+        if (allNumbers.includes(badgeStr)) {
+          isMatch = true
+          matchReason = 'exact badge number'
+        }
+        
+        // Strategy 2: Badge number with separators
+        if (!isMatch && (file.name.includes(`-${badgeStr}-`) || file.name.includes(`_${badgeStr}_`))) {
+          isMatch = true
+          matchReason = 'badge with separators'
+        }
+        
+        // Strategy 3: Badge number at word boundaries
+        if (!isMatch) {
+          const badgeRegex = new RegExp(`\\b${badgeStr}\\b`)
+          if (badgeRegex.test(file.name)) {
+            isMatch = true
+            matchReason = 'badge at word boundary'
+          }
+        }
+        
+        // Strategy 4: Pattern-based matching (look for numbers ending with our badge)
+        if (!isMatch) {
+          // Look for any numbers (4-10 digits) that end with our 5-digit badge number
+          // This catches patterns like 10283198 ending with 25198
+          const allNumberMatches = file.name.match(/(\d{4,10})/g) || []
+          
+          // Debug: log what we found
+          if (allNumberMatches.length > 0) {
+            console.log(`🔍 Found numbers in ${file.name}: ${allNumberMatches.join(', ')}`)
+          }
+          
+          for (const number of allNumberMatches) {
+            // Check if last 3 digits match (the actual pattern we discovered)
+            const numberLast3 = number.slice(-3)
+            const badgeLast3 = badgeStr.slice(-3)
+            const matches3Digits = numberLast3 === badgeLast3 && number.length > badgeStr.length
+            
+            console.log(`🔍 Checking: does ${number} (last 3: ${numberLast3}) match badge ${badgeStr} (last 3: ${badgeLast3})? ${matches3Digits}`)
+            
+            if (matches3Digits) {
+              isMatch = true
+              matchReason = `3-digit pattern match (${number} last 3 digits ${numberLast3} match badge ${badgeStr})`
+              console.log(`✅ Pattern match: ${number} last 3 digits match badge ${badgeStr}`)
+              break
+            }
+            
+            // Also keep the original full-ending check as a fallback
+            if (number.endsWith(badgeStr) && number !== badgeStr) {
+              isMatch = true
+              matchReason = `full number pattern (${number} ends with ${badgeStr})`
+              console.log(`✅ Full pattern match: ${number} ends with badge ${badgeStr}`)
+              break
+            }
+          }
+        }
+        
+        // Strategy 5: Partial digit analysis for debugging
+        if (!isMatch) {
+          const partialBadgeMatches = file.name.match(/(\d{4,8})/g) || []
+          
+          // Check if any number in the filename ends with our badge digits
+          for (const number of partialBadgeMatches) {
+            if (number.endsWith(badgeStr.slice(-3)) || badgeStr.endsWith(number.slice(-3))) {
+              console.log(`⚠️  Potential match for badge ${badgeStr} in file: ${file.name} (number: ${number})`)
+            }
+          }
+        }
+        
+        if (isMatch) {
+          matchedFiles.push(file)
+          console.log(`✅ Found matching file for badge ${badgeStr} (${matchReason}): ${file.name}`)
+        }
+      }
+      
+      console.log(`Found ${matchedFiles.length} files matching resident ${residentBadge}`)
+      
+      // Process matched files
+      for (const file of matchedFiles) {
+        try {
+          // Check if document already exists in database
+          const { data: existingDoc } = await this.supabase
+            .from('administrative_documents')
+            .select('id')
+            .eq('resident_id', residentId)
+            .eq('file_name', file.name)
+            .single()
+
+          if (!existingDoc) {
+            // Get public URL for the file
+            const { data: { publicUrl } } = this.supabase.storage
+              .from('administrative-documents')
+              .getPublicUrl(`IN/${file.name}`)
+
+            // Create document record in database
+            const { data: newDoc, error: insertError } = await this.supabase
+              .from('administrative_documents')
+              .insert({
+                resident_id: residentId,
+                resident_badge: residentBadge,
+                document_type: 'IN',
+                file_name: file.name,
+                file_path: publicUrl,
+                file_size: file.metadata?.size || file.size || 0,
+                created_at: file.created_at || new Date().toISOString(),
+                updated_at: file.updated_at || new Date().toISOString()
+              })
+              .select()
+              .single()
+
+            if (insertError) {
+              console.error(`Error creating document record for ${file.name}:`, insertError)
+            } else {
+              syncedCount++
+              console.log(`✅ Synced document: ${file.name} (ID: ${newDoc?.id})`)
+            }
+          } else {
+            console.log(`Document ${file.name} already exists in database`)
+          }
+        } catch (docError) {
+          console.error(`Error processing document ${file.name}:`, docError)
+        }
+      }
+
+      console.log(`📄 Synced ${syncedCount} new documents for resident ${residentBadge}`)
+      return { synced: syncedCount, total: matchedFiles.length }
+    } catch (error) {
+      console.error('Error in syncResidentDocuments:', error)
+      return { synced: 0, error }
+    }
+  }
+
   private sanitizeFileName(fileName: string): string {
     // Replace special characters and normalize accented characters
     return fileName
@@ -914,455 +1231,16 @@ export class ApiService {
     */
   }
 
-  // Toewijzingen Grid methods
-  async getToewijzingenGrid(assignmentDate: string) {
-    return executeWithResourceControl(async () => {
-      try {
-        const { data, error } = await this.supabase
-          .from('toewijzingen_grid')
-          .select('*')
-          .eq('assignment_date', assignmentDate)
-          .order('row_index')
-          .order('col_index')
-
-        if (error) {
-          console.error('❌ getToewijzingenGrid error:', error)
-          if (error.message?.includes('relation "public.toewijzingen_grid" does not exist')) {
-            console.error('🚨 URGENT: toewijzingen_grid table does not exist! Please apply migration 002/003.')
-          }
-          throw error
-        }
-        
-        console.log(`📥 getToewijzingenGrid: Found ${data?.length || 0} records for date ${assignmentDate}`)
-        return data || []
-      } catch (error) {
-        console.error('❌ Exception in getToewijzingenGrid:', error)
-        throw error
-      }
-    }, 2, `load grid data for ${assignmentDate}`)
-  }
-
-  async getToewijzingenStaff(assignmentDate: string) {
-    return executeWithResourceControl(async () => {
-      try {
-        const { data, error } = await this.supabase
-          .from('toewijzingen_staff')
-          .select('*')
-          .eq('assignment_date', assignmentDate)
-          .order('staff_index')
-
-        if (error) {
-          console.error('❌ getToewijzingenStaff error:', error)
-          if (error.message?.includes('relation "public.toewijzingen_staff" does not exist')) {
-            console.error('🚨 URGENT: toewijzingen_staff table does not exist! Please apply migration 009.')
-          }
-          throw error
-        }
-        
-        console.log(`📥 getToewijzingenStaff: Found ${data?.length || 0} records for date ${assignmentDate}`)
-        return data || []
-      } catch (error) {
-        console.error('❌ Exception in getToewijzingenStaff:', error)
-        throw error
-      }
-    }, 2, `load staff data for ${assignmentDate}`)
-  }
-
-  async clearToewijzingenGrid(assignmentDate: string) {
-    try {
-      console.log(`🧹 Clearing toewijzingen data for date: ${assignmentDate}`)
-      
-      // Clear both grid and staff data for the date
-      const { error: gridError } = await this.supabase
-        .from('toewijzingen_grid')
-        .delete()
-        .eq('assignment_date', assignmentDate)
-
-      if (gridError) {
-        console.error('❌ Error clearing toewijzingen_grid:', gridError)
-        throw gridError
-      }
-
-      const { error: staffError } = await this.supabase
-        .from('toewijzingen_staff')
-        .delete()
-        .eq('assignment_date', assignmentDate)
-
-      if (staffError) {
-        console.error('❌ Error clearing toewijzingen_staff:', staffError)
-        throw staffError
-      }
-      
-      console.log('✅ Successfully cleared existing data')
-    } catch (error) {
-      console.error('❌ Exception in clearToewijzingenGrid:', error)
-      throw error
-    }
-  }
-  
-  // Test function to verify database tables exist and are accessible
-  async testToewijzingenTables() {
-    try {
-      console.log('🧪 Testing toewijzingen table access...')
-      
-      // First test basic connectivity
-      try {
-        const { data: testData, error: connectError } = await this.supabase
-          .from('residents')
-          .select('id')
-          .limit(1)
-        
-        if (connectError) {
-          console.error('❌ Basic database connectivity failed:', connectError)
-          return { success: false, error: `Database connection failed: ${connectError.message}` }
-        }
-      } catch (connectError) {
-        console.error('❌ Network connectivity failed:', connectError)
-        return { success: false, error: `Network error: ${connectError instanceof Error ? connectError.message : 'Connection failed'}` }
-      }
-      
-      // Test toewijzingen_grid table
-      const { data: gridData, error: gridError } = await this.supabase
-        .from('toewijzingen_grid')
-        .select('*')
-        .limit(1)
-      
-      if (gridError) {
-        console.error('❌ toewijzingen_grid table test failed:', gridError)
-        return { success: false, error: `Grid table error: ${gridError.message}` }
-      }
-      
-      // Test toewijzingen_staff table
-      const { data: staffData, error: staffError } = await this.supabase
-        .from('toewijzingen_staff')
-        .select('*')
-        .limit(1)
-      
-      if (staffError) {
-        console.error('❌ toewijzingen_staff table test failed:', staffError)
-        return { success: false, error: `Staff table error: ${staffError.message}` }
-      }
-      
-      console.log('✅ Both tables accessible')
-      return { 
-        success: true, 
-        gridRecords: gridData?.length || 0,
-        staffRecords: staffData?.length || 0
-      }
-    } catch (error) {
-      console.error('❌ Exception testing tables:', error)
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
-    }
-  }
-
-  async bulkCreateToewijzingenGrid(gridCells: Array<{
-    assignment_date: string;
-    row_index: number;
-    col_index: number;
-    resident_full_name: string;
-    ib_name: string | null;
-  }>) {
-    if (gridCells.length === 0) {
-      console.log('⚠️ No grid cells to save')
-      return []
-    }
-
-    console.log('🔍 DEBUG: Sample grid cell data:', JSON.stringify(gridCells[0], null, 2))
-
-    // Check table structure first
-    try {
-      const { data: tableInfo, error: tableError } = await this.supabase
-        .from('toewijzingen_grid')
-        .select('*')
-        .limit(1)
-      
-      if (tableError) {
-        console.error('❌ Table structure check failed:', tableError)
-        return gridCells.map(() => ({ error: `Table check failed: ${tableError.message}` }))
-      }
-      console.log('✅ Table toewijzingen_grid exists and is accessible')
-    } catch (e) {
-      console.error('❌ Exception checking table:', e)
-      return gridCells.map(() => ({ error: 'Table check exception' }))
-    }
-
-    // Ensure the user is authenticated (RLS requires it)
-    try {
-      const { data: authData, error: authError } = await this.supabase.auth.getUser()
-      if (authError) {
-        console.error('🔒 Auth error:', authError)
-        return gridCells.map(() => ({ error: `Auth error: ${authError.message}` }))
-      }
-      if (!authData?.user) {
-        console.warn('🔒 Not authenticated - cannot write to toewijzingen_grid')
-        console.log('🔒 Attempting to check session...')
-        const { data: sessionData } = await this.supabase.auth.getSession()
-        if (!sessionData?.session) {
-          console.error('🔒 No session found - user needs to log in')
-          return gridCells.map(() => ({ error: 'Not authenticated - please log in' }))
-        }
-      }
-      console.log('✅ User authenticated:', authData?.user?.email || 'no email')
-    } catch (e) {
-      console.error('🔒 Auth check exception:', e)
-      return gridCells.map(() => ({ error: 'Authentication check failed' }))
-    }
-
-    console.log(`🔄 Processing ${gridCells.length} grid cells in batches...`)
-    const results: Array<{ data?: any; error?: string }> = []
-    
-    // Process in batches to avoid overwhelming the database
-    const batchSize = 50 // Smaller batch size for debugging
-    for (let i = 0; i < gridCells.length; i += batchSize) {
-      const batch = gridCells.slice(i, i + batchSize)
-      console.log(`📦 Processing batch ${Math.floor(i/batchSize) + 1}: ${batch.length} items`)
-      console.log('🔍 DEBUG: First item in batch:', JSON.stringify(batch[0], null, 2))
-      
-      try {
-        console.log(`🔄 Attempting to save batch of ${batch.length} records to toewijzingen_grid`)
-        console.log('📋 Sample records from batch:', batch.slice(0, 2))
-        
-        // Use upsert to handle both insert and update cases
-        // This requires a unique constraint on (assignment_date, row_index, col_index) in the database
-        const { data, error } = await this.supabase
-          .from('toewijzingen_grid')
-          .upsert(batch, { 
-            onConflict: 'assignment_date,row_index,col_index',
-            ignoreDuplicates: false 
-          })
-          .select() // Add select to see what was actually inserted
-
-        if (error) {
-          console.error('❌ Database error in grid batch:', error)
-          console.error('❌ Error details:', { 
-            code: error.code, 
-            details: error.details, 
-            hint: error.hint,
-            message: error.message 
-          })
-          console.error('❌ Failed batch sample:', batch.slice(0, 2))
-          batch.forEach(() => results.push({ error: error.message }))
-        } else {
-          console.log(`✅ Grid batch saved successfully: ${batch.length} records`)
-          console.log('✅ Inserted data sample:', data?.slice(0, 2))
-          console.log(`✅ Total records returned from database: ${data?.length || 0}`)
-          batch.forEach((item) => results.push({ data: item }))
-        }
-      } catch (err) {
-        console.error('❌ Exception in grid batch save:', err)
-        batch.forEach(() => results.push({ error: err instanceof Error ? err.message : 'Unknown error' }))
-      }
-    }
-
-    console.log(`📊 Grid save complete: ${results.filter(r => r.data).length} successful, ${results.filter(r => r.error).length} failed`)
-    return results
-  }
-
-  async bulkCreateToewijzingenStaff(staffData: Array<{
-    assignment_date: string;
-    staff_name: string;
-    staff_index: number;
-    assignment_count: number;
-    annotations: string;
-  }>) {
-    if (staffData.length === 0) return []
-
-    const results: Array<{ data?: any; error?: string }> = []
-    
-    try {
-      const { data, error } = await this.supabase
-        .from('toewijzingen_staff')
-        .insert(staffData)
-        .select()
-
-      if (error) {
-        staffData.forEach(() => results.push({ error: error.message }))
-      } else {
-        data.forEach((item: any) => results.push({ data: item }))
-      }
-    } catch (err) {
-      staffData.forEach(() => results.push({ error: err instanceof Error ? err.message : 'Unknown error' }))
-    }
-
-    return results
-  }
 }
 
 // Export singleton instance
 export const apiService = new ApiService()
 
-// Toewijzingen Grid API - New database-backed implementation
-export const toewijzingenGridApi = {
-  async saveGrid(tableData: any[][], assignmentDate: string, staffNames: string[]) {
-    try {
-      console.log('🔍 toewijzingenGridApi.saveGrid called with:', {
-        tableDataRows: tableData.length,
-        assignmentDate,
-        staffNames
-      })
-
-      // Test table access before proceeding
-      const tableTest = await apiService.testToewijzingenTables()
-      if (!tableTest.success) {
-        console.error('🚨 Database tables not accessible:', tableTest.error)
-        throw new Error(`Database not ready: ${tableTest.error}`)
-      }
-      console.log('✅ Database tables verified and accessible')
-
-      const gridCells: any[] = []
-      const staffData: any[] = []
-
-      // Debug: Check structure of tableData
-      console.log('🔍 DEBUG: tableData structure:', {
-        rows: tableData.length,
-        firstRow: tableData[0] ? {
-          length: tableData[0].length,
-          firstCell: tableData[0][0],
-          type: typeof tableData[0][0]
-        } : null
-      })
-      
-      // Convert table data to grid cells - save only cells with resident names
-      tableData.forEach((row, rowIndex) => {
-        row.forEach((cell, colIndex) => {
-          // Debug first few cells
-          if (rowIndex <= 2 && colIndex <= 2 && cell && cell.text?.trim()) {
-            console.log(`🔍 DEBUG: Cell [${rowIndex}][${colIndex}]:`, {
-              text: cell.text,
-              type: typeof cell,
-              structure: cell,
-              staffName: staffNames[colIndex]
-            })
-          }
-          
-          if (cell && cell.text?.trim()) {
-            const gridCell = {
-              assignment_date: assignmentDate,
-              row_index: rowIndex,
-              col_index: colIndex,
-              resident_full_name: cell.text.trim(),
-              ib_name: staffNames[colIndex] || null
-            };
-            
-            gridCells.push(gridCell);
-            
-            // Debug first few grid cells
-            if (gridCells.length <= 3) {
-              console.log(`📝 Grid Cell ${gridCells.length}:`, gridCell);
-            }
-          }
-        })
-      })
-
-      // Create staff data records
-      staffNames.forEach((staffName, staffIndex) => {
-        const assignmentCount = gridCells.filter(cell => 
-          cell.col_index === staffIndex && cell.resident_full_name?.trim()
-        ).length
-
-        staffData.push({
-          assignment_date: assignmentDate,
-          staff_name: staffName,
-          staff_index: staffIndex,
-          assignment_count: assignmentCount,
-          annotations: '' // Can be enhanced later
-        })
-      })
-
-      console.log(`📊 Total grid cells to save: ${gridCells.length}`)
-      console.log(`👥 Total staff records to save: ${staffData.length}`)
-      
-      // Only proceed with database operations if there's actual data to save
-      if (gridCells.length === 0) {
-        console.log('ℹ️ No grid data to save, skipping database operations to preserve existing data')
-        return {
-          success: true,
-          data: {
-            grid: { successful: 0, failed: 0, total: 0 },
-            staff: { successful: staffData.length, failed: 0, total: staffData.length },
-            errors: [],
-            message: 'No changes to save'
-          }
-        }
-      }
-      
-      // Debug: Log sample grid cells
-      console.log('📋 Sample grid cells:', gridCells.slice(0, 3))
-
-      // Clear existing data only when we have new data to save
-      console.log('🧹 Clearing existing data before saving new data...')
-      await apiService.clearToewijzingenGrid(assignmentDate)
-      console.log('✅ Cleared existing grid data for date:', assignmentDate)
-
-      // Save grid cells and staff data
-      console.log('💾 Starting grid cells save...')
-      const gridResults = await apiService.bulkCreateToewijzingenGrid(gridCells)
-      console.log('💾 Starting staff data save...')
-      const staffResults = await apiService.bulkCreateToewijzingenStaff(staffData)
-
-      const gridSuccessful = gridResults.filter(r => !r.error).length
-      const gridFailed = gridResults.filter(r => r.error).length
-      const staffSuccessful = staffResults.filter(r => !r.error).length
-      const staffFailed = staffResults.filter(r => r.error).length
-
-      console.log(`✅ Grid save completed: ${gridSuccessful} cells successful, ${gridFailed} failed`)
-      console.log(`✅ Staff save completed: ${staffSuccessful} records successful, ${staffFailed} failed`)
-
-      return {
-        success: gridFailed === 0 && staffFailed === 0,
-        data: {
-          grid: { successful: gridSuccessful, failed: gridFailed, total: gridCells.length },
-          staff: { successful: staffSuccessful, failed: staffFailed, total: staffData.length },
-          errors: [
-            ...gridResults.filter(r => r.error).map(r => r.error),
-            ...staffResults.filter(r => r.error).map(r => r.error)
-          ]
-        }
-      }
-
-    } catch (error) {
-      console.error('❌ toewijzingenGridApi.saveGrid error:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }
-    }
-  },
-
-  async loadGrid(assignmentDate: string) {
-    try {
-      console.log('🔍 toewijzingenGridApi.loadGrid called for date:', assignmentDate)
-
-      const [gridData, staffData] = await Promise.all([
-        apiService.getToewijzingenGrid(assignmentDate),
-        apiService.getToewijzingenStaff(assignmentDate)
-      ])
-
-      console.log(`📥 Loaded ${gridData.length} grid cells and ${staffData.length} staff records`)
-
-      return {
-        success: true,
-        data: {
-          gridData,
-          staffData
-        }
-      }
-
-    } catch (error) {
-      console.error('❌ toewijzingenGridApi.loadGrid error:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }
-    }
-  }
-}
-
-// Staff assignments API for Toewijzingen page compatibility (legacy - redirects to new API)
+// Staff assignments API
 export const staffAssignmentsApi = {
   async saveBulk(tableData: any[][], assignmentDate: string, staffNames: string[]) {
-    console.log('⚠️ staffAssignmentsApi.saveBulk is deprecated, redirecting to toewijzingenGridApi.saveGrid')
-    return await toewijzingenGridApi.saveGrid(tableData, assignmentDate, staffNames)
+    console.log('⚠️ staffAssignmentsApi.saveBulk is deprecated')
+    return { success: false, error: 'Toewijzingen functionality has been removed' }
   },
 
   async getAll(assignmentDate: string) {

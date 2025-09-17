@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { Search, UserPlus, Trash2, Clipboard, Upload, Undo, Redo, RefreshCw, ChevronDown } from 'lucide-react';
+import { Search, UserPlus, Trash2, Clipboard, Upload, Undo, Redo, RefreshCw, ChevronDown, FileUp } from 'lucide-react';
 import { useData } from "../../../lib/DataContext";
 import AddUserModal from '../../components/AddUserModal';
+import ImportDataModal from '../../components/ImportDataModal';
 import { formatDate, formatDateTime } from '../../../lib/utils';
 import { getOfficialLanguageByNationality } from '../../../lib/language-utils';
 import * as XLSX from 'xlsx';
@@ -34,11 +35,12 @@ const calculateDaysOfStay = (arrivalDate: string | Date | null | undefined): num
 };
 
 function DataMatchItPageContent() {
-  const { dataMatchIt, bewonerslijst, deleteFromDataMatchIt, addToDataMatchIt, addMultipleToDataMatchIt, clearAllData, getStorageInfo, updateInDataMatchIt, undoDelete, redoDelete, canUndo, canRedo, deleteMultipleFromDataMatchIt, syncWithToewijzingen, refreshResidents, isLoading, error, batchUpdateResidents } = useData();
+  const { dataMatchIt, bewonerslijst, deleteFromDataMatchIt, addToDataMatchIt, addMultipleToDataMatchIt, clearAllData, getStorageInfo, updateInDataMatchIt, undoDelete, redoDelete, canUndo, canRedo, deleteMultipleFromDataMatchIt, refreshResidents, isLoading, error, batchUpdateResidents } = useData();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentView, setCurrentView] = useState('bewonerslijst');
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedResidents, setSelectedResidents] = useState<Set<number>>(new Set());
   const [isPasting, setIsPasting] = useState(false);
   const [lastPasteDebug, setLastPasteDebug] = useState<string | null>(null);
@@ -154,10 +156,10 @@ function DataMatchItPageContent() {
     };
   }, [dataMatchIt, updateInDataMatchIt]);
 
-  // Sync with Toewijzingen when page mounts
+  // Refresh data when page mounts
   useEffect(() => {
-    console.log('🔄 Data Match It page mounted, syncing with Toewijzingen...');
-    syncWithToewijzingen();
+    console.log('🔄 Data Match It page mounted, refreshing residents...');
+    refreshResidents();
   }, []);
 
   // Get the appropriate data source based on current view
@@ -1313,6 +1315,15 @@ function DataMatchItPageContent() {
               <Upload className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Excel</span>
             </button>
+            
+            {/* Import Data Button (Excel & PDF) */}
+            <button 
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-2 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
+            >
+              <FileUp className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Import</span>
+            </button>
 
               {/* Hidden file input for Excel */}
               <input
@@ -1572,6 +1583,11 @@ function DataMatchItPageContent() {
         <AddUserModal 
           isOpen={isAddUserModalOpen}
           onClose={() => setIsAddUserModalOpen(false)}
+        />
+        
+        <ImportDataModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
         />
       </div>
     </DashboardLayout>

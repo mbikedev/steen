@@ -277,11 +277,11 @@ export default function ResidentsGridPage() {
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case 'meerderjarig':
-        return { color: 'bg-accent text-accent-foreground', label: '18+' };
+        return { color: 'bg-green-500 text-white', label: '18+' };
       case 'leeftijdstwijfel':
-        return { color: 'bg-accent text-accent-foreground', label: '?' };
+        return { color: 'bg-yellow-500 text-white', label: '?' };
       case 'transfer':
-        return { color: 'bg-accent text-accent-foreground', label: 'T' };
+        return { color: 'bg-blue-500 text-white', label: 'T' };
       default:
         return null;
     }
@@ -392,113 +392,112 @@ export default function ResidentsGridPage() {
               <div
                 key={resident.id}
                 onClick={(e) => {
-                  console.log(`🖱️ Resident card clicked for badge ${resident.badgeNumber}`);
-                  console.log(`📸 Has photo:`, !!resident.photoUrl);
-                  console.log(`🎯 Click target:`, e.target);
-                  
-                  // Only trigger upload if there's no photo and we're not clicking on an image
                   if (!resident.photoUrl) {
-                    console.log(`▶️ Triggering upload for badge ${resident.badgeNumber}`);
                     triggerImageUpload(resident.badgeNumber);
-                  } else {
-                    console.log(`⏹️ Photo exists, not triggering upload`);
                   }
                 }}
-                className={`group relative bg-card rounded-lg shadow-sm hover:shadow-lg transition-all duration-200 border border-border hover:border-primary overflow-hidden transform hover:scale-105 ${!resident.photoUrl ? 'cursor-pointer' : 'cursor-default'} ${shouldPageBreak ? 'print:break-after-page' : ''}`}
+                style={{ 
+                  backgroundColor: 'white',
+                  border: '2px solid black',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  cursor: resident.photoUrl ? 'default' : 'pointer',
+                  position: 'relative'
+                }}
               >
-                {/* Status Badge */}
-                {statusBadge && (
-                  <div className={`absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${statusBadge.color} z-10`}>
-                    {statusBadge.label}
-                  </div>
-                )}
-
                 {/* Room Number Badge */}
                 {resident.roomNumber && (
-                  <div className="absolute top-1 left-1 bg-gray-900 bg-opacity-75 text-white px-1.5 py-0.5 rounded text-xs font-medium z-10">
+                  <div style={{ 
+                    position: 'absolute', 
+                    top: '4px', 
+                    left: '4px', 
+                    backgroundColor: 'black', 
+                    color: 'white', 
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    zIndex: 10
+                  }}>
                     {resident.roomNumber}
                   </div>
                 )}
 
-                {/* Photo/Avatar */}
-                <div className="aspect-square bg-gradient-to-br from-muted to-accent flex items-center justify-center relative">
+                {/* Photo/Avatar Area */}
+                <div style={{ 
+                  aspectRatio: '1/1', 
+                  backgroundColor: '#e5e7eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
                   {resident.photoUrl ? (
-                    <div className="w-full h-full relative group/image">
-                      <img 
-                        src={resident.photoUrl} 
-                        alt={`${resident.voornaam} ${resident.naam}`}
-                        className="w-full h-full object-cover cursor-pointer"
-                        onClick={(e) => openLightbox(resident.photoUrl!, resident, e)}
-                        onLoad={() => console.log(`Image loaded for badge ${resident.badgeNumber}`)}
-                        onError={() => console.error(`Image failed to load for badge ${resident.badgeNumber}`)}
-                      />
-                      {/* Image overlay with zoom and delete buttons */}
-                      <div 
-                        className="absolute inset-0 bg-black bg-opacity-0 group-hover/image:bg-opacity-30 transition-all duration-200 flex items-center justify-center cursor-pointer"
-                        onClick={(e) => openLightbox(resident.photoUrl!, resident, e)}
-                      >
-                        <div className="transform scale-0 group-hover/image:scale-100 transition-transform duration-200 flex gap-2">
-                          {/* Zoom button */}
-                          <div 
-                            className="bg-card rounded-full p-2 shadow-lg hover:scale-110 transition-transform"
-                            onClick={(e) => openLightbox(resident.photoUrl!, resident, e)}
-                          >
-                            <ZoomIn className="h-5 w-5 text-foreground" />
-                          </div>
-                          
-                          {/* Delete button */}
-                          <div 
-                            className="bg-destructive hover:bg-destructive/90 rounded-full p-2 shadow-lg hover:scale-110 transition-all cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation(); // Prevent opening lightbox
-                              handlePhotoDelete(resident.badgeNumber, `${resident.voornaam} ${resident.naam}`);
-                            }}
-                            title={`Delete photo for ${resident.voornaam} ${resident.naam}`}
-                          >
-                            <Trash2 className="h-5 w-5 text-destructive-foreground" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <img 
+                      src={resident.photoUrl} 
+                      alt={`${resident.voornaam} ${resident.naam}`}
+                      style={{ 
+                        width: '100%', 
+                        height: '100%', 
+                        objectFit: 'cover'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openLightbox(resident.photoUrl!, resident, e);
+                      }}
+                    />
                   ) : (
-                    <div className="text-center p-2">
-                      <div className="text-3xl font-bold text-muted-foreground mb-1">
+                    <div style={{ textAlign: 'center', padding: '8px' }}>
+                      <div style={{ 
+                        fontSize: '24px', 
+                        fontWeight: 'bold', 
+                        color: 'black',
+                        marginBottom: '4px'
+                      }}>
                         {resident.voornaam[0]?.toUpperCase()}{resident.naam[0]?.toUpperCase()}
                       </div>
-                      <Users className="h-8 w-8 text-muted-foreground mx-auto" />
-                    </div>
-                  )}
-                  
-                  {/* Upload Overlay - only show when no image */}
-                  {!resident.photoUrl && (
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
-                      <div className="transform scale-0 group-hover:scale-100 transition-transform duration-200">
-                        <div className="bg-card rounded-full p-3 shadow-lg">
-                          <Upload className="h-6 w-6 text-primary" />
-                        </div>
-                      </div>
+                      <Users style={{ width: '32px', height: '32px', color: 'black', margin: '0 auto' }} />
                     </div>
                   )}
                 </div>
 
                 {/* Info Section */}
-                <div className="p-2">
-                  {/* Badge Number */}
-                  <div className="text-lg font-bold text-primary text-center mb-1">
+                <div style={{ 
+                  padding: '8px',
+                  backgroundColor: 'white'
+                }}>
+                  <div style={{ 
+                    fontSize: '18px', 
+                    fontWeight: 'bold', 
+                    color: 'black',
+                    textAlign: 'center',
+                    marginBottom: '4px'
+                  }}>
                     #{resident.badgeNumber}
                   </div>
-                  
-                  {/* Name */}
-                  <div className="text-xs text-foreground text-center font-medium truncate">
+                  <div style={{ 
+                    fontSize: '12px',
+                    color: 'black',
+                    textAlign: 'center',
+                    fontWeight: '500',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
                     {resident.voornaam}
                   </div>
-                  <div className="text-xs text-muted-foreground text-center truncate">
+                  <div style={{ 
+                    fontSize: '12px',
+                    color: '#666666',
+                    textAlign: 'center',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
                     {resident.naam}
                   </div>
                 </div>
-
-                {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-foreground bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 pointer-events-none" />
               </div>
             );
           })}

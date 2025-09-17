@@ -400,19 +400,6 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               )}
             </div>
             
-            {/* Toewijzingen - Standalone item */}
-            <Link
-              href="/dashboard/toewijzingen"
-              className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
-                pathname === '/dashboard/toewijzingen'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-              }`}
-            >
-              <UserCheck className="mr-3 h-5 w-5" />
-              Toewijzingen
-            </Link>
-            
             {/* Weekend Permissie - Standalone item */}
             <Link
               href="/dashboard/weekend-permissie"
@@ -438,6 +425,20 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               <Calendar className="mr-3 h-5 w-5" />
               Afspraken
             </Link>
+            
+            {/* Toewijzingen - Standalone item */}
+            <Link
+              href="/dashboard/toewijzingen"
+              className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                pathname === '/dashboard/toewijzingen'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              }`}
+            >
+              <UserCheck className="mr-3 h-5 w-5" />
+              Toewijzingen
+            </Link>
+            
           </nav>
         </div>
       </div>
@@ -557,19 +558,6 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               )}
             </div>
             
-            {/* Toewijzingen - Standalone item */}
-            <Link
-              href="/dashboard/toewijzingen"
-              className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
-                pathname === '/dashboard/toewijzingen'
-                  ? 'bg-primary text-primary-foreground shadow-lg'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:scale-105'
-              }`}
-            >
-              <UserCheck className={`mr-3 h-5 w-5 transition-colors`} />
-              Toewijzingen
-            </Link>
-            
             {/* Weekend Permissie - Standalone item */}
             <Link
               href="/dashboard/weekend-permissie"
@@ -595,6 +583,20 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               <Calendar className={`mr-3 h-5 w-5 transition-colors`} />
               Afspraken
             </Link>
+            
+            {/* Toewijzingen - Standalone item */}
+            <Link
+              href="/dashboard/toewijzingen"
+              className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                pathname === '/dashboard/toewijzingen'
+                  ? 'bg-primary text-primary-foreground shadow-lg'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:scale-105'
+              }`}
+            >
+              <UserCheck className={`mr-3 h-5 w-5 transition-colors`} />
+              Toewijzingen
+            </Link>
+            
           </nav>
         </div>
       </div>
