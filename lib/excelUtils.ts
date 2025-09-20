@@ -58,7 +58,7 @@ export const sampleData: ResidentData[] = [
     firstName: 'Mohamed',
     lastName: 'Cherif',
     block: 'Noord',
-    room: '2.09',
+    room: '2.19',
     nationality: 'Guinea',
     ovNumber: '10236814',
     registerNumber: '08090453788',
@@ -77,7 +77,7 @@ export const sampleData: ResidentData[] = [
     firstName: 'Abdoul Karim',
     lastName: 'Conde',
     block: 'Noord',
-    room: '2.09',
+    room: '2.19',
     nationality: 'Guinée',
     ovNumber: '10236653',
     registerNumber: '8051649137',
@@ -227,10 +227,10 @@ export const getZuidData = () => {
     { id: 210, bedNumber: 3, room: '2.08', lastName: 'Hassan', firstName: 'Ibrahim', nationality: 'Somalia', language: 'Somalisch', gender: 'M', remarks: '', badge: 25221 },
     { id: 211, bedNumber: 4, room: '2.08', lastName: 'Osman', firstName: 'Ali', nationality: 'Sudan', language: 'Arabisch', gender: 'M', remarks: '', badge: 25222 },
     
-    // Room 2.09
-    { id: 212, bedNumber: 1, room: '2.09', lastName: 'Cherif', firstName: 'Mohamed', nationality: 'Guinea', language: 'Frans/Peul', gender: 'M', remarks: '', badge: 25112 },
-    { id: 213, bedNumber: 2, room: '2.09', lastName: 'Conde', firstName: 'Abdoul Karim', nationality: 'Guinée', language: 'Frans/Peul', gender: 'M', remarks: '', badge: 25113 },
-    { id: 214, bedNumber: 3, room: '2.09', lastName: 'Barry', firstName: 'Mamadou', nationality: 'Guinea', language: 'Peul', gender: 'M', remarks: '8u30 transfer volw', badge: 25223 },
+    // Room 2.19 (MED)
+    { id: 212, bedNumber: 1, room: '2.19', lastName: 'Cherif', firstName: 'Mohamed', nationality: 'Guinea', language: 'Frans/Peul', gender: 'M', remarks: 'MED', badge: 25112 },
+    { id: 213, bedNumber: 2, room: '2.19', lastName: 'Conde', firstName: 'Abdoul Karim', nationality: 'Guinée', language: 'Frans/Peul', gender: 'M', remarks: 'MED', badge: 25113 },
+    { id: 214, bedNumber: 3, room: '2.19', lastName: 'Barry', firstName: 'Mamadou', nationality: 'Guinea', language: 'Peul', gender: 'M', remarks: 'MED', badge: 25223 },
     
     // Room 2.15
     { id: 215, bedNumber: 1, room: '2.15', lastName: 'Safi', firstName: 'Ismail', nationality: 'Afghanistan', language: 'Dari/Pashto', gender: 'M', remarks: '', badge: 25121 },

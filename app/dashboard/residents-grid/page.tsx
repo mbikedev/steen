@@ -6,6 +6,7 @@ import { useData } from '../../../lib/DataContext';
 import { formatDate } from '../../../lib/utils';
 import { residentPhotosApi } from '../../../lib/api-service';
 import { Search, Users, Grid3X3, Camera, Upload, X, ZoomIn, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 
 // Type definition for resident data
 type ResidentGrid = {
@@ -30,6 +31,45 @@ export default function ResidentsGridPage() {
   const [lightboxImage, setLightboxImage] = useState<{url: string, resident: ResidentGrid} | null>(null);
   const [, setLoadingPhotos] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Convert image to WebP format with compression
+  const convertToWebP = (file: File, quality: number = 0.8, maxWidth: number = 800): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new window.Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions while maintaining aspect ratio
+        const aspectRatio = img.width / img.height;
+        let newWidth = Math.min(img.width, maxWidth);
+        let newHeight = newWidth / aspectRatio;
+        
+        // Set canvas dimensions
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        // Draw and compress image
+        ctx?.drawImage(img, 0, 0, newWidth, newHeight);
+        
+        // Convert to WebP blob
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const webpFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.webp'), {
+              type: 'image/webp',
+              lastModified: Date.now()
+            });
+            resolve(webpFile);
+          } else {
+            reject(new Error('Failed to convert image to WebP'));
+          }
+        }, 'image/webp', quality);
+      };
+      
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
 
   // Load resident photos from database
   useEffect(() => {
@@ -156,10 +196,24 @@ export default function ResidentsGridPage() {
       return;
     }
 
-    console.log(`Starting upload to database for badge ${uploadingFor}:`, file.name, file.type, file.size);
+    console.log(`Starting conversion to WebP for badge ${uploadingFor}:`, file.name, file.type, file.size);
     
     try {
-      const response = await residentPhotosApi.upload(parseInt(uploadingFor), file);
+      // Convert image to optimized WebP format
+      let processedFile = file;
+      if (file.type !== 'image/svg+xml') { // Don't convert SVG files
+        try {
+          processedFile = await convertToWebP(file, 0.85, 800);
+          console.log(`✅ Converted to WebP: ${file.name} -> ${processedFile.name}`, 
+                     `Size: ${file.size} -> ${processedFile.size} bytes (${Math.round((1 - processedFile.size/file.size) * 100)}% reduction)`);
+        } catch (conversionError) {
+          console.warn('WebP conversion failed, using original file:', conversionError);
+          processedFile = file;
+        }
+      }
+
+      console.log(`Starting upload to database for badge ${uploadingFor}:`, processedFile.name, processedFile.type, processedFile.size);
+      const response = await residentPhotosApi.upload(parseInt(uploadingFor), processedFile);
       
       if (response.success && response.data?.photoUrl) {
         console.log(`Image uploaded to database successfully for badge ${uploadingFor}:`, response.data.photoUrl);
@@ -434,18 +488,24 @@ export default function ResidentsGridPage() {
                   overflow: 'hidden'
                 }}>
                   {resident.photoUrl ? (
-                    <img 
-                      src={resident.photoUrl} 
+                    <Image
+                      src={resident.photoUrl}
                       alt={`${resident.voornaam} ${resident.naam}`}
+                      fill
+                      sizes="(max-width: 768px) 25vw, (max-width: 1200px) 20vw, 15vw"
                       style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        objectFit: 'cover'
+                        objectFit: 'cover',
+                        cursor: 'pointer'
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
                         openLightbox(resident.photoUrl!, resident, e);
                       }}
+                      quality={85}
+                      priority={index < 12} // Only prioritize first 12 images
+                      loading={index < 12 ? 'eager' : 'lazy'}
+                      placeholder="blur"
+                      blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R+Rj9VUKaXTLVl1zKtWjkkNr6AHMJJWLHFZDYoFPJP/2Q=="
                     />
                   ) : (
                     <div style={{ textAlign: 'center', padding: '8px' }}>
@@ -571,6 +631,7 @@ export default function ResidentsGridPage() {
                     alt={`${lightboxImage.resident.voornaam} ${lightboxImage.resident.naam}`}
                     className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                     onClick={(e) => e.stopPropagation()}
+                    style={{ maxHeight: '80vh' }}
                   />
                 </div>
                 

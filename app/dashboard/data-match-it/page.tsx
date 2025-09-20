@@ -1251,7 +1251,7 @@ function DataMatchItPageContent() {
               className={`px-2 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
                 !canUndo
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-foreground text-white hover:bg-foreground/90 dark:hover:bg-foreground/80'
+                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
               }`}
               title="Ongedaan maken (Ctrl+Z)"
             >
@@ -1272,7 +1272,7 @@ function DataMatchItPageContent() {
               className={`px-2 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
                 !canRedo
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-foreground text-white hover:bg-foreground/90 dark:hover:bg-foreground/80'
+                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
               }`}
               title="Opnieuw (Ctrl+Shift+Z)"
             >
@@ -1301,7 +1301,7 @@ function DataMatchItPageContent() {
             <button 
               onClick={handlePasteUsers}
               disabled={isPasting}
-              className="px-2 sm:px-4 py-2 bg-foreground text-white rounded-lg hover:bg-foreground/90 flex items-center justify-center gap-1 sm:gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed text-xs sm:text-sm col-span-2 sm:col-span-1"
+              className="px-2 sm:px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center justify-center gap-1 sm:gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed text-xs sm:text-sm col-span-2 sm:col-span-1"
             >
               <Clipboard className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">{isPasting ? 'Plakken...' : 'Plakken'}</span>
@@ -1310,7 +1310,7 @@ function DataMatchItPageContent() {
             {/* Excel Upload Button */}
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="px-2 sm:px-4 py-2 bg-foreground text-white rounded-lg hover:bg-foreground/90 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
+              className="px-2 sm:px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
             >
               <Upload className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Excel</span>
@@ -1337,7 +1337,7 @@ function DataMatchItPageContent() {
             {/* Add User Button */}
             <button 
               onClick={() => setIsAddUserModalOpen(true)}
-              className="px-2 sm:px-4 py-2 bg-foreground text-white rounded-lg hover:bg-foreground/90 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
+              className="px-2 sm:px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
             >
               <UserPlus className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Toevoegen</span>

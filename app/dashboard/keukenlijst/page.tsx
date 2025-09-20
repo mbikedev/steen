@@ -132,7 +132,7 @@ export default function KeukenlijstPage() {
                 <input
                   type="text"
                   placeholder="Zoek op naam, badge, kamer..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
+                  className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -141,7 +141,7 @@ export default function KeukenlijstPage() {
 
             {/* Room Filter */}
             <select
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ring bg-white text-black dark:text-gray-100"
+              className="px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring bg-background text-foreground"
               value={filterRoom}
               onChange={(e) => setFilterRoom(e.target.value)}
             >
@@ -155,7 +155,7 @@ export default function KeukenlijstPage() {
             <select
               value={printOrientation}
               onChange={(e) => setPrintOrientation(e.target.value as 'portrait' | 'landscape')}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ring bg-white text-black dark:text-gray-100"
+              className="px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring bg-background text-foreground"
             >
               <option value="portrait">Portrait</option>
               <option value="landscape">Landscape</option>
@@ -164,7 +164,7 @@ export default function KeukenlijstPage() {
             {/* Print Button */}
             <button
               onClick={() => window.print()}
-              className="px-4 py-2 bg-foreground text-white rounded-lg hover:bg-foreground/90 focus:ring-2 focus:ring-ring flex items-center gap-2 transition-colors"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 focus:ring-2 focus:ring-ring flex items-center gap-2 transition-colors"
             >
               <Printer className="h-5 w-5" />
               Print ({printOrientation === 'portrait' ? 'Portrait' : 'Landscape'})
@@ -241,7 +241,7 @@ export default function KeukenlijstPage() {
                                 ...editingRemarks,
                                 [resident.id]: e.target.value
                               })}
-                              className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
+                              className="flex-1 px-2 py-1 text-xs border border-input rounded focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                               placeholder="Opmerking toevoegen..."
                               autoFocus
                             />
@@ -254,7 +254,7 @@ export default function KeukenlijstPage() {
                                 delete newEditing[resident.id];
                                 setEditingRemarks(newEditing);
                               }}
-                              className="px-2 py-1 bg-foreground text-white text-xs rounded hover:bg-foreground/90"
+                              className="px-2 py-1 bg-primary text-primary-foreground text-xs rounded hover:bg-primary/90"
                             >
                               ✓
                             </button>

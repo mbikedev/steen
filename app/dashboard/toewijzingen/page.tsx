@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '@/app/components/layout/DashboardLayout';
 import { Upload, Download, Trash2, X, Palette } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { useData } from '../../../lib/DataContext';
 
 interface CellData {
   [key: string]: string;
@@ -28,6 +29,7 @@ interface GridData {
 }
 
 const Toewijzingen = () => {
+  const { dataMatchIt, updateInDataMatchIt } = useData();
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [cellData, setCellData] = useState<CellData>({});
   const [cellColors, setCellColors] = useState<CellColorData>({});
@@ -94,11 +96,23 @@ const Toewijzingen = () => {
       }
       setStaffData(staff);
 
-      // Load grid data with fallback
-      let cellDataMap: CellData = {
+      // Default grid data used only when database has no records yet
+      const defaultCellData: CellData = {
         '3-1': 'Jabarkhel Noor Agha',
-        '4-1': 'ABDELA Omer Suleman'
+        '4-1': 'ABDELA Omer Suleman',
+        // Initialize backup row with default values
+        '15-0': 'Yasmina',
+        '15-1': 'Didar',
+        '15-2': 'Torben',
+        '15-3': 'Imane',
+        '15-4': 'Maaike/Martine',
+        '15-5': 'Kris',
+        '15-6': 'Dorien',
+        '15-7': 'Monica'
       };
+
+      // Load grid data with fallback
+      let cellDataMap: CellData = {};
       let cellColorMap: CellColorData = {};
       
       try {
@@ -116,14 +130,23 @@ const Toewijzingen = () => {
                 dbCellColors[cellKey] = item.color_status;
               }
             });
-            cellDataMap = { ...cellDataMap, ...dbCellData };
-            cellColorMap = { ...cellColorMap, ...dbCellColors };
+            if (Object.keys(dbCellData).length === 0) {
+              cellDataMap = { ...defaultCellData };
+            } else {
+              cellDataMap = dbCellData;
+            }
+            cellColorMap = dbCellColors;
           }
         }
       } catch (error) {
         console.warn('Failed to load grid data from API, using defaults');
+        cellDataMap = { ...defaultCellData };
       }
-      
+
+      if (Object.keys(cellDataMap).length === 0) {
+        cellDataMap = { ...defaultCellData };
+      }
+
       setCellData(cellDataMap);
       setCellColors(cellColorMap);
       setLoading(false);
@@ -141,10 +164,7 @@ const Toewijzingen = () => {
         { position: 8, name: 'Kirsten' },
         { position: 9, name: 'Monica' },
       ]);
-      setCellData({
-        '3-1': 'Jabarkhel Noor Agha',
-        '4-1': 'ABDELA Omer Suleman'
-      });
+      setCellData({ ...defaultCellData });
       setLoading(false);
     }
   };
@@ -313,8 +333,9 @@ const Toewijzingen = () => {
             const targetRow = rowIndex + 3; // Start from row 4 (number 1)
             const targetCol = colIndex + 1; // Start from column 2 (first staff column)
             
-            // Only paste in valid resident areas (rows 3-13, columns 1-9)
-            if (targetRow >= 3 && targetRow <= 13 && targetCol >= 1 && targetCol <= 9) {
+            // Only paste in valid areas (rows 3-13, columns 1-9) or backup rows (rows 15-17, columns 0-9)
+            if ((targetRow >= 3 && targetRow <= 13 && targetCol >= 1 && targetCol <= 9) || 
+                ((targetRow === 15 || targetRow === 16 || targetRow === 17) && targetCol >= 0 && targetCol <= 9)) {
               const cellKey = `${targetRow}-${targetCol}`;
               pastedData[cellKey] = cellValue.trim();
             }
@@ -379,8 +400,8 @@ const Toewijzingen = () => {
       const newSelection = new Set<string>();
       for (let row = minRow; row <= maxRow; row++) {
         for (let col = minCol; col <= maxCol; col++) {
-          // Only select valid resident cells
-          if (row >= 3 && row <= 13 && col >= 1 && col <= 9) {
+          // Only select valid cells (resident cells and backup rows)
+          if ((row >= 3 && row <= 13 && col >= 1 && col <= 9) || ((row === 15 || row === 16 || row === 17) && col >= 0 && col <= 9)) {
             newSelection.add(`${row}-${col}`);
           }
         }
@@ -440,8 +461,18 @@ const Toewijzingen = () => {
 
   const clearAllCells = async () => {
     const residentCells: string[] = [];
+    // Include resident cells (rows 3-13, columns 1-9)
     for (let row = 3; row <= 13; row++) {
       for (let col = 1; col <= 9; col++) {
+        const cellKey = `${row}-${col}`;
+        if (cellData[cellKey] && cellData[cellKey].trim() !== '') {
+          residentCells.push(cellKey);
+        }
+      }
+    }
+    // Include backup row cells (rows 15-17, columns 0-9)
+    for (let row = 15; row <= 17; row++) {
+      for (let col = 0; col <= 9; col++) {
         const cellKey = `${row}-${col}`;
         if (cellData[cellKey] && cellData[cellKey].trim() !== '') {
           residentCells.push(cellKey);
@@ -513,6 +544,17 @@ const Toewijzingen = () => {
     const existingColor = cellColors[cellId];
     saveGridData(rowNumber, columnNumber, tempValue, existingColor);
     
+    // If this is an IB cell (row 2), get the IB name for this column and update residents' referencePerson
+    if (rowNumber === 2 && columnNumber >= 1 && columnNumber <= 9) {
+      const ibName = getStaffName(columnNumber) || (columnNumber === 1 ? 'Kris B' : columnNumber === 2 ? 'Torben' : columnNumber === 3 ? 'Didar' : columnNumber === 4 ? 'Dorien' : columnNumber === 5 ? 'Evelien' : columnNumber === 6 ? 'Yasmina' : columnNumber === 7 ? 'Imane' : columnNumber === 8 ? 'Kirsten' : 'Monica');
+      console.log(`Resident assigned to column ${columnNumber} (IB: ${ibName}), resident name: ${tempValue}`);
+      console.log(`Current dataMatchIt residents:`, dataMatchIt.length);
+      if (dataMatchIt.length > 0) {
+        console.log(`Sample resident data:`, dataMatchIt[0]);
+      }
+      updateResidentsReferent(columnNumber, ibName);
+    }
+    
     setEditingCell(null);
     setTempValue('');
   };
@@ -552,20 +594,36 @@ const Toewijzingen = () => {
         // Process the Excel data - expecting pure data grid (11 rows x 9 columns)
         const importedCellData: CellData = {};
         
-        // Process exactly 11 rows of resident data
-        for (let rowIndex = 0; rowIndex < Math.min(11, jsonData.length); rowIndex++) {
+        // Process exactly 14 rows of data (11 resident rows + 3 backup rows)
+        for (let rowIndex = 0; rowIndex < Math.min(14, jsonData.length); rowIndex++) {
           const row = jsonData[rowIndex] as string[];
           if (row && Array.isArray(row)) {
-            // Process exactly 9 columns
-            for (let colIndex = 0; colIndex < Math.min(9, row.length); colIndex++) {
-              const cellValue = row[colIndex];
-              if (cellValue && typeof cellValue === 'string' && cellValue.trim().length > 0) {
-                // Map to grid coordinates: row 3-13 (11 rows), columns 1-9 (9 columns)
-                const gridRow = rowIndex + 3; // Start from row 3 (first resident row)
-                const gridCol = colIndex + 1; // Start from column 1 (first staff column)
-                
-                const cellKey = `${gridRow}-${gridCol}`;
-                importedCellData[cellKey] = cellValue.trim();
+            if (rowIndex < 11) {
+              // Process resident rows (first 11 rows)
+              // Process exactly 9 columns
+              for (let colIndex = 0; colIndex < Math.min(9, row.length); colIndex++) {
+                const cellValue = row[colIndex];
+                if (cellValue && typeof cellValue === 'string' && cellValue.trim().length > 0) {
+                  // Map to grid coordinates: row 3-13 (11 rows), columns 1-9 (9 columns)
+                  const gridRow = rowIndex + 3; // Start from row 3 (first resident row)
+                  const gridCol = colIndex + 1; // Start from column 1 (first staff column)
+                  
+                  const cellKey = `${gridRow}-${gridCol}`;
+                  importedCellData[cellKey] = cellValue.trim();
+                }
+              }
+            } else {
+              // Process backup rows (12th-14th rows map to rows 15-17)
+              const backupRowIndex = rowIndex - 11; // 0, 1, 2
+              const gridRow = 15 + backupRowIndex; // 15, 16, 17
+              
+              // Process exactly 10 columns (including column 0)
+              for (let colIndex = 0; colIndex < Math.min(10, row.length); colIndex++) {
+                const cellValue = row[colIndex];
+                if (cellValue && typeof cellValue === 'string' && cellValue.trim().length > 0) {
+                  const cellKey = `${gridRow}-${colIndex}`;
+                  importedCellData[cellKey] = cellValue.trim();
+                }
               }
             }
           }
@@ -630,7 +688,11 @@ const Toewijzingen = () => {
       ['8', '', '', '', '', '', '', '', '', ''],
       ['9', '', '', '', '', '', '', '', '', ''],
       ['10', '', '', '', '', '', '', '', '', ''],
-      ['11', '', '', '', '', '', '', '', '', '']
+      ['11', '', '', '', '', '', '', '', '', ''],
+      // Backup rows
+      ['Yasmina', 'Didar', 'Torben', 'Imane', 'Maaike/Martine', 'Kris', 'Dorien', 'Monica', '', ''],
+      ['', '', '', '', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', '', '', '', '']
     ];
 
     // Create workbook and worksheet
@@ -647,6 +709,53 @@ const Toewijzingen = () => {
   const getStaffName = (position: number) => {
     const staff = staffData.find(s => s.position === position);
     return staff?.name || '';
+  };
+
+  // Function to update residents' referencePerson based on IB assignment
+  const updateResidentsReferent = async (columnNumber: number, ibName: string) => {
+    try {
+      // Map Toewijzingen columns to actual room numbers based on the facility layout
+      const columnToRoomMapping: {[key: number]: string[]} = {
+        1: ['1.06'], // Noord ground floor room 1
+        2: ['1.07'], // Noord ground floor room 2  
+        3: ['1.08'], // Noord ground floor room 3
+        4: ['1.09'], // Noord ground floor room 4
+        5: ['1.16', '1.17'], // Noord first floor girls rooms
+        6: ['1.18', '1.19'], // Noord first floor girls rooms
+        7: ['2.06', '2.07'], // Zuid ground floor rooms
+        8: ['2.08'], // Zuid ground floor room
+        9: ['2.14', '2.15', '2.16', '2.17', '2.18'], // Zuid first floor rooms
+      };
+
+      const roomNumbers = columnToRoomMapping[columnNumber];
+      if (!roomNumbers) {
+        console.log(`No room mapping found for column ${columnNumber}`);
+        return;
+      }
+
+      // Find residents in those rooms and update their referencePerson
+      const residentsToUpdate = dataMatchIt.filter(resident => {
+        if (!resident.room) {
+          console.log(`Resident ${resident.badge} has no room assigned`);
+          return false;
+        }
+        const roomMatch = roomNumbers.some(roomNum => resident.room.toString() === roomNum);
+        console.log(`Resident ${resident.badge} in room ${resident.room}: ${roomMatch ? 'MATCHES' : 'NO MATCH'} for rooms ${roomNumbers.join(', ')}`);
+        return roomMatch;
+      });
+
+      console.log(`Updating ${residentsToUpdate.length} residents in column ${columnNumber} rooms (${roomNumbers.join(', ')}) with IB: ${ibName}`);
+      console.log(`Residents to update:`, residentsToUpdate.map(r => `Badge ${r.badge} in room ${r.room}`));
+
+      // Update each resident's referencePerson
+      for (const resident of residentsToUpdate) {
+        console.log(`Updating resident ${resident.badge} referencePerson to: ${ibName}`);
+        updateInDataMatchIt(resident.id, { referencePerson: ibName });
+      }
+
+    } catch (error) {
+      console.error('Error updating residents referent:', error);
+    }
   };
 
   if (loading) {
@@ -700,10 +809,10 @@ const Toewijzingen = () => {
               onClick={() => fileInputRef.current?.click()}
               disabled={loading}
               className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              title="Import Excel file (11 rows x 9 columns)"
+              title="Import Excel file (11 rows x 9 columns + 3 backup rows x 10 columns)"
             >
               <Upload className="h-4 w-4" />
-              Import Excel (11x9)
+              Import Excel (11x9+3Backups)
             </button>
             <button
               onClick={setupDatabase}
@@ -750,18 +859,56 @@ const Toewijzingen = () => {
           </div>
         </div>
         
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden toewijzingen-container" tabIndex={0}>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden toewijzingen-container pb-16" tabIndex={0}>
           <table className="border-collapse table-auto">
             <tbody>
               {Array.from({ length: 18 }, (_, rowIndex) => (
-                <tr key={rowIndex} className="border-b dark:border-gray-600">
+                <tr key={rowIndex} className="border-b-2 border-gray-500 dark:border-gray-400">
                   {rowIndex === 14 ? (
-                    <td colSpan={10} className="border border-gray-300 dark:border-gray-600 p-4 text-center bg-gray-100 dark:bg-gray-700">
-                      <span className="font-bold">Backups</span>
+                    <td colSpan={10} className="border-2 border-gray-500 dark:border-gray-400 p-4 text-center bg-gray-100 dark:bg-gray-700">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="font-bold">Backups</span>
+                        <button
+                          onClick={async () => {
+                            console.log('Clear all backup cells button clicked');
+                            // Clear all backup cells immediately in UI
+                            const newCellData = { ...cellData };
+                            const newCellColors = { ...cellColors };
+                            for (let row = 15; row <= 17; row++) {
+                              for (let col = 0; col <= 9; col++) {
+                                const cellId = `${row}-${col}`;
+                                delete newCellData[cellId];
+                                delete newCellColors[cellId];
+                              }
+                            }
+                            setCellData(newCellData);
+                            setCellColors(newCellColors);
+                            console.log('UI state cleared for all backup cells');
+                            
+                            // Clear from database in parallel
+                            try {
+                              const clearPromises = [];
+                              for (let row = 15; row <= 17; row++) {
+                                for (let col = 0; col <= 9; col++) {
+                                  clearPromises.push(saveGridData(row, col, '', null));
+                                }
+                              }
+                              await Promise.all(clearPromises);
+                              console.log('Successfully cleared all backup cells from database');
+                            } catch (error) {
+                              console.warn('Some backup cells may not have been cleared from database:', error);
+                            }
+                          }}
+                          className="p-1 hover:bg-red-200 dark:hover:bg-red-800 rounded text-red-600 dark:text-red-400"
+                          title="Clear all backup cells"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   ) : (
                     Array.from({ length: 10 }, (_, colIndex) => (
-                      <td key={colIndex} className="border border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 min-h-[60px] whitespace-nowrap">
+                      <td key={colIndex} className="border-2 border-gray-500 dark:border-gray-400 dark:bg-gray-800 p-2 min-h-[60px] whitespace-nowrap">
                       {/* Header rows */}
                       {colIndex === 0 && rowIndex === 0 && <span className="font-bold">Verlof</span>}
                       {colIndex === 0 && rowIndex === 1 && <span className="font-bold">Aantal:</span>}
@@ -842,7 +989,7 @@ const Toewijzingen = () => {
                             
                             {/* Color menu dropdown */}
                             {showColorMenu === cellId && (
-                              <div className="absolute z-10 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg p-2">
+                              <div className="absolute z-10 mt-1 bg-white dark:bg-gray-800 border-2 border-gray-500 dark:border-gray-400 rounded shadow-lg p-2">
                                 <div className="text-xs font-semibold mb-1">Status:</div>
                                 <button
                                   onClick={() => handleColorChange(cellId, 'red')}
@@ -878,17 +1025,132 @@ const Toewijzingen = () => {
                         );
                       })()}
                       
-                      {/* Backup staff row 16 */}
-                      {rowIndex === 15 && colIndex === 0 && <span>Yasmina</span>}
-                      {rowIndex === 15 && colIndex === 1 && <span>Didar</span>}
-                      {rowIndex === 15 && colIndex === 2 && <span>Torben</span>}
-                      {rowIndex === 15 && colIndex === 3 && <span>Imane</span>}
-                      {rowIndex === 15 && colIndex === 4 && <span>Maaike/Martine</span>}
-                      {rowIndex === 15 && colIndex === 5 && <span>Kris</span>}
-                      {rowIndex === 15 && colIndex === 6 && <span>Dorien</span>}
-                      {rowIndex === 15 && colIndex === 7 && <span>Monica</span>}
-                      {rowIndex === 15 && colIndex === 8 && <span></span>}
-                      {rowIndex === 15 && colIndex === 9 && <span></span>}
+                      {/* Editable backup staff rows 16, 17, 18 */}
+                      {(rowIndex === 15 || rowIndex === 16 || rowIndex === 17) && colIndex >= 0 && colIndex <= 9 && (() => {
+                        const cellId = `${rowIndex}-${colIndex}`;
+                        const cellValue = cellData[cellId] || '';
+                        const isEditing = editingCell === cellId;
+                        const isSelected = selectedCells.has(cellId);
+                        const cellColor = cellColors[cellId];
+                        
+                        // Determine background color based on status
+                        let bgColor = '';
+                        if (cellColor === 'red') {
+                          bgColor = 'bg-red-900 text-white';
+                        } else if (cellColor === 'blue') {
+                          bgColor = 'bg-blue-900 text-white';
+                        } else if (cellColor === 'gray') {
+                          bgColor = 'bg-gray-900 text-white';
+                        }
+                        
+                        return (
+                          <div className="relative">
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                value={tempValue}
+                                onChange={handleCellChange}
+                                onBlur={() => handleCellBlur(cellId)}
+                                onKeyDown={(e) => handleKeyDown(e, cellId)}
+                                className="w-full p-1 text-sm border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                autoFocus
+                              />
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <div 
+                                  className={`flex-1 min-h-[20px] cursor-pointer p-1 rounded whitespace-pre-wrap transition-colors ${
+                                    isSelected 
+                                      ? 'border-2 border-blue-500' 
+                                      : ''
+                                  } ${
+                                    bgColor || 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                                  } ${
+                                    !bgColor ? 'dark:text-white' : ''
+                                  }`}
+                                  onClick={(e) => handleCellClick(e, cellId, cellValue)}
+                                  title={isSelected ? 'Selected (Ctrl/Cmd+Click to deselect)' : 'Ctrl/Cmd+Click to select'}
+                                >
+                                  {cellValue}
+                                </div>
+                                {(cellValue || true) && (
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        console.log('Delete button clicked for cell:', cellId);
+                                        const [rowStr, colStr] = cellId.split('-');
+                                        const rowNumber = parseInt(rowStr);
+                                        const columnNumber = parseInt(colStr);
+                                        
+                                        // Clear cell data immediately in UI
+                                        setCellData(prev => {
+                                          const newData = { ...prev };
+                                          delete newData[cellId];
+                                          return newData;
+                                        });
+                                        
+                                        // Clear cell color immediately in UI
+                                        setCellColors(prev => {
+                                          const newColors = { ...prev };
+                                          delete newColors[cellId];
+                                          return newColors;
+                                        });
+                                        
+                                        // Save to database
+                                        try {
+                                          await saveGridData(rowNumber, columnNumber, '', null);
+                                          console.log('Successfully cleared cell from database:', cellId);
+                                        } catch (error) {
+                                          console.warn('Failed to clear cell from database:', error);
+                                        }
+                                      }}
+                                      className="p-1 hover:bg-red-200 dark:hover:bg-red-800 rounded text-red-600 dark:text-red-400"
+                                      title="Delete cell content"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            
+                            {/* Color menu dropdown */}
+                            {showColorMenu === cellId && (
+                              <div className="absolute z-10 mt-1 bg-white dark:bg-gray-800 border-2 border-gray-500 dark:border-gray-400 rounded shadow-lg p-2">
+                                <div className="text-xs font-semibold mb-1">Status:</div>
+                                <button
+                                  onClick={() => handleColorChange(cellId, 'red')}
+                                  className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+                                >
+                                  <span className="w-3 h-3 bg-red-500 rounded"></span>
+                                  Adult (Legal age)
+                                </button>
+                                <button
+                                  onClick={() => handleColorChange(cellId, 'blue')}
+                                  className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+                                >
+                                  <span className="w-3 h-3 bg-blue-500 rounded"></span>
+                                  Transfer pending
+                                </button>
+                                <button
+                                  onClick={() => handleColorChange(cellId, 'gray')}
+                                  className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+                                >
+                                  <span className="w-3 h-3 bg-gray-500 rounded"></span>
+                                  Age uncertain
+                                </button>
+                                <button
+                                  onClick={() => handleColorChange(cellId, null)}
+                                  className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+                                >
+                                  <span className="w-3 h-3 border border-gray-400 rounded"></span>
+                                  Clear status
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     ))
                   )}

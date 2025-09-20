@@ -133,6 +133,13 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
       if (resident?.id) {
         try {
           console.log('🔍 Loading documents for resident ID:', resident.id);
+          if (resident.badge) {
+            try {
+              await apiService.syncResidentDocuments(resident.badge, resident.id, 'IN');
+            } catch (syncError) {
+              console.error('⚠️ Failed to sync IN documents from storage:', syncError);
+            }
+          }
           const response = await apiService.getAdministrativeDocuments(resident.id);
           
           console.log('📥 Raw response from getAdministrativeDocuments:', response);
@@ -172,7 +179,7 @@ export default function ResidentDocumentsModal({ resident, isOpen, onClose }: Re
     if (isOpen && resident?.id) {
       loadDocuments();
     }
-  }, [isOpen, resident?.id]);
+  }, [isOpen, resident?.id, resident?.badge]);
 
   if (!isOpen) return null;
 

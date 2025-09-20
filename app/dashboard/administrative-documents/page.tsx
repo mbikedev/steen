@@ -50,13 +50,16 @@ function AdministrativeDocumentsPageContent() {
     let totalResidents = 0;
     
     try {
-      const residentsToSync = selectedDocumentType === 'IN' ? inResidents : outResidents;
-      console.log(`Starting document sync for ${residentsToSync.length} ${selectedDocumentType} residents...`);
-      
+      const documentType = selectedDocumentType === 'OUT' ? 'OUT' : 'IN';
+      const residentsToSync = documentType === 'IN' ? inResidents : outResidents;
+      console.log(`Starting document sync for ${residentsToSync.length} ${documentType} residents...`);
+
+      const storageFiles = await apiService.listAdministrativeDocumentFiles(documentType);
+
       for (const resident of residentsToSync) {
         if (resident.badge && resident.id) {
           try {
-            const result = await apiService.syncResidentDocuments(resident.badge, resident.id);
+            const result = await apiService.syncResidentDocuments(resident.badge, resident.id, documentType, { storageFiles });
             if (result.synced > 0) {
               totalSynced += result.synced;
               totalResidents++;

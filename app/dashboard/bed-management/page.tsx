@@ -39,7 +39,7 @@ export default function BedManagementPage() {
   });
 
   const getOccupancyColor = (rate: number) => {
-    if (rate === 0) return 'text-gray-500 bg-gray-100';
+    if (rate === 0) return 'text-muted-foreground bg-muted';
     if (rate < 50) return 'text-accent-foreground bg-accent';
     if (rate < 80) return 'text-yellow-700 bg-yellow-100';
     if (rate < 100) return 'text-accent-foreground bg-accent';
@@ -48,9 +48,14 @@ export default function BedManagementPage() {
 
   const getRoomSpecialization = (roomNumber: string) => {
     const roomConfig = ALL_ROOMS.find(r => r.roomNumber === roomNumber);
-    if (roomConfig?.specialization === 'girls') return 'Meisjes (1e verdieping)';
-    if (roomConfig?.specialization === 'minors') return 'Minors <17 (1e verdieping)';
-    return 'Algemeen (begane grond)';
+    if (roomConfig?.specialization === 'girls') return 'Meisjes';
+    if (roomConfig?.specialization === 'medical') return 'Medisch';
+    if (roomConfig?.specialization === 'minors') return 'Minors <17';
+    // Check floor and building for boys rooms
+    if (roomConfig?.floor === 'ground') return 'Jongens (begane grond)';
+    if (roomConfig?.floor === 'first' && roomConfig?.building === 'noord') return 'Jongens (1e verdieping)';
+    if (roomConfig?.floor === 'first' && roomConfig?.building === 'zuid') return 'Jongens (1e verdieping)';
+    return 'Algemeen';
   };
 
   return (
@@ -88,7 +93,7 @@ export default function BedManagementPage() {
             </div>
             <div className="bg-card rounded-lg shadow border border-border p-4">
               <div className="flex items-center">
-                <UserX className="h-8 w-8 text-gray-600 mr-3" />
+                <UserX className="h-8 w-8 text-muted-foreground mr-3" />
                 <div>
                   <p className="text-sm text-muted-foreground">Beschikbaar</p>
                   <p className="text-2xl font-bold text-foreground">{isClient ? (occupancyStats?.availableBeds ?? 0) : (CAPACITY?.total ?? 0)}</p>
@@ -162,7 +167,7 @@ export default function BedManagementPage() {
                 {/* Room Header */}
                 <div className={`px-4 py-3 ${room.building === 'noord' ? 'bg-foreground' : 'bg-foreground'}`}>
                   <div className="flex items-center justify-between">
-                    <h3 className="text-white font-semibold flex items-center">
+                    <h3 className="text-primary-foreground font-semibold flex items-center">
                       <Home className="h-4 w-4 mr-2" />
                       Kamer {room.roomNumber}
                     </h3>
@@ -190,10 +195,10 @@ export default function BedManagementPage() {
 
                     {/* Progress Bar */}
                     <div className="mt-3">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-muted rounded-full h-2">
                         <div 
                           className={`h-2 rounded-full ${
-                            (room.occupancyRate || 0) === 0 ? 'bg-gray-300' :
+                            (room.occupancyRate || 0) === 0 ? 'bg-muted-foreground/50' :
                             (room.occupancyRate || 0) < 50 ? 'bg-accent' :
                             (room.occupancyRate || 0) < 80 ? 'bg-yellow-500' :
                             (room.occupancyRate || 0) < 100 ? 'bg-accent' :
@@ -247,10 +252,10 @@ export default function BedManagementPage() {
                       </span>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Kamernummers: 1.06 - 1.09 (Begane grond), 1.14 - 1.19 (Eerste verdieping - Meisjes)
+                      Kamernummers: 1.06 - 1.09 (Begane grond - Jongens), 1.14 - 1.19 (Eerste verdieping - Jongens)
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
                     {noordRooms.map(renderRoomCard)}
                   </div>
                 </div>
@@ -268,10 +273,10 @@ export default function BedManagementPage() {
                       </span>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Kamernummers: 2.06 - 2.09 (Begane grond), 2.14 - 2.19 (Eerste verdieping)
+                      Kamernummers: 2.06 - 2.08 (Begane grond - Jongens), 2.14 - 2.19 (Eerste verdieping - Jongens + MED)
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
                     {zuidRooms.map(renderRoomCard)}
                   </div>
                 </div>
@@ -319,7 +324,7 @@ export default function BedManagementPage() {
             return (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Noord Building Stats */}
-                <div className="bg-white rounded-lg shadow border p-6">
+                <div className="bg-card rounded-lg shadow border p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-4 h-4 bg-foreground rounded"></div>
                     <h3 className="text-lg font-semibold text-foreground">Noord Gebouw</h3>
@@ -334,7 +339,7 @@ export default function BedManagementPage() {
                       <div className="text-sm text-muted-foreground">Bezet</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-600">{noordStats.availableBeds}</div>
+                      <div className="text-2xl font-bold text-muted-foreground">{noordStats.availableBeds}</div>
                       <div className="text-sm text-muted-foreground">Beschikbaar</div>
                     </div>
                     <div className="text-center">
@@ -343,12 +348,12 @@ export default function BedManagementPage() {
                     </div>
                   </div>
                   <div className="mt-4 text-xs text-muted-foreground text-center">
-                    Kamers: 1.06-1.09 (BG), 1.14-1.19 (1e - Meisjes)
+                    Kamers: 1.06-1.09 (BG - Jongens), 1.14-1.19 (1e - Jongens)
                   </div>
                 </div>
 
                 {/* Zuid Building Stats */}
-                <div className="bg-white rounded-lg shadow border p-6">
+                <div className="bg-card rounded-lg shadow border p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-4 h-4 bg-foreground rounded"></div>
                     <h3 className="text-lg font-semibold text-foreground">Zuid Gebouw</h3>
@@ -363,7 +368,7 @@ export default function BedManagementPage() {
                       <div className="text-sm text-muted-foreground">Bezet</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-600">{zuidStats.availableBeds}</div>
+                      <div className="text-2xl font-bold text-muted-foreground">{zuidStats.availableBeds}</div>
                       <div className="text-sm text-muted-foreground">Beschikbaar</div>
                     </div>
                     <div className="text-center">
@@ -372,7 +377,7 @@ export default function BedManagementPage() {
                     </div>
                   </div>
                   <div className="mt-4 text-xs text-muted-foreground text-center">
-                    Kamers: 2.06-2.09 (BG), 2.14-2.19 (1e)
+                    Kamers: 2.06-2.08 (BG - Jongens), 2.14-2.18 (1e - Jongens), 2.19 (1e - MED)
                   </div>
                 </div>
               </div>
@@ -382,7 +387,9 @@ export default function BedManagementPage() {
           {/* Overall Capacity Summary */}
           <div className="bg-white rounded-lg shadow border p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4">Totaal Capaciteit Overzicht</h3>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            
+            {/* Building Capacities */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 mb-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-foreground">{CAPACITY?.noord?.total ?? 0}</div>
                 <div className="text-sm text-muted-foreground">Noord Capaciteit</div>
@@ -397,15 +404,31 @@ export default function BedManagementPage() {
                   BG: {CAPACITY?.zuid?.ground ?? 0} | 1e: {CAPACITY?.zuid?.first ?? 0}
                 </div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-pink-600">{CAPACITY?.noord?.first ?? 0}</div>
-                <div className="text-sm text-muted-foreground">Meisjes Capaciteit</div>
-                <div className="text-xs text-muted-foreground">1e verdieping Noord</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{CAPACITY?.total ?? 0}</div>
-                <div className="text-sm text-muted-foreground">Totale Capaciteit</div>
-                <div className="text-xs text-muted-foreground">Alle gebouwen</div>
+            </div>
+            
+            {/* Gender and Medical Distribution */}
+            <div className="border-t pt-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{CAPACITY?.boys ?? 0}</div>
+                  <div className="text-sm text-muted-foreground">Jongens</div>
+                  <div className="text-xs text-muted-foreground">Noord + Zuid (BG & 1e)</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-pink-600">{CAPACITY?.girls ?? 0}</div>
+                  <div className="text-sm text-muted-foreground">Meisjes</div>
+                  <div className="text-xs text-muted-foreground">Zuid 1e verdieping</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{CAPACITY?.medical ?? 0}</div>
+                  <div className="text-sm text-muted-foreground">Medische bedden</div>
+                  <div className="text-xs text-muted-foreground">Kamer 2.19</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">{CAPACITY?.total ?? 0}</div>
+                  <div className="text-sm text-muted-foreground">Totale Capaciteit</div>
+                  <div className="text-xs text-muted-foreground">Alle bedden</div>
+                </div>
               </div>
             </div>
           </div>

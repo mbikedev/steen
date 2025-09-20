@@ -15,6 +15,19 @@ type AdministrativeDocument = Tables['administrative_documents']['Row']
 type DocumentCategory = Tables['document_categories']['Row']
 type ResidentStatusHistory = Tables['resident_status_history']['Row']
 
+type StorageFileObject = {
+  name: string
+  id: string
+  updated_at: string
+  created_at: string
+  last_accessed_at: string
+  metadata: {
+    size?: number
+    mimetype?: string
+  } | null
+  fullPath: string
+}
+
 export class ApiService {
   private supabase = createClient() as any
 
@@ -742,6 +755,117 @@ export class ApiService {
   }
 
   // Administrative Documents
+  private async listStorageFiles(bucket: string, prefix: string): Promise<StorageFileObject[]> {
+    const files: StorageFileObject[] = []
+
+    const walk = async (path: string) => {
+      const trimmedPath = path.replace(/^\/+/, '').replace(/\/+$/, '')
+      const listPath = trimmedPath.length > 0 ? trimmedPath : undefined
+
+      const { data, error } = await this.supabase.storage
+        .from(bucket)
+        .list(listPath, {
+          limit: 1000,
+          sortBy: { column: 'name', order: 'asc' }
+        })
+
+      if (error) {
+        console.error('Failed to list Supabase storage path', { bucket, path: trimmedPath, error })
+        throw error
+      }
+
+      if (!data) return
+
+      for (const item of data) {
+        if (!item?.name || item.name === '.' || item.name === '..') {
+          continue
+        }
+
+        const fullPath = trimmedPath ? `${trimmedPath}/${item.name}` : item.name
+        const isDirectory = !item.metadata || typeof item.metadata.size !== 'number'
+
+        if (isDirectory) {
+          await walk(fullPath)
+        } else {
+          files.push({ ...item, fullPath })
+        }
+      }
+    }
+
+    await walk(prefix)
+    return files
+  }
+
+  private storageFileMatchesBadge(file: StorageFileObject, badge: string): boolean {
+    const normalizedBadge = String(badge || '').trim()
+    if (!normalizedBadge) {
+      return false
+    }
+
+    const lowerBadge = normalizedBadge.toLowerCase()
+    const badgeWithoutLeadingZeros = normalizedBadge.replace(/^0+/, '')
+    const lowerBadgeNoZeros = badgeWithoutLeadingZeros.toLowerCase()
+    const fullPathLower = file.fullPath.toLowerCase()
+    const fileNameLower = file.name.toLowerCase()
+
+    if (fullPathLower.includes(`/${lowerBadge}/`)) {
+      return true
+    }
+
+    if (
+      fileNameLower.includes(lowerBadge) ||
+      fullPathLower.includes(`_${lowerBadge}`) ||
+      fullPathLower.includes(`-${lowerBadge}`) ||
+      fullPathLower.includes(`${lowerBadge}_`) ||
+      fullPathLower.includes(`${lowerBadge}-`)
+    ) {
+      return true
+    }
+
+    if (lowerBadgeNoZeros && lowerBadgeNoZeros !== lowerBadge) {
+      if (
+        fileNameLower.includes(lowerBadgeNoZeros) ||
+        fullPathLower.includes(`/${lowerBadgeNoZeros}/`) ||
+        fullPathLower.includes(`_${lowerBadgeNoZeros}`) ||
+        fullPathLower.includes(`-${lowerBadgeNoZeros}`)
+      ) {
+        return true
+      }
+    }
+
+    const pathSegments = fullPathLower.split('/')
+    if (pathSegments.includes(lowerBadge) || (lowerBadgeNoZeros && pathSegments.includes(lowerBadgeNoZeros))) {
+      return true
+    }
+
+    const numericMatches = file.fullPath.match(/\d+/g) || []
+    if (numericMatches.some(segment => segment === normalizedBadge || segment === badgeWithoutLeadingZeros)) {
+      return true
+    }
+
+    if (normalizedBadge.length >= 3) {
+      const lastThree = normalizedBadge.slice(-3)
+      if (numericMatches.some(segment => segment.slice(-3) === lastThree)) {
+        return true
+      }
+    }
+
+    return false
+  }
+
+  private extractStoragePathFromPublicUrl(url: string | null | undefined): string | null {
+    if (!url) return null
+    const match = url.match(/administrative-documents\/(.+)$/)
+    if (match && match[1]) {
+      return match[1]
+    }
+    return null
+  }
+
+  async listAdministrativeDocumentFiles(documentType: 'IN' | 'OUT' = 'IN'): Promise<StorageFileObject[]> {
+    return this.listStorageFiles('administrative-documents', documentType)
+  }
+
   async getAdministrativeDocuments(residentId?: number, documentType?: 'IN' | 'OUT') {
     let query = this.supabase
       .from('administrative_documents')
@@ -848,45 +972,81 @@ export class ApiService {
     return { created, skipped }
   }
 
-  async createDocumentRecord(residentId: number, residentBadge: string, fileName: string, documentType: 'IN' | 'OUT' = 'IN') {
+  async createDocumentRecord(
+    residentId: number,
+    residentBadge: string | number,
+    fileName: string,
+    documentType: 'IN' | 'OUT' = 'IN',
+    options?: {
+      storagePath?: string
+      fileSize?: number | null
+      mimeType?: string | null
+      description?: string | null
+      uploadedBy?: string | null
+      createdAt?: string | null
+      updatedAt?: string | null
+    }
+  ) {
     try {
-      // Create the public URL for the document
-      const publicUrl = `https://xxcbpsjefpogxgfellui.supabase.co/storage/v1/object/public/administrative-documents/${documentType}/${fileName}`
-      
+      const badgeStr = String(residentBadge || '').trim()
+      const storagePath = options?.storagePath ?? `${documentType}/${fileName}`
+
       // Check if document already exists
-      const { data: existing } = await this.supabase
+      const { data: existing, error: existingError } = await this.supabase
         .from('administrative_documents')
         .select('id')
         .eq('resident_id', residentId)
+        .eq('document_type', documentType)
         .eq('file_name', fileName)
-        .single()
-      
+        .maybeSingle()
+
+      if (existingError) {
+        console.error('Failed to check existing administrative document', existingError)
+        return { success: false, error: existingError }
+      }
+
       if (existing) {
-        console.log(`Document ${fileName} already exists for resident ${residentBadge}`)
+        console.log(`Document ${fileName} already exists for resident ${badgeStr}`)
         return { success: false, message: 'Already exists' }
       }
-      
-      // Create document record
+
+      const { data: publicUrlData } = this.supabase.storage
+        .from('administrative-documents')
+        .getPublicUrl(storagePath)
+
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const publicUrl = publicUrlData?.publicUrl ?? (supabaseUrl ? `${supabaseUrl}/storage/v1/object/public/administrative-documents/${storagePath}` : '')
+
+      const insertPayload: Record<string, any> = {
+        resident_id: residentId,
+        document_type: documentType,
+        file_name: fileName,
+        file_path: publicUrl,
+        file_size: options?.fileSize ?? null,
+        mime_type: options?.mimeType ?? null,
+        description: options?.description ?? null,
+        uploaded_by: options?.uploadedBy ?? null
+      }
+
+      if (options?.createdAt) {
+        insertPayload.created_at = options.createdAt
+      }
+
+      if (options?.updatedAt) {
+        insertPayload.updated_at = options.updatedAt
+      }
+
       const { data, error } = await this.supabase
         .from('administrative_documents')
-        .insert({
-          resident_id: residentId,
-          resident_badge: residentBadge,
-          document_type: documentType,
-          file_name: fileName,
-          file_path: publicUrl,
-          file_size: 0, // We don't know the size without fetching the file
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .insert(insertPayload)
         .select()
-        .single()
-      
+        .maybeSingle()
+
       if (error) {
         console.error('Error creating document record:', error)
         return { success: false, error }
       }
-      
+
       console.log(`✅ Created document record for ${fileName}`)
       return { success: true, data }
     } catch (error) {
@@ -895,172 +1055,76 @@ export class ApiService {
     }
   }
 
-  async syncResidentDocuments(residentBadge: string | number, residentId: number) {
+  async syncResidentDocuments(
+    residentBadge: string | number,
+    residentId: number,
+    documentType: 'IN' | 'OUT' = 'IN',
+    options?: { storageFiles?: StorageFileObject[] }
+  ) {
     try {
-      console.log(`📄 Syncing documents for resident ${residentBadge} (ID: ${residentId})`)
-      
-      // List all files in IN folder
-      const { data: inFiles, error: inError } = await this.supabase.storage
-        .from('administrative-documents')
-        .list('IN', {
-          limit: 1000
-        })
-      
-      if (inError) {
-        console.error('Error listing IN folder:', inError)
-        return { synced: 0, error: inError }
+      const badgeStr = String(residentBadge || '').trim()
+      if (!badgeStr) {
+        console.warn('syncResidentDocuments called without a valid badge number')
+        return { synced: 0, total: 0 }
       }
 
-      if (!inFiles || inFiles.length === 0) {
-        console.log(`No files found in IN folder`)
-        return { synced: 0 }
+      const files = options?.storageFiles ?? await this.listAdministrativeDocumentFiles(documentType)
+
+      if (!files || files.length === 0) {
+        console.log(`No files found in ${documentType} folder`)
+        return { synced: 0, total: 0 }
       }
 
-      console.log(`Found ${inFiles.length} files in IN folder`)
-      
-      // Convert badge to string for consistent handling
-      const badgeStr = String(residentBadge)
-      console.log(`🔍 DEBUG: Looking for badge ${badgeStr}`)
-      
+      const matchedFiles = files.filter(file => this.storageFileMatchesBadge(file, badgeStr))
+
+      if (matchedFiles.length === 0) {
+        console.log(`No matching files found for badge ${badgeStr}`)
+        return { synced: 0, total: 0 }
+      }
+
       let syncedCount = 0
-      let matchedFiles = []
-      
-      // Create a more flexible matching approach
-      // Since we see 5-digit resident badges vs 8-digit file badges, we need name-based matching
-      for (const file of inFiles) {
-        // Skip if it's not a file (could be a folder)
-        if (!file.name || file.name.endsWith('/')) continue
-        
-        // Try multiple matching strategies:
-        let isMatch = false
-        let matchReason = ''
-        
-        // Strategy 1: Exact badge number match (any length)
-        const allNumbers = file.name.match(/(\d+)/g) || []
-        if (allNumbers.includes(badgeStr)) {
-          isMatch = true
-          matchReason = 'exact badge number'
-        }
-        
-        // Strategy 2: Badge number with separators
-        if (!isMatch && (file.name.includes(`-${badgeStr}-`) || file.name.includes(`_${badgeStr}_`))) {
-          isMatch = true
-          matchReason = 'badge with separators'
-        }
-        
-        // Strategy 3: Badge number at word boundaries
-        if (!isMatch) {
-          const badgeRegex = new RegExp(`\\b${badgeStr}\\b`)
-          if (badgeRegex.test(file.name)) {
-            isMatch = true
-            matchReason = 'badge at word boundary'
-          }
-        }
-        
-        // Strategy 4: Pattern-based matching (look for numbers ending with our badge)
-        if (!isMatch) {
-          // Look for any numbers (4-10 digits) that end with our 5-digit badge number
-          // This catches patterns like 10283198 ending with 25198
-          const allNumberMatches = file.name.match(/(\d{4,10})/g) || []
-          
-          // Debug: log what we found
-          if (allNumberMatches.length > 0) {
-            console.log(`🔍 Found numbers in ${file.name}: ${allNumberMatches.join(', ')}`)
-          }
-          
-          for (const number of allNumberMatches) {
-            // Check if last 3 digits match (the actual pattern we discovered)
-            const numberLast3 = number.slice(-3)
-            const badgeLast3 = badgeStr.slice(-3)
-            const matches3Digits = numberLast3 === badgeLast3 && number.length > badgeStr.length
-            
-            console.log(`🔍 Checking: does ${number} (last 3: ${numberLast3}) match badge ${badgeStr} (last 3: ${badgeLast3})? ${matches3Digits}`)
-            
-            if (matches3Digits) {
-              isMatch = true
-              matchReason = `3-digit pattern match (${number} last 3 digits ${numberLast3} match badge ${badgeStr})`
-              console.log(`✅ Pattern match: ${number} last 3 digits match badge ${badgeStr}`)
-              break
-            }
-            
-            // Also keep the original full-ending check as a fallback
-            if (number.endsWith(badgeStr) && number !== badgeStr) {
-              isMatch = true
-              matchReason = `full number pattern (${number} ends with ${badgeStr})`
-              console.log(`✅ Full pattern match: ${number} ends with badge ${badgeStr}`)
-              break
-            }
-          }
-        }
-        
-        // Strategy 5: Partial digit analysis for debugging
-        if (!isMatch) {
-          const partialBadgeMatches = file.name.match(/(\d{4,8})/g) || []
-          
-          // Check if any number in the filename ends with our badge digits
-          for (const number of partialBadgeMatches) {
-            if (number.endsWith(badgeStr.slice(-3)) || badgeStr.endsWith(number.slice(-3))) {
-              console.log(`⚠️  Potential match for badge ${badgeStr} in file: ${file.name} (number: ${number})`)
-            }
-          }
-        }
-        
-        if (isMatch) {
-          matchedFiles.push(file)
-          console.log(`✅ Found matching file for badge ${badgeStr} (${matchReason}): ${file.name}`)
-        }
-      }
-      
-      console.log(`Found ${matchedFiles.length} files matching resident ${residentBadge}`)
-      
-      // Process matched files
+
       for (const file of matchedFiles) {
         try {
-          // Check if document already exists in database
-          const { data: existingDoc } = await this.supabase
+          const fileName = file.fullPath.split('/').pop() || file.name
+
+          const { data: existingDoc, error: existingError } = await this.supabase
             .from('administrative_documents')
             .select('id')
             .eq('resident_id', residentId)
-            .eq('file_name', file.name)
-            .single()
+            .eq('document_type', documentType)
+            .eq('file_name', fileName)
+            .maybeSingle()
 
-          if (!existingDoc) {
-            // Get public URL for the file
-            const { data: { publicUrl } } = this.supabase.storage
-              .from('administrative-documents')
-              .getPublicUrl(`IN/${file.name}`)
+          if (existingError) {
+            console.error('Error checking existing document record:', existingError)
+            continue
+          }
 
-            // Create document record in database
-            const { data: newDoc, error: insertError } = await this.supabase
-              .from('administrative_documents')
-              .insert({
-                resident_id: residentId,
-                resident_badge: residentBadge,
-                document_type: 'IN',
-                file_name: file.name,
-                file_path: publicUrl,
-                file_size: file.metadata?.size || file.size || 0,
-                created_at: file.created_at || new Date().toISOString(),
-                updated_at: file.updated_at || new Date().toISOString()
-              })
-              .select()
-              .single()
+          if (existingDoc) {
+            continue
+          }
 
-            if (insertError) {
-              console.error(`Error creating document record for ${file.name}:`, insertError)
-            } else {
-              syncedCount++
-              console.log(`✅ Synced document: ${file.name} (ID: ${newDoc?.id})`)
-            }
-          } else {
-            console.log(`Document ${file.name} already exists in database`)
+          const result = await this.createDocumentRecord(residentId, badgeStr, fileName, documentType, {
+            storagePath: file.fullPath,
+            fileSize: file.metadata?.size ?? null,
+            mimeType: file.metadata?.mimetype ?? null,
+            uploadedBy: 'Supabase Sync',
+            createdAt: file.created_at || null,
+            updatedAt: file.updated_at || null
+          })
+
+          if (result.success) {
+            syncedCount++
+          } else if (result.error) {
+            console.error(`Failed to create document record for ${fileName}`, result.error)
           }
         } catch (docError) {
-          console.error(`Error processing document ${file.name}:`, docError)
+          console.error(`Error processing storage file ${file.name}:`, docError)
         }
       }
 
-      console.log(`📄 Synced ${syncedCount} new documents for resident ${residentBadge}`)
+      console.log(`📄 Synced ${syncedCount} documents for resident ${badgeStr}`)
       return { synced: syncedCount, total: matchedFiles.length }
     } catch (error) {
       console.error('Error in syncResidentDocuments:', error)
@@ -1126,18 +1190,16 @@ export class ApiService {
       .from('administrative_documents')
       .select('file_path')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
     if (getError) throw getError
 
-    // Extract file name from URL and delete from storage
-    if (doc?.file_path) {
-      const fileName = doc.file_path.split('/').pop()
-      if (fileName) {
-        await this.supabase.storage
-          .from('administrative-documents')
-          .remove([fileName])
-      }
+    // Extract storage path from public URL and delete from storage
+    const storagePath = this.extractStoragePathFromPublicUrl(doc?.file_path)
+    if (storagePath) {
+      await this.supabase.storage
+        .from('administrative-documents')
+        .remove([storagePath])
     }
 
     // Delete document record

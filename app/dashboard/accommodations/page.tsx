@@ -22,7 +22,7 @@ const mockRooms = [
   { id: 11, number: '2.06', building: 'Zuid', floor: 2, capacity: 4, occupied: 3, residents: ['Gerebrhan Tesfamariam', 'Hétu Aliyou Nsangou', 'Mohammed Seid Abdelkhadr'] },
   { id: 12, number: '2.07', building: 'Zuid', floor: 2, capacity: 4, occupied: 2, residents: ['Girmay Filmon Tesfamichael', 'Tewelde Samsom Kifle'] },
   { id: 13, number: '2.08', building: 'Zuid', floor: 2, capacity: 5, occupied: 5, residents: ['Diomande Mory', 'Diallo Thierno Idrissa', 'Gerezgiher Samiel', 'Behbodi Bahram', 'Nazari Ahmad Zafar'] },
-  { id: 14, number: '2.09', building: 'Zuid', floor: 2, capacity: 5, occupied: 5, residents: ['Cherif Mohamed', 'Conde Abdoul Karim', 'Baye Fasil Alebacho', 'Zundai Fazal Hadi', 'Mahtsen Ambesajer'] },
+  { id: 14, number: '2.19', building: 'Zuid', floor: 2, capacity: 5, occupied: 3, residents: ['Medisch Bed 1', 'Medisch Bed 2', 'Medisch Bed 3'] },
   { id: 15, number: '2.14', building: 'Zuid', floor: 2, capacity: 3, occupied: 3, residents: ['Araya Even Fsaha', 'Tesfay Tedros Dagenew', 'Suleman Omerdin'] },
   { id: 16, number: '2.15', building: 'Zuid', floor: 2, capacity: 3, occupied: 3, residents: ['Safi Ismail', 'Teklemichael Simon Luul', 'Jabarkhel Noor Agha'] },
   { id: 17, number: '2.16', building: 'Zuid', floor: 2, capacity: 3, occupied: 3, residents: ['Hakimi Shaheen', 'Hussaini Ali Reza', 'Zahir Said'] },
@@ -88,7 +88,7 @@ export default function AccommodationsPage() {
             <div className="flex items-center">
               <Users className="h-8 w-8 text-yellow-500" />
               <div className="ml-3">
-                <p className="text-sm text-gray-500 dark:text-gray-300">Occupied</p>
+                <p className="text-sm text-muted-foreground">Occupied</p>
                 <p className="text-xl font-semibold text-foreground">{occupiedBeds}</p>
               </div>
             </div>
@@ -97,7 +97,7 @@ export default function AccommodationsPage() {
             <div className="flex items-center">
               <MapPin className="h-8 w-8 text-purple-500" />
               <div className="ml-3">
-                <p className="text-sm text-gray-500 dark:text-gray-300">Available</p>
+                <p className="text-sm text-muted-foreground">Available</p>
                 <p className="text-xl font-semibold text-foreground">{availableBeds}</p>
               </div>
             </div>
@@ -112,14 +112,14 @@ export default function AccommodationsPage() {
               <input
                 type="text"
                 placeholder="Search by room number or resident name..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ring bg-white text-black dark:text-gray-100"
+                className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring bg-background text-foreground"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
           <select
-            className="px-4 py-2 border border-gray-300 bg-white text-foreground rounded-lg focus:ring-2 focus:ring-ring"
+            className="px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring"
             value={filterBuilding}
             onChange={(e) => setFilterBuilding(e.target.value)}
           >
@@ -128,7 +128,7 @@ export default function AccommodationsPage() {
             <option value="Zuid">Zuid</option>
           </select>
           <select
-            className="px-4 py-2 border border-gray-300 bg-white text-foreground rounded-lg focus:ring-2 focus:ring-ring"
+            className="px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring"
             value={filterAvailability}
             onChange={(e) => setFilterAvailability(e.target.value)}
           >
@@ -164,10 +164,10 @@ export default function AccommodationsPage() {
               
               <div className="mb-3">
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-500 dark:text-gray-300">Occupancy</span>
+                  <span className="text-muted-foreground">Occupancy</span>
                   <span className="font-medium text-foreground">{room.occupied}/{room.capacity}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-muted rounded-full h-2">
                   <div 
                     className={`h-2 rounded-full ${
                       room.occupied === room.capacity ? 'bg-foreground' : 'bg-foreground/70'
@@ -180,7 +180,7 @@ export default function AccommodationsPage() {
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">Residents:</p>
                 {room.residents.length > 0 ? (
-                  <ul className="text-xs text-gray-600 space-y-0.5">
+                  <ul className="text-xs text-muted-foreground space-y-0.5">
                     {room.residents.slice(0, 3).map((resident, idx) => (
                       <li key={idx} className="truncate">• {resident}</li>
                     ))}
@@ -197,7 +197,7 @@ export default function AccommodationsPage() {
                 <button className="flex-1 px-3 py-1 text-xs bg-accent text-accent-foreground rounded hover:bg-accent/80">
                   View Details
                 </button>
-                <button className="flex-1 px-3 py-1 text-xs bg-muted text-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
+                <button className="flex-1 px-3 py-1 text-xs bg-muted text-muted-foreground rounded hover:bg-muted/50">
                   Manage
                 </button>
               </div>

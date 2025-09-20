@@ -42,6 +42,7 @@ function DashboardPage() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [displayStats, setDisplayStats] = useState<QuickStat[]>([]);
   const [weekendPermissions, setWeekendPermissions] = useState<any[]>([]);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   
   const { dashboardStats, loading, occupancyStats, dataMatchIt } = useData();
   const { user } = useAuth();
@@ -56,6 +57,15 @@ function DashboardPage() {
     const weekNumber = Math.ceil(diff / (7 * 24 * 60 * 60 * 1000));
     return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
   };
+
+  // Timeout fallback to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setLoadingTimeout(true);
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   // Load weekend permissions for current week
   useEffect(() => {
@@ -90,14 +100,18 @@ function DashboardPage() {
     };
     
     // Create quick stats from available dashboard data
+    const totalResidentsCount = Array.isArray(dataMatchIt)
+      ? dataMatchIt.length
+      : currentStats.totalResidents || 0;
+
     const quickStats: QuickStat[] = [
       {
         label: 'Totale Bewoners',
-        value: currentStats.totalResidents || 0,
+        value: totalResidentsCount,
         change: 0,
         trend: 'up',
         icon: <Users className="h-5 w-5" />,
-        color: 'bg-foreground'
+        color: 'bg-primary'
       },
       {
         label: 'Beschikbare Kamers',
@@ -110,7 +124,7 @@ function DashboardPage() {
     ];
     
     setDisplayStats(quickStats);
-  }, [dashboardStats, occupancyStats]);
+  }, [dashboardStats, occupancyStats, dataMatchIt, loadingTimeout]);
 
 
 
@@ -137,7 +151,7 @@ function DashboardPage() {
       description: 'Beheer kamer toewijzingen',
       icon: <Bed className="h-6 w-6" />,
       href: '/dashboard/bed-management',
-      color: 'from-foreground to-foreground/80',
+      color: 'from-primary to-primary/80',
       bgColor: 'from-accent to-accent/50'
     },
     {
@@ -145,7 +159,7 @@ function DashboardPage() {
       description: 'Visueel foto overzicht',
       icon: <Grid3X3 className="h-6 w-6" />,
       href: '/dashboard/residents-grid',
-      color: 'from-foreground to-foreground/80',
+      color: 'from-primary to-primary/80',
       bgColor: 'from-accent to-accent/50'
     },
     {
@@ -161,7 +175,7 @@ function DashboardPage() {
       description: 'Beheer afspraken',
       icon: <Calendar className="h-6 w-6" />,
       href: '/dashboard/appointments',
-      color: 'from-foreground to-foreground/80',
+      color: 'from-primary to-primary/80',
       bgColor: 'from-accent to-accent/50'
     },
     {
@@ -182,11 +196,12 @@ function DashboardPage() {
     }
   ];
   
-  if (loading) {
+  // Show loading only for initial load, not when returning to dashboard
+  if (loading && !dashboardStats && displayStats.length === 0 && !loadingTimeout) {
     return (
         <DashboardLayout>
             <div className="flex justify-center items-center min-h-screen">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
             </div>
         </DashboardLayout>
     );
@@ -235,11 +250,12 @@ function DashboardPage() {
                   </p>
                 </div>
                 <div className={`p-3 bg-gradient-to-br ${
-                  stat.color === 'emerald' ? 'from-foreground to-foreground/80' :
-                  stat.color === 'blue' ? 'from-foreground to-foreground/80' :
+                  stat.color === 'emerald' ? 'from-primary to-primary/80' :
+                  stat.color === 'blue' ? 'from-primary to-primary/80' :
                   stat.color === 'purple' ? 'from-purple-400 to-indigo-600' :
-                  'from-foreground to-foreground/80'
-                } rounded-xl shadow-lg text-white`}>
+                  stat.color === 'bg-primary' ? 'from-primary to-primary/80' :
+                  'from-primary to-primary/80'
+                } rounded-xl shadow-lg text-primary-foreground`}>
                   {stat.icon}
                 </div>
               </div>
@@ -260,14 +276,14 @@ function DashboardPage() {
               <div className="grid grid-cols-2 gap-4">
                 <button 
                   onClick={() => setIsAddModalOpen(true)}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-foreground to-foreground/80 text-background rounded-xl hover:from-foreground/90 hover:to-foreground/70 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-xl hover:from-primary/90 hover:to-primary/70 transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   <UserPlus className="h-5 w-5" />
                   <span className="font-semibold">Nieuwe Bewoner</span>
                 </button>
                 <button 
                   onClick={() => router.push('/dashboard/bed-management')}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-foreground to-foreground/80 text-background rounded-xl hover:from-foreground/90 hover:to-foreground/70 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-xl hover:from-primary/90 hover:to-primary/70 transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   <Bed className="h-5 w-5" />
                   <span className="font-semibold">Bedden Beheer</span>
@@ -297,7 +313,7 @@ function DashboardPage() {
                     className={`group relative overflow-hidden rounded-2xl bg-card border border-border p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 hover:-translate-y-1`}
                   >
                     <div className="flex items-center space-x-4">
-                      <div className={`p-3 bg-gradient-to-br ${card.color} rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110 text-white`}>
+                      <div className={`p-3 bg-gradient-to-br ${card.color} rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110 text-primary-foreground`}>
                         {card.icon}
                       </div>
                       <div className="flex-1">

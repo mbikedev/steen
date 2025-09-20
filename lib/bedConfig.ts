@@ -24,15 +24,14 @@ export interface BedOccupancy {
 
 // Noord building configuration
 export const NOORD_ROOMS: RoomConfig[] = [
-  // Begane Grond - actual bed counts
+  // Begane Grond - boys
   { roomNumber: '1.06', floor: 'ground', building: 'noord', maxBeds: 4 },
   { roomNumber: '1.07', floor: 'ground', building: 'noord', maxBeds: 4 },
-  { roomNumber: '1.08', floor: 'ground', building: 'noord', maxBeds: 5 },
-  { roomNumber: '1.09', floor: 'ground', building: 'noord', maxBeds: 5 },
+  { roomNumber: '1.08', floor: 'ground', building: 'noord', maxBeds: 4 },
+  { roomNumber: '1.09', floor: 'ground', building: 'noord', maxBeds: 4 },
   
-  // Eerste Verdieping - actual bed counts
-  { roomNumber: '1.14', floor: 'first', building: 'noord', maxBeds: 1, specialization: 'medical' }, // medical room
-  { roomNumber: '1.15', floor: 'first', building: 'noord', maxBeds: 3, specialization: 'girls' },
+  // Eerste Verdieping - girls and medical (1.14 is office, not included)
+  { roomNumber: '1.15', floor: 'first', building: 'noord', maxBeds: 1, specialization: 'medical' }, // 1 medical bed
   { roomNumber: '1.16', floor: 'first', building: 'noord', maxBeds: 3, specialization: 'girls' },
   { roomNumber: '1.17', floor: 'first', building: 'noord', maxBeds: 3, specialization: 'girls' },
   { roomNumber: '1.18', floor: 'first', building: 'noord', maxBeds: 3, specialization: 'girls' },
@@ -41,19 +40,18 @@ export const NOORD_ROOMS: RoomConfig[] = [
 
 // Zuid building configuration
 export const ZUID_ROOMS: RoomConfig[] = [
-  // Begane Grond - actual bed counts
+  // Begane Grond - boys only
   { roomNumber: '2.06', floor: 'ground', building: 'zuid', maxBeds: 4 },
   { roomNumber: '2.07', floor: 'ground', building: 'zuid', maxBeds: 4 },
   { roomNumber: '2.08', floor: 'ground', building: 'zuid', maxBeds: 5 },
-  { roomNumber: '2.09', floor: 'ground', building: 'zuid', maxBeds: 5 },
   
-  // Eerste Verdieping - actual bed counts
-  { roomNumber: '2.14', floor: 'first', building: 'zuid', maxBeds: 3, specialization: 'minors' },
-  { roomNumber: '2.15', floor: 'first', building: 'zuid', maxBeds: 3, specialization: 'minors' },
-  { roomNumber: '2.16', floor: 'first', building: 'zuid', maxBeds: 3, specialization: 'minors' },
-  { roomNumber: '2.17', floor: 'first', building: 'zuid', maxBeds: 3, specialization: 'minors' },
-  { roomNumber: '2.18', floor: 'first', building: 'zuid', maxBeds: 3, specialization: 'minors' },
-  { roomNumber: '2.19', floor: 'first', building: 'zuid', maxBeds: 3, specialization: 'minors' }
+  // Eerste Verdieping - boys and medical
+  { roomNumber: '2.14', floor: 'first', building: 'zuid', maxBeds: 3 }, // boys
+  { roomNumber: '2.15', floor: 'first', building: 'zuid', maxBeds: 3 }, // boys
+  { roomNumber: '2.16', floor: 'first', building: 'zuid', maxBeds: 3 }, // boys
+  { roomNumber: '2.17', floor: 'first', building: 'zuid', maxBeds: 3 }, // boys
+  { roomNumber: '2.18', floor: 'first', building: 'zuid', maxBeds: 3 }, // boys
+  { roomNumber: '2.19', floor: 'first', building: 'zuid', maxBeds: 3, specialization: 'medical' } // 3 medical beds
 ];
 
 // Combined room configurations
@@ -62,24 +60,34 @@ export const ALL_ROOMS: RoomConfig[] = [...NOORD_ROOMS, ...ZUID_ROOMS];
 // Calculate total capacity with actual bed counts
 export const CAPACITY = {
   noord: {
-    ground: 18, // 4+4+5+5 = 18 beds
-    first: 16,  // 1+3+3+3+3+3 = 16 beds  
-    total: 34   // 18+16 = 34 beds
+    ground: 16, // 4+4+4+4 = 16 beds (boys)
+    first: 13,  // 1(medical)+3+3+3+3 = 13 beds (1 medical + 12 girls) - no 1.14 (office)
+    total: 29   // 16+13 = 29 beds
   },
   zuid: {
-    ground: 18, // 4+4+5+5 = 18 beds
-    first: 18,  // 3+3+3+3+3+3 = 18 beds
-    total: 36   // 18+18 = 36 beds
+    ground: 13, // 4+4+5 = 13 beds (boys only)
+    first: 18,  // 3+3+3+3+3+3 = 18 beds (15 boys + 3 medical)
+    total: 31   // 13+18 = 31 beds
   },
   get total() {
-    return this.noord.total + this.zuid.total; // 70 total beds
+    return this.noord.total + this.zuid.total; // 60 total beds
+  },
+  get boys() {
+    return 44; // 16 (noord ground) + 13 (zuid ground) + 15 (zuid first) = 44 boys
+  },
+  get girls() {
+    return 12; // 12 (noord first 1.16-1.19) = 12 girls
+  },
+  get medical() {
+    return 4; // 1 in room 1.15 + 3 in room 2.19
   },
   // Additional properties for compatibility
   get TOTAL() { return this.total; },
   get NOORD() { return this.noord.total; },
   get ZUID() { return this.zuid.total; },
-  get GIRLS_FLOOR() { return this.noord.first; },
-  get MINORS_FLOOR() { return this.zuid.first; }
+  get GIRLS_FLOOR() { return 15; },
+  get BOYS_BEDS() { return this.boys; },
+  get MEDICAL_BEDS() { return this.medical; }
 };
 
 // Helper functions

@@ -1039,7 +1039,7 @@ export function DataProvider({ children }: DataProviderProps) {
           return resident.room && resident.room.startsWith('1.')
         }).map(transformResident),
         zuidData: residents.filter(resident => {
-          // Zuid rooms start with "2." (2.06, 2.07, 2.08, 2.09, 2.14, 2.15, 2.16, 2.17, 2.18, 2.19)
+          // Zuid rooms start with "2." (2.06, 2.07, 2.08, 2.14, 2.15, 2.16, 2.17, 2.18, 2.19)
           return resident.room && resident.room.startsWith('2.')
         }).map(transformResident),
         
@@ -1050,27 +1050,26 @@ export function DataProvider({ children }: DataProviderProps) {
             // Noord - Begane Grond
             { roomNumber: '1.06', building: 'noord', maxBeds: 4, floor: 'ground' },
             { roomNumber: '1.07', building: 'noord', maxBeds: 4, floor: 'ground' },
-            { roomNumber: '1.08', building: 'noord', maxBeds: 5, floor: 'ground' },
-            { roomNumber: '1.09', building: 'noord', maxBeds: 5, floor: 'ground' },
+            { roomNumber: '1.08', building: 'noord', maxBeds: 4, floor: 'ground' },
+            { roomNumber: '1.09', building: 'noord', maxBeds: 4, floor: 'ground' },
             // Noord - Eerste Verdieping
-            { roomNumber: '1.14', building: 'noord', maxBeds: 1, floor: 'first', specialization: 'medical' }, // medical room
-            { roomNumber: '1.15', building: 'noord', maxBeds: 3, floor: 'first' },
-            { roomNumber: '1.16', building: 'noord', maxBeds: 3, floor: 'first' },
-            { roomNumber: '1.17', building: 'noord', maxBeds: 3, floor: 'first' },
-            { roomNumber: '1.18', building: 'noord', maxBeds: 3, floor: 'first' },
-            { roomNumber: '1.19', building: 'noord', maxBeds: 3, floor: 'first' },
+            // Room 1.14 is now an office - not included in bed count
+            { roomNumber: '1.15', building: 'noord', maxBeds: 1, floor: 'first', specialization: 'medical' }, // medical room
+            { roomNumber: '1.16', building: 'noord', maxBeds: 3, floor: 'first', specialization: 'girls' },
+            { roomNumber: '1.17', building: 'noord', maxBeds: 3, floor: 'first', specialization: 'girls' },
+            { roomNumber: '1.18', building: 'noord', maxBeds: 3, floor: 'first', specialization: 'girls' },
+            { roomNumber: '1.19', building: 'noord', maxBeds: 3, floor: 'first', specialization: 'girls' },
             // Zuid - Begane Grond
             { roomNumber: '2.06', building: 'zuid', maxBeds: 4, floor: 'ground' },
             { roomNumber: '2.07', building: 'zuid', maxBeds: 4, floor: 'ground' },
             { roomNumber: '2.08', building: 'zuid', maxBeds: 5, floor: 'ground' },
-            { roomNumber: '2.09', building: 'zuid', maxBeds: 5, floor: 'ground' },
             // Zuid - Eerste Verdieping
-            { roomNumber: '2.14', building: 'zuid', maxBeds: 3, floor: 'first' },
-            { roomNumber: '2.15', building: 'zuid', maxBeds: 3, floor: 'first' },
-            { roomNumber: '2.16', building: 'zuid', maxBeds: 3, floor: 'first' },
-            { roomNumber: '2.17', building: 'zuid', maxBeds: 3, floor: 'first' },
-            { roomNumber: '2.18', building: 'zuid', maxBeds: 3, floor: 'first' },
-            { roomNumber: '2.19', building: 'zuid', maxBeds: 3, floor: 'first' }
+            { roomNumber: '2.14', building: 'zuid', maxBeds: 3, floor: 'first' }, // boys
+            { roomNumber: '2.15', building: 'zuid', maxBeds: 3, floor: 'first' }, // boys
+            { roomNumber: '2.16', building: 'zuid', maxBeds: 3, floor: 'first' }, // boys
+            { roomNumber: '2.17', building: 'zuid', maxBeds: 3, floor: 'first' }, // boys
+            { roomNumber: '2.18', building: 'zuid', maxBeds: 3, floor: 'first' }, // boys
+            { roomNumber: '2.19', building: 'zuid', maxBeds: 3, floor: 'first', specialization: 'medical' }
           ]
 
 
@@ -1097,11 +1096,11 @@ export function DataProvider({ children }: DataProviderProps) {
         })(),
         
         occupancyStats: (() => {
-          // Calculate based on the actual bed counts:
-          // Noord: 4+4+5+5+1+3+3+3+3+3 = 34 beds
-          // Zuid: 4+4+5+5+3+3+3+3+3+3 = 36 beds
-          // Total: 70 beds
-          const totalBeds = 70
+          // Calculate based on the actual bed configuration from bedConfig
+          // Noord: 29 beds (16 ground boys + 13 first: 1 medical + 12 girls)
+          // Zuid: 31 beds (13 ground boys + 18 first: 15 boys + 3 medical) 
+          // Total: 60 beds (44 boys + 12 girls + 4 medical)
+          const totalBeds = CAPACITY.total // Using CAPACITY from bedConfig
           const occupiedBeds = residents.length
           return {
             totalBeds,

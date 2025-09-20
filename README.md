@@ -244,10 +244,10 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
   - Ground floor: 4 rooms (18 beds total)
   - First floor: 6 rooms for female residents (18 beds)
 - **Zuid Building**:
-  - Ground floor: 4 rooms (18 beds total)
+  - Ground floor: 4 rooms (18 beds total) including medical room 2.19 (MED)
   - First floor: 5 rooms for minors (15 beds)
 
-Total capacity: 69 beds
+Total capacity: 67 beds
 
 ## Authentication Flow
 

@@ -51,7 +51,7 @@ export default function ZuidPage() {
   }, {} as Record<string, typeof filteredData>);
 
   // Get all rooms from config for Zuid building, not just rooms with residents
-  const allZuidRooms = ['2.06', '2.07', '2.08', '2.09', '2.14', '2.15', '2.16', '2.17', '2.18'];
+  const allZuidRooms = ['2.06', '2.07', '2.08', '2.14', '2.15', '2.16', '2.17', '2.18', '2.19'];
   
   // Separate ground floor and first floor rooms - include empty rooms
   const groundFloorRooms = allZuidRooms.filter(room => {
@@ -63,6 +63,10 @@ export default function ZuidPage() {
     const roomConfig = getRoomConfig(room);
     return roomConfig?.floor === 'first';
   });
+
+  const medicalRoomNumber = '2.19';
+  const groundRoomsForDisplay = groundFloorRooms.filter(room => room !== medicalRoomNumber);
+  const firstFloorRoomsForDisplay = firstFloorRooms;
 
   // Sort residents within each room by badge number for consistent ordering
   // Create new objects to avoid mutating the original data
@@ -194,15 +198,15 @@ export default function ZuidPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-black font-title">STEENOKKERZEEL ZUID</h1>
+            <h1 className="text-2xl font-bold text-foreground font-title">STEENOKKERZEEL ZUID</h1>
           </div>
           
-          <div className="bg-card shadow-sm rounded-lg p-4 mb-6 border-2 border-black dark:border-gray-300">
+          <div className="bg-card shadow-sm rounded-lg p-4 mb-6 border-2 border-border">
             <div className="flex justify-between items-center">
-              <div className="text-lg font-semibold text-black dark:text-gray-100">
+              <div className="text-lg font-semibold text-foreground">
                 {formatDate(new Date())}
               </div>
-              <div className="text-lg font-semibold text-black dark:text-gray-100">
+              <div className="text-lg font-semibold text-foreground">
                 {zuidData.length} personen
               </div>
             </div>
@@ -219,7 +223,7 @@ export default function ZuidPage() {
                 <input
                   type="text"
                   placeholder="Zoek op naam, badge, kamer..."
-                  className="w-full pl-10 pr-4 py-2 border-2 border-black rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
+                  className="w-full pl-10 pr-4 py-2 border-2 border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-primary text-foreground bg-background"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -228,7 +232,7 @@ export default function ZuidPage() {
 
             {/* Room Filter */}
             <select
-              className="px-4 py-2 border-2 border-black rounded-lg focus:ring-2 focus:ring-ring bg-white text-black dark:text-gray-100"
+              className="px-4 py-2 border-2 border-input rounded-lg focus:ring-2 focus:ring-ring bg-background text-foreground"
               value={filterRoom}
               onChange={(e) => setFilterRoom(e.target.value)}
             >
@@ -242,7 +246,7 @@ export default function ZuidPage() {
             <select
               value={printOrientation}
               onChange={(e) => setPrintOrientation(e.target.value as 'portrait' | 'landscape')}
-              className="px-4 py-2 border-2 border-black rounded-lg focus:ring-2 focus:ring-ring bg-white text-black dark:text-gray-100"
+              className="px-4 py-2 border-2 border-input rounded-lg focus:ring-2 focus:ring-ring bg-background text-foreground"
             >
               <option value="portrait">Portrait</option>
               <option value="landscape">Landscape</option>
@@ -251,7 +255,7 @@ export default function ZuidPage() {
             {/* Print Button */}
             <button
               onClick={() => window.print()}
-              className="px-4 py-2 bg-foreground text-white rounded-lg hover:bg-foreground/90 focus:ring-2 focus:ring-ring flex items-center gap-2 transition-colors"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 focus:ring-2 focus:ring-ring flex items-center gap-2 transition-colors"
             >
               <Printer className="h-5 w-5" />
               Print ({printOrientation === 'portrait' ? 'Portrait' : 'Landscape'})
@@ -264,73 +268,77 @@ export default function ZuidPage() {
         <div className="space-y-8">
           <div className="mb-4">
             <h2 className="text-xl font-bold text-foreground">Grond</h2>
-            <p className="text-sm text-muted-foreground">2.06 - 2.09</p>
+            <p className="text-sm text-muted-foreground">2.06 - 2.08</p>
           </div>
-          {groundFloorRooms.map(room => {
+          {groundRoomsForDisplay.map(room => {
             const roomResidents = sortedRoomGroups[room] || [];
             const roomConfig = getRoomConfig(room);
             const maxBeds = roomConfig?.maxBeds || 5;
             
             return (
-              <div key={room} className="bg-card shadow-sm rounded-lg overflow-hidden border-2 border-black dark:border-gray-300">
+              <div key={room} className="bg-card shadow-sm rounded-lg overflow-hidden border-2 border-border">
                 {/* Room Header */}
-                <div className="bg-gray-100 px-4 py-3 border-b-2 border-black dark:border-gray-300">
+                <div className="bg-muted px-4 py-3 border-b-2 border-border">
                   <h3 className="text-lg font-semibold text-foreground">Kamer {room}</h3>
                   <p className="text-sm text-muted-foreground">{roomResidents.length} van {maxBeds} bedden bezet</p>
                 </div>
                 
                 {/* Room Table */}
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y-2 divide-black dark:divide-gray-300">
-                    <thead className="bg-teal-700 text-white">
+                  <table className="min-w-full divide-y-2 divide-border">
+                    <thead className="bg-primary text-primary-foreground">
                       <tr>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Bed
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Achternaam
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Voornaam
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Nationaliteit
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Taal
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Geslacht
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Opmerkingen
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Badge
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-card divide-y-2 divide-black dark:divide-gray-300">
+                    <tbody className="bg-card divide-y-2 divide-border">
                       {Array.from({ length: maxBeds }, (_, bedIndex) => {
                         const bedNumber = bedIndex + 1;
                         const resident = roomResidents.find((r: any) => r.bedNumber === bedNumber);
                         const index = bedIndex;
-                        
+                        const isMedicalRoom = room === '2.19';
+                        const baseRowClass = index % 2 === 0 ? 'bg-card' : 'bg-muted';
+                        const hoverClass = isMedicalRoom ? 'hover:bg-red-200' : 'hover:bg-accent/50';
+                        const medicalBackground = isMedicalRoom ? 'bg-red-100' : '';
+
                         return (
-                        <tr key={resident?.id || `${room}-bed-${bedNumber}`} className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} hover:bg-accent/50 transition-colors border-b-2 border-black dark:border-gray-300`}>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black border-r-2 border-black text-center">
-                            {bedNumber}
+                        <tr key={resident?.id || `${room}-bed-${bedNumber}`} className={`${baseRowClass} ${medicalBackground} ${hoverClass} transition-colors border-b-2 border-border`}>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-foreground border-r-2 border-border text-center">
+                            {isMedicalRoom ? '' : bedNumber}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center">
-                            {resident ? resident.lastName : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r-2 border-border text-center">
+                            {resident ? resident.lastName : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center">
-                            {resident ? resident.firstName : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r-2 border-border text-center">
+                            {resident ? resident.firstName : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center">
-                            {resident ? resident.nationality : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r-2 border-border text-center">
+                            {resident ? resident.nationality : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-black border-r-2 border-black text-center">
+                          <td className="px-4 py-3 text-sm font-medium text-foreground border-r-2 border-border text-center">
                             {resident ? (
                               editingLanguage[resident.id] !== undefined ? (
                                 <div className="flex items-center gap-2">
@@ -342,14 +350,14 @@ export default function ZuidPage() {
                                       ...editingLanguage,
                                       [resident.id]: e.target.value
                                     })}
-                                    className="flex-1 px-3 py-2 text-sm border-2 border-black rounded focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
+                                    className="flex-1 px-3 py-2 text-sm border-2 border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                     placeholder="Taal bewerken..."
                                     autoComplete="on"
                                     autoFocus
                                   />
                                   <button
                                     onClick={() => handleLanguageSave(resident.id)}
-                                    className="px-3 py-2 bg-foreground text-white text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-foreground/90"
+                                    className="px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-primary/90"
                                   >
                                     ✓
                                   </button>
@@ -372,13 +380,13 @@ export default function ZuidPage() {
                                 </div>
                               )
                             ) : (
-                              <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>
+                              <span className="italic text-muted-foreground">Leeg</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center">
-                            {resident ? (resident.gender === 'M' ? 'Mannelijk' : 'Vrouwelijk') : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r-2 border-border text-center">
+                            {resident ? (resident.gender === 'M' ? 'Mannelijk' : 'Vrouwelijk') : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-black border-r-2 border-black text-center">
+                          <td className="px-4 py-3 text-sm font-medium text-foreground border-r-2 border-border text-center">
                             {resident ? (
                               editingRemarks[resident.id] !== undefined ? (
                                 <div className="flex items-center gap-2">
@@ -390,13 +398,13 @@ export default function ZuidPage() {
                                       ...editingRemarks,
                                       [resident.id]: e.target.value
                                     })}
-                                    className="flex-1 px-3 py-2 text-sm border-2 border-black rounded focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
+                                    className="flex-1 px-3 py-2 text-sm border-2 border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                     placeholder="Opmerking toevoegen..."
                                     autoFocus
                                   />
                                   <button
                                     onClick={() => handleRemarksSave(resident.id)}
-                                    className="px-3 py-2 bg-foreground text-white text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-foreground/90"
+                                    className="px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-primary/90"
                                   >
                                     ✓
                                   </button>
@@ -414,7 +422,7 @@ export default function ZuidPage() {
                                 >
                                   {resident.roomRemarks ? (
                                     <span className="inline-flex items-center gap-2">
-                                      <span className="bg-yellow-200 px-2 py-1 text-xs font-medium rounded">
+                                      <span className="bg-yellow-200 dark:bg-yellow-800 px-2 py-1 text-xs font-medium rounded text-black dark:text-yellow-100">
                                         {stripDateFromRemarks(resident.roomRemarks)}
                                       </span>
                                       <button
@@ -431,11 +439,11 @@ export default function ZuidPage() {
                                 </div>
                               )
                             ) : (
-                              <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>
+                              <span className="italic text-muted-foreground">Leeg</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black border-r-2 border-black text-center">
-                            {resident ? resident.badge : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-foreground border-r-2 border-border text-center">
+                            {resident ? resident.badge : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
                         </tr>
                         );
@@ -452,73 +460,253 @@ export default function ZuidPage() {
         <div className="page-break space-y-8">
           <div className="mb-4">
             <h2 className="text-xl font-bold text-foreground">Verdieping</h2>
-            <p className="text-sm text-muted-foreground">2.14 - 2.18</p>
+            <p className="text-sm text-muted-foreground">2.14 - 2.19</p>
           </div>
-          {firstFloorRooms.map(room => {
+          {firstFloorRoomsForDisplay.map(room => {
+            if (room === medicalRoomNumber) {
+              const roomResidents = sortedRoomGroups[room] || [];
+              const maxBeds = 3; // MED room has 3 beds
+              
+              return (
+                <div key={room} className="bg-card shadow-sm rounded-lg overflow-hidden border-2 border-red-600">
+                  {/* Room Header */}
+                  <div className="bg-red-600 px-4 py-3 border-b-2 border-border">
+                    <h3 className="text-lg font-semibold text-white text-center tracking-wider">MED</h3>
+                    <p className="text-sm text-red-100 text-center">{roomResidents.length} van {maxBeds} bed bezet</p>
+                  </div>
+                  
+                  {/* Room Table */}
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y-2 divide-border">
+                      <thead className="bg-primary text-primary-foreground">
+                        <tr>
+                          <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
+                            Bed
+                          </th>
+                          <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
+                            Achternaam
+                          </th>
+                          <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
+                            Voornaam
+                          </th>
+                          <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
+                            Nationaliteit
+                          </th>
+                          <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
+                            Taal
+                          </th>
+                          <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
+                            Geslacht
+                          </th>
+                          <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
+                            Opmerkingen
+                          </th>
+                          <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
+                            Badge
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-card divide-y-2 divide-border">
+                        {Array.from({ length: maxBeds }, (_, bedIndex) => {
+                          const bedNumber = bedIndex + 1;
+                          const resident = roomResidents.find((r: any) => r.bedNumber === bedNumber);
+                          
+                          return (
+                            <tr key={resident?.id || `${room}-bed-${bedNumber}`} className="hover:bg-red-100 transition-colors">
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-foreground border-r-2 border-border text-center">
+                                {bedNumber}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r-2 border-border text-center">
+                                {resident ? resident.lastName : <span className="italic text-muted-foreground">Leeg</span>}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r-2 border-border text-center">
+                                {resident ? resident.firstName : <span className="italic text-muted-foreground">Leeg</span>}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r-2 border-border text-center">
+                                {resident ? resident.nationality : <span className="italic text-muted-foreground">Leeg</span>}
+                              </td>
+                              <td className="px-4 py-3 text-sm font-medium text-foreground border-r-2 border-border text-center">
+                                {resident ? (
+                                  editingLanguage[resident.id] !== undefined ? (
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="text"
+                                        list="languages-list"
+                                        value={editingLanguage[resident.id]}
+                                        onChange={(e) => setEditingLanguage({
+                                          ...editingLanguage,
+                                          [resident.id]: e.target.value
+                                        })}
+                                        className="flex-1 px-3 py-2 text-sm border-2 border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
+                                        placeholder="Taal bewerken..."
+                                        autoComplete="on"
+                                        autoFocus
+                                      />
+                                      <button
+                                        onClick={() => handleLanguageSave(resident.id)}
+                                        className="px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-primary/90"
+                                      >
+                                        ✓
+                                      </button>
+                                      <button
+                                        onClick={() => handleLanguageCancel(resident.id)}
+                                        className="px-3 py-2 bg-gray-500 text-white text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-gray-600"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div
+                                      className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                                      onClick={() => setEditingLanguage({
+                                        ...editingLanguage,
+                                        [resident.id]: resident.language || ''
+                                      })}
+                                    >
+                                      {resident.language || <span className="text-muted-foreground italic">Klik om toe te voegen</span>}
+                                    </div>
+                                  )
+                                ) : (
+                                  <span className="italic text-muted-foreground">Leeg</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r-2 border-border text-center">
+                                {resident ? (resident.gender === 'M' ? 'Mannelijk' : 'Vrouwelijk') : <span className="italic text-muted-foreground">Leeg</span>}
+                              </td>
+                              <td className="px-4 py-3 text-sm font-medium text-foreground border-r-2 border-border text-center">
+                                {resident ? (
+                                  editingRemarks[resident.id] !== undefined ? (
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="text"
+                                        list="remarks-list"
+                                        value={editingRemarks[resident.id]}
+                                        onChange={(e) => setEditingRemarks({
+                                          ...editingRemarks,
+                                          [resident.id]: e.target.value
+                                        })}
+                                        className="flex-1 px-3 py-2 text-sm border-2 border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
+                                        placeholder="Opmerking toevoegen..."
+                                        autoFocus
+                                      />
+                                      <button
+                                        onClick={() => handleRemarksSave(resident.id)}
+                                        className="px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-primary/90"
+                                      >
+                                        ✓
+                                      </button>
+                                      <button
+                                        onClick={() => handleRemarksCancel(resident.id)}
+                                        className="px-3 py-2 bg-gray-500 text-white text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-gray-600"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div
+                                      onClick={() => handleRemarksEdit(resident.id, resident.roomRemarks || '')}
+                                      className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-[24px]"
+                                    >
+                                      {resident.roomRemarks ? (
+                                        <span className="inline-flex items-center gap-2">
+                                          <span className="bg-yellow-200 dark:bg-yellow-800 px-2 py-1 text-xs font-medium rounded text-black dark:text-yellow-100">
+                                            {stripDateFromRemarks(resident.roomRemarks)}
+                                          </span>
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); handleRemarksDelete(resident.id); }}
+                                            className="px-2 py-0.5 bg-destructive text-white text-xs font-medium rounded hover:bg-destructive/90"
+                                            title="Verwijder opmerking"
+                                          >
+                                            ✕
+                                          </button>
+                                        </span>
+                                      ) : (
+                                        <span className="text-muted-foreground text-xs">Klik om opmerking toe te voegen</span>
+                                      )}
+                                    </div>
+                                  )
+                                ) : (
+                                  <span className="italic text-muted-foreground">Leeg</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-foreground border-r-2 border-border text-center">
+                                {resident ? resident.badge : <span className="italic text-muted-foreground">Leeg</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            }
+
             const roomResidents = sortedRoomGroups[room] || [];
             const roomConfig = getRoomConfig(room);
             const maxBeds = roomConfig?.maxBeds || 3;
-            
+
             return (
-              <div key={room} className="bg-card shadow-sm rounded-lg overflow-hidden border-2 border-black dark:border-gray-300">
+              <div key={room} className="bg-card shadow-sm rounded-lg overflow-hidden border-2 border-border">
                 {/* Room Header */}
-                <div className="bg-gray-100 px-4 py-3 border-b-2 border-black dark:border-gray-300">
-                  <h3 className="text-lg font-semibold text-foreground">Kamer {room}</h3>
+                <div className="bg-muted px-4 py-3 border-b-2 border-border">
+                  <h3 className="text-lg font-semibold text-foreground">Kamer {room}
+                  </h3>
                   <p className="text-sm text-muted-foreground">{roomResidents.length} van {maxBeds} bedden bezet</p>
                 </div>
-                
+
                 {/* Room Table */}
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y-2 divide-black dark:divide-gray-300">
-                    <thead className="bg-teal-700 text-white">
+                  <table className="min-w-full divide-y-2 divide-border">
+                    <thead className="bg-primary text-primary-foreground">
                       <tr>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Bed
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Achternaam
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Voornaam
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Nationaliteit
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Taal
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Geslacht
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Opmerkingen
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black dark:border-gray-300">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-border">
                           Badge
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-card divide-y-2 divide-black dark:divide-gray-300">
+                    <tbody className="bg-card divide-y-2 divide-border">
                       {Array.from({ length: maxBeds }, (_, bedIndex) => {
                         const bedNumber = bedIndex + 1;
                         const resident = roomResidents.find((r: any) => r.bedNumber === bedNumber);
                         const index = bedIndex;
-                        
+
                         return (
-                        <tr key={resident?.id || `${room}-bed-${bedNumber}`} className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} hover:bg-accent/50 transition-colors border-b-2 border-black dark:border-gray-300`}>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black border-r-2 border-black text-center">
+                        <tr key={resident?.id || `${room}-bed-${bedNumber}`} className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} hover:bg-accent/50 transition-colors border-b-2 border-border`}>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-foreground border-r-2 border-border text-center">
                             {bedNumber}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center">
-                            {resident ? resident.lastName : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r-2 border-border text-center">
+                            {resident ? resident.lastName : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center">
-                            {resident ? resident.firstName : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r-2 border-border text-center">
+                            {resident ? resident.firstName : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center">
-                            {resident ? resident.nationality : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r-2 border-border text-center">
+                            {resident ? resident.nationality : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-black border-r-2 border-black text-center">
+                          <td className="px-4 py-3 text-sm font-medium text-foreground border-r-2 border-border text-center">
                             {resident ? (
                               editingLanguage[resident.id] !== undefined ? (
                                 <div className="flex items-center gap-2">
@@ -530,14 +718,14 @@ export default function ZuidPage() {
                                       ...editingLanguage,
                                       [resident.id]: e.target.value
                                     })}
-                                    className="flex-1 px-3 py-2 text-sm border-2 border-black rounded focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
+                                    className="flex-1 px-3 py-2 text-sm border-2 border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                     placeholder="Taal bewerken..."
                                     autoComplete="on"
                                     autoFocus
                                   />
                                   <button
                                     onClick={() => handleLanguageSave(resident.id)}
-                                    className="px-3 py-2 bg-foreground text-white text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-foreground/90"
+                                    className="px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-primary/90"
                                   >
                                     ✓
                                   </button>
@@ -560,13 +748,13 @@ export default function ZuidPage() {
                                 </div>
                               )
                             ) : (
-                              <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>
+                              <span className="italic text-muted-foreground">Leeg</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center">
-                            {resident ? (resident.gender === 'M' ? 'Mannelijk' : 'Vrouwelijk') : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r-2 border-border text-center">
+                            {resident ? (resident.gender === 'M' ? 'Mannelijk' : 'Vrouwelijk') : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-black border-r-2 border-black text-center">
+                          <td className="px-4 py-3 text-sm font-medium text-foreground border-r-2 border-border text-center">
                             {resident ? (
                               editingRemarks[resident.id] !== undefined ? (
                                 <div className="flex items-center gap-2">
@@ -578,13 +766,13 @@ export default function ZuidPage() {
                                       ...editingRemarks,
                                       [resident.id]: e.target.value
                                     })}
-                                    className="flex-1 px-3 py-2 text-sm border-2 border-black rounded focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
+                                    className="flex-1 px-3 py-2 text-sm border-2 border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                     placeholder="Opmerking toevoegen..."
                                     autoFocus
                                   />
                                   <button
                                     onClick={() => handleRemarksSave(resident.id)}
-                                    className="px-3 py-2 bg-foreground text-white text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-foreground/90"
+                                    className="px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-primary/90"
                                   >
                                     ✓
                                   </button>
@@ -602,7 +790,7 @@ export default function ZuidPage() {
                                 >
                                   {resident.roomRemarks ? (
                                     <span className="inline-flex items-center gap-2">
-                                      <span className="bg-yellow-200 px-2 py-1 text-xs font-medium rounded">
+                                      <span className="bg-yellow-200 dark:bg-yellow-800 px-2 py-1 text-xs font-medium rounded text-black dark:text-yellow-100">
                                         {stripDateFromRemarks(resident.roomRemarks)}
                                       </span>
                                       <button
@@ -614,16 +802,15 @@ export default function ZuidPage() {
                                       </button>
                                     </span>
                                   ) : (
-                                    <span className="text-muted-foreground text-xs">Klik om opmerking toe te voegen</span>
+                                    <span className="text-muted-foreground text-xs">
+                                      Klik om opmerking toe te voegen
+                                    </span>
                                   )}
                                 </div>
                               )
                             ) : (
-                              <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>
+                              <span className="italic text-muted-foreground">Leeg</span>
                             )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black border-r-2 border-black text-center">
-                            {resident ? resident.badge : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
                           </td>
                         </tr>
                         );
@@ -637,7 +824,7 @@ export default function ZuidPage() {
         </div>
 
         {/* Summary */}
-        <div className="mt-4 flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
+        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
           <div>
             Toont <span className="font-medium">{filteredData.length}</span> van{' '}
             <span className="font-medium">{zuidData.length}</span> bewoners in Zuid gebouw
@@ -695,7 +882,7 @@ export default function ZuidPage() {
 
     {/* Print-only layout - enhanced compact design */}
     <div className="print-only">
-      {/* Ground Floor Rooms - Page 1 (2.06-2.09) */}
+      {/* Ground Floor Rooms - Page 1 (2.06-2.19 incl. MED) */}
       <div style={{ pageBreakAfter: 'always', breakAfter: 'always' }}>
         {/* Header with gradient background */}
         <div style={{ 
@@ -722,7 +909,7 @@ export default function ZuidPage() {
             marginTop: '2px',
             fontStyle: 'italic'
           }}>
-            Bewonersoverzicht Begane Grond - Kamers 2.06 t/m 2.09
+            Bewonersoverzicht Begane Grond - Kamers 2.06 t/m 2.19 (incl. MED)
           </div>
         </div>
 
@@ -834,7 +1021,7 @@ export default function ZuidPage() {
             </tr>
           </thead>
           <tbody>
-            {groundFloorRooms.sort().map(room => {
+            {groundRoomsForDisplay.map(room => {
               const roomResidents = sortedRoomGroups[room] || [];
               const roomConfig = getRoomConfig(room);
               const maxBeds = roomConfig?.maxBeds || 5;
@@ -844,10 +1031,16 @@ export default function ZuidPage() {
                 const resident = roomResidents.find((r: any) => r.bedNumber === bedNumber);
                 const isFirstBedInRoom = bedNumber === 1;
                 const isEmpty = !resident;
+                const isAgeVerificationRoom = room === '2.07' || room === '2.08';
+                const isMedicalRoom = room === '2.19';
                 
+                const rowBgColor = isMedicalRoom
+                  ? (isEmpty ? '#fee2e2' : '#fecaca')
+                  : (isEmpty ? '#f9fafb' : (bedIndex % 2 === 0 ? '#ffffff' : '#f3f4f6'));
+
                 return (
                   <tr key={`${room}-${bedNumber}`} style={{
-                    backgroundColor: isEmpty ? '#f9fafb' : (bedIndex % 2 === 0 ? '#ffffff' : '#f3f4f6')
+                    backgroundColor: rowBgColor
                   }}>
                     {isFirstBedInRoom && (
                       <td 
@@ -858,18 +1051,24 @@ export default function ZuidPage() {
                           textAlign: 'center',
                           fontWeight: 'bold',
                           fontSize: '12px',
-                          background: (room === '2.07' || room === '2.08' || room === '2.09') 
+                          background: isMedicalRoom
+                            ? 'linear-gradient(135deg, #dc2626 0%, #f87171 100%)'
+                            : isAgeVerificationRoom
                             ? 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
                             : 'linear-gradient(135deg, #06b6d4 0%, #67e8f9 100%)',
-                          color: (room === '2.07' || room === '2.08' || room === '2.09') ? '#7c2d12' : '#164e63',
+                          color: isMedicalRoom ? '#ffffff' : isAgeVerificationRoom ? '#7c2d12' : '#164e63',
                           verticalAlign: 'middle',
                           textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
                         }}
                         rowSpan={maxBeds}
                       >
                         <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{room}</div>
-                        {(room === '2.07' || room === '2.08' || room === '2.09') && 
-                          <div style={{ fontSize: '7px', marginTop: '2px', opacity: 0.9 }}>LEEFTIJDSTWIJFEL</div>}
+                        {isAgeVerificationRoom && (
+                          <div style={{ fontSize: '7px', marginTop: '2px', opacity: 0.9 }}>LEEFTIJDSTWIJFEL</div>
+                        )}
+                        {isMedicalRoom && (
+                          <div style={{ fontSize: '9px', marginTop: '2px', fontWeight: 700 }}>MED</div>
+                        )}
                       </td>
                     )}
                     <td style={{ 
@@ -880,9 +1079,9 @@ export default function ZuidPage() {
                       fontWeight: '600',
                       fontSize: '10px',
                       color: isEmpty ? '#9ca3af' : '#1f2937',
-                      backgroundColor: isEmpty ? 'transparent' : (resident ? '#ecfdf5' : 'transparent')
+                      backgroundColor: isMedicalRoom ? '#fee2e2' : (isEmpty ? 'transparent' : (resident ? '#ecfdf5' : 'transparent'))
                     }}>
-                      {bedNumber}
+                      {isMedicalRoom ? '' : bedNumber}
                     </td>
                     <td style={{ 
                       border: '1px solid #d1d5db',
@@ -973,7 +1172,7 @@ export default function ZuidPage() {
         </div>
       </div>
 
-      {/* First Floor Rooms - Page 2 (2.14-2.18) */}
+      {/* First Floor Rooms - Page 2 (2.14-2.19) */}
       <div style={{ pageBreakBefore: 'always', breakBefore: 'always' }}>
         {/* Header with gradient background */}
         <div style={{ 
@@ -1000,7 +1199,7 @@ export default function ZuidPage() {
             marginTop: '2px',
             fontStyle: 'italic'
           }}>
-            Bewonersoverzicht Eerste Verdieping - Kamers 2.14 t/m 2.18
+            Bewonersoverzicht Eerste Verdieping - Kamers 2.14 t/m 2.19 (incl. MED)
           </div>
         </div>
         
@@ -1112,20 +1311,135 @@ export default function ZuidPage() {
             </tr>
           </thead>
           <tbody>
-            {firstFloorRooms.sort().map(room => {
+            {firstFloorRoomsForDisplay.map(room => {
+              if (room === medicalRoomNumber) {
+                const roomResidents = sortedRoomGroups[room] || [];
+                const maxBeds = 3; // MED room has 3 beds
+                
+                return Array.from({ length: maxBeds }, (_, bedIndex) => {
+                  const bedNumber = bedIndex + 1;
+                  const resident = roomResidents.find((r: any) => r.bedNumber === bedNumber);
+                  const isEmpty = !resident;
+                  const rowBgColor = '#fee2e2'; // Light red for MED room
+                  
+                  return (
+                    <tr key={`${room}-${bedNumber}`} style={{
+                      backgroundColor: rowBgColor
+                    }}>
+                      <td 
+                        style={{ 
+                          border: '1px solid #a21caf',
+                          borderLeft: '3px solid #dc2626',
+                          padding: '4px',
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          fontSize: '12px',
+                          background: 'linear-gradient(135deg, #dc2626 0%, #f87171 100%)',
+                          color: '#ffffff',
+                          verticalAlign: 'middle'
+                        }}
+                        rowSpan={maxBeds}
+                      >
+                        <div style={{ fontSize: '13px', fontWeight: 'bold' }}>2.19</div>
+                        <div style={{ fontSize: '9px', marginTop: '2px', fontWeight: 700 }}>MED</div>
+                      </td>
+                      <td style={{ 
+                        border: '1px solid #a21caf',
+                        padding: '4px',
+                        textAlign: 'center',
+                        width: '30px',
+                        fontWeight: '600',
+                        fontSize: '10px',
+                        color: isEmpty ? '#9ca3af' : '#1f2937'
+                      }}>
+                        {bedNumber}
+                      </td>
+                      <td style={{ 
+                        border: '1px solid #a21caf',
+                        padding: '4px',
+                        textAlign: 'left',
+                        width: '110px',
+                        fontWeight: resident ? '500' : 'normal',
+                        color: isEmpty ? '#9ca3af' : '#111827',
+                        fontStyle: isEmpty ? 'italic' : 'normal',
+                        fontSize: '8px'
+                      }}>
+                        {resident?.lastName || (isEmpty ? 'Vrij' : '')}
+                      </td>
+                      <td style={{ 
+                        border: '1px solid #a21caf',
+                        padding: '4px',
+                        textAlign: 'left',
+                        width: '110px',
+                        color: isEmpty ? '#9ca3af' : '#111827',
+                        fontStyle: isEmpty ? 'italic' : 'normal',
+                        fontSize: '8px'
+                      }}>
+                        {resident?.firstName || (isEmpty ? '-' : '')}
+                      </td>
+                      <td style={{ 
+                        border: '1px solid #a21caf',
+                        padding: '4px',
+                        textAlign: 'left',
+                        width: '80px',
+                        fontSize: '8px',
+                        color: isEmpty ? '#9ca3af' : '#374151'
+                      }}>
+                        {resident?.nationality || ''}
+                      </td>
+                      <td style={{ 
+                        border: '1px solid #a21caf',
+                        padding: '4px',
+                        textAlign: 'center',
+                        width: '60px',
+                        fontSize: '8px',
+                        color: isEmpty ? '#9ca3af' : '#374151'
+                      }}>
+                        {resident?.language || ''}
+                      </td>
+                      <td style={{ 
+                        border: '1px solid #a21caf',
+                        padding: '4px',
+                        textAlign: 'center',
+                        width: '40px',
+                        fontWeight: '500',
+                        fontSize: '8px',
+                        color: resident?.gender === 'M' ? '#1e40af' : (resident?.gender === 'F' || resident?.gender === 'V' ? '#be185d' : '#9ca3af')
+                      }}>
+                        {resident?.gender || ''}
+                      </td>
+                      <td style={{ 
+                        border: '1px solid #a21caf',
+                        borderRight: '2px solid black !important',
+                        padding: '4px',
+                        textAlign: 'left',
+                        minWidth: '120px',
+                        fontSize: '8px',
+                        backgroundColor: resident?.roomRemarks ? '#fef3c7' : 'transparent',
+                        color: resident?.roomRemarks ? '#92400e' : '#6b7280',
+                        fontWeight: resident?.roomRemarks ? '500' : 'normal'
+                      }}>
+                        {stripDateFromRemarks(resident?.roomRemarks) || ''}
+                      </td>
+                    </tr>
+                  );
+                });
+              }
+
               const roomResidents = sortedRoomGroups[room] || [];
               const roomConfig = getRoomConfig(room);
               const maxBeds = roomConfig?.maxBeds || 3;
-              
+
               return Array.from({ length: maxBeds }, (_, bedIndex) => {
                 const bedNumber = bedIndex + 1;
                 const resident = roomResidents.find((r: any) => r.bedNumber === bedNumber);
                 const isFirstBedInRoom = bedNumber === 1;
                 const isEmpty = !resident;
-                
+                const rowBgColor = isEmpty ? '#fdf4ff' : (bedIndex % 2 === 0 ? '#ffffff' : '#fdf2f8');
+
                 return (
                   <tr key={`${room}-${bedNumber}`} style={{
-                    backgroundColor: isEmpty ? '#fdf4ff' : (bedIndex % 2 === 0 ? '#ffffff' : '#fdf2f8')
+                    backgroundColor: rowBgColor
                   }}>
                     {isFirstBedInRoom && (
                       <td 

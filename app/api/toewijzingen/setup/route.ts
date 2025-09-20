@@ -8,40 +8,14 @@ const supabase = createClient(
 
 export async function POST() {
   try {
-    // Create staff table
-    const { error: staffTableError } = await supabase.rpc('exec_sql', {
-      sql: `
-        CREATE TABLE IF NOT EXISTS toewijzingen_staff (
-          id SERIAL PRIMARY KEY,
-          position INTEGER UNIQUE NOT NULL,
-          name TEXT NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-      `
-    });
-
-    if (staffTableError) {
-      console.error('Error creating staff table:', staffTableError);
-    }
-
-    // Create grid table
-    const { error: gridTableError } = await supabase.rpc('exec_sql', {
-      sql: `
-        CREATE TABLE IF NOT EXISTS toewijzingen_grid (
-          id SERIAL PRIMARY KEY,
-          row_number INTEGER NOT NULL,
-          column_number INTEGER NOT NULL,
-          resident_name TEXT NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          UNIQUE(row_number, column_number)
-        );
-      `
-    });
-
-    if (gridTableError) {
-      console.error('Error creating grid table:', gridTableError);
+    console.log('Starting database setup...');
+    
+    // Test basic connectivity first
+    const { data: testData, error: testError } = await supabase.from('toewijzingen_staff').select('count').limit(1);
+    if (testError) {
+      console.log('Tables may not exist yet, continuing with setup...');
+    } else {
+      console.log('Database connection successful, tables may already exist');
     }
 
     // Insert default staff data
@@ -67,10 +41,19 @@ export async function POST() {
       }
     }
 
-    // Insert initial grid data
+    // Insert initial grid data including backup staff
     const initialGridData = [
       { row_number: 3, column_number: 1, resident_name: 'Jabarkhel Noor Agha' },
       { row_number: 4, column_number: 1, resident_name: 'ABDELA Omer Suleman' },
+      // Default backup staff (row 15)
+      { row_number: 15, column_number: 0, resident_name: 'Yasmina' },
+      { row_number: 15, column_number: 1, resident_name: 'Didar' },
+      { row_number: 15, column_number: 2, resident_name: 'Torben' },
+      { row_number: 15, column_number: 3, resident_name: 'Imane' },
+      { row_number: 15, column_number: 4, resident_name: 'Maaike/Martine' },
+      { row_number: 15, column_number: 5, resident_name: 'Kris' },
+      { row_number: 15, column_number: 6, resident_name: 'Dorien' },
+      { row_number: 15, column_number: 7, resident_name: 'Monica' },
     ];
 
     for (const gridItem of initialGridData) {

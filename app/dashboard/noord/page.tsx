@@ -205,19 +205,19 @@ export default function NoordPage() {
         }
       `}</style>
     <DashboardLayout className="no-print">
-      <div className="p-6">
+      <div className="p-6 text-foreground">
         {/* Header - Matching PDF Layout */}
         <div className="mb-8">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-black font-title">STEENOKKERZEEL NOORD</h1>
+            <h1 className="text-2xl font-bold text-foreground font-title">STEENOKKERZEEL NOORD</h1>
           </div>
           
           <div className="bg-card shadow-sm rounded-lg p-4 mb-6 border-2 border-border">
             <div className="flex justify-between items-center">
-              <div className="text-lg font-semibold text-black border-r-2 border-black align-middle h-16">
+              <div className="text-lg font-semibold text-foreground border-r border-border align-middle h-16">
                 {formatDate(new Date())}
               </div>
-              <div className="text-lg font-semibold text-black border-r-2 border-black align-middle h-16">
+              <div className="text-lg font-semibold text-foreground border-r border-border align-middle h-16">
                 {noordData.length} personen
               </div>
             </div>
@@ -235,7 +235,7 @@ export default function NoordPage() {
                 <input
                   type="text"
                   placeholder="Zoek op naam, badge, kamer..."
-                  className="w-full pl-10 pr-4 py-2 border-2 border-black rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
+                  className="w-full pl-10 pr-4 py-2 border-2 border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -244,7 +244,7 @@ export default function NoordPage() {
 
             {/* Room Filter */}
             <select
-              className="px-4 py-2 border-2 border-black rounded-lg focus:ring-2 focus:ring-ring bg-white text-black dark:text-gray-100"
+            className="px-4 py-2 border-2 border-input rounded-lg focus:ring-2 focus:ring-ring bg-background text-foreground"
               value={filterRoom}
               onChange={(e) => setFilterRoom(e.target.value)}
             >
@@ -258,7 +258,7 @@ export default function NoordPage() {
             <select
               value={printOrientation}
               onChange={(e) => setPrintOrientation(e.target.value as 'portrait' | 'landscape')}
-              className="px-4 py-2 border-2 border-black rounded-lg focus:ring-2 focus:ring-ring bg-white text-black dark:text-gray-100"
+            className="px-4 py-2 border-2 border-input rounded-lg focus:ring-2 focus:ring-ring bg-background text-foreground"
             >
               <option value="portrait">Portrait</option>
               <option value="landscape">Landscape</option>
@@ -267,7 +267,7 @@ export default function NoordPage() {
             {/* Print Button */}
             <button
               onClick={() => window.print()}
-              className="px-4 py-2 bg-foreground text-white rounded-lg hover:bg-foreground/90 focus:ring-2 focus:ring-ring flex items-center gap-2 transition-colors"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 focus:ring-2 focus:ring-ring flex items-center gap-2 transition-colors"
             >
               <Printer className="h-5 w-5" />
               Print ({printOrientation === 'portrait' ? 'Portrait' : 'Landscape'})
@@ -279,7 +279,7 @@ export default function NoordPage() {
         {/* Ground Floor Rooms - Page 1 */}
         <div className="ground-floor-section space-y-8">
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-black border-r-2 border-black align-middle h-16">Begane Grond</h2>
+            <h2 className="text-xl font-bold text-foreground border-r border-border align-middle h-16">Begane Grond</h2>
             <p className="text-sm text-muted-foreground">1.06 - 1.09</p>
           </div>
           {groundFloorRooms.map(room => {
@@ -290,63 +290,63 @@ export default function NoordPage() {
             return (
               <div key={room} className="bg-card shadow-sm rounded-lg overflow-hidden border-2 border-border">
                 {/* Room Header */}
-                <div className="bg-gray-100 px-4 py-3 border-b-2 border-black dark:border-gray-300">
-                  <h3 className="text-lg font-semibold text-black border-r-2 border-black align-middle h-16">Kamer {room}</h3>
+                <div className="bg-muted px-4 py-3 border-b border-border">
+                  <h3 className="text-lg font-semibold text-foreground border-r border-border align-middle h-16">Kamer {room}</h3>
                   <p className="text-sm text-muted-foreground">{roomResidents.length} van {maxBeds} bedden bezet</p>
                 </div>
                 
                 {/* Room Table */}
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y-2 divide-black dark:divide-gray-300">
+                  <table className="min-w-full divide-y divide-border">
                     <thead className="bg-teal-700 text-white">
                       <tr>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Bed
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Achternaam
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Voornaam
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Nationaliteit
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Taal
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Geslacht
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Opmerkingen
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Badge
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-card divide-y-2 divide-black dark:divide-gray-300">
+                    <tbody className="bg-card divide-y divide-border">
                       {Array.from({ length: maxBeds }, (_, bedIndex) => {
                         const bedNumber = bedIndex + 1;
                         const resident = roomResidents.find(r => r.bedNumber === bedNumber);
                         const index = bedIndex;
                         
                         return (
-                        <tr key={resident?.id || `${room}-bed-${bedNumber}`} className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} hover:bg-accent/50 transition-colors border-b-2 border-black dark:border-gray-300`}>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black border-r-2 border-black text-center align-middle h-14">
+                        <tr key={resident?.id || `${room}-bed-${bedNumber}`} className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} hover:bg-accent/50 transition-colors border-b border-border`}>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-foreground border-r border-border text-center align-middle h-14">
                             {bedNumber}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center align-middle h-14">
-                            {resident ? resident.lastName : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r border-border text-center align-middle h-14">
+                            {resident ? resident.lastName : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center align-middle h-14">
-                            {resident ? resident.firstName : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r border-border text-center align-middle h-14">
+                            {resident ? resident.firstName : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center align-middle h-14">
-                            {resident ? resident.nationality : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r border-border text-center align-middle h-14">
+                            {resident ? resident.nationality : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-black border-r-2 border-black text-center align-middle h-14">
+                          <td className="px-4 py-3 text-sm font-medium text-foreground border-r border-border text-center align-middle h-14">
                             {resident ? (
                               editingLanguage[resident.id] !== undefined ? (
                                 <div className="flex items-center gap-2">
@@ -358,14 +358,14 @@ export default function NoordPage() {
                                       ...editingLanguage,
                                       [resident.id]: e.target.value
                                     })}
-                                    className="flex-1 px-3 py-2 text-sm border-2 border-black rounded focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
+                                    className="flex-1 px-3 py-2 text-sm border-2 border-input rounded focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                     placeholder="Taal bewerken..."
                                     autoComplete="on"
                                     autoFocus
                                   />
                                   <button
                                     onClick={() => handleLanguageSave(resident.id)}
-                                    className="px-3 py-2 bg-foreground text-white text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-foreground/90"
+                                    className="px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-primary/90"
                                   >
                                     ✓
                                   </button>
@@ -378,7 +378,7 @@ export default function NoordPage() {
                                 </div>
                               ) : (
                                 <div
-                                  className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                                  className="cursor-pointer hover:bg-muted px-2 py-1 rounded"
                                   onClick={() => setEditingLanguage({
                                     ...editingLanguage,
                                     [resident.id]: resident.language || ''
@@ -388,13 +388,13 @@ export default function NoordPage() {
                                 </div>
                               )
                             ) : (
-                              <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>
+                              <span className="italic text-muted-foreground">Leeg</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center align-middle h-14">
-                            {resident ? formatGender(resident.gender) : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r border-border text-center align-middle h-14">
+                            {resident ? formatGender(resident.gender) : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-black border-r-2 border-black text-center align-middle h-14">
+                          <td className="px-4 py-3 text-sm font-medium text-foreground border-r border-border text-center align-middle h-14">
                             {resident ? (
                               editingRemarks[resident.id] !== undefined ? (
                                 <div className="flex items-center gap-2">
@@ -406,13 +406,13 @@ export default function NoordPage() {
                                       ...editingRemarks,
                                       [resident.id]: e.target.value
                                     })}
-                                    className="flex-1 px-3 py-2 text-sm border-2 border-black rounded focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
+                                    className="flex-1 px-3 py-2 text-sm border-2 border-input rounded focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                     placeholder="Opmerking toevoegen..."
                                     autoFocus
                                   />
                                   <button
                                     onClick={() => handleRemarksSave(resident.id)}
-                                    className="px-3 py-2 bg-foreground text-white text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-foreground/90"
+                                    className="px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-primary/90"
                                   >
                                     ✓
                                   </button>
@@ -426,11 +426,11 @@ export default function NoordPage() {
                               ) : (
                                 <div
                                   onClick={() => handleRemarksEdit(resident.id, resident.roomRemarks || '')}
-                                  className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-[24px]"
+                                  className="cursor-pointer hover:bg-muted p-1 rounded min-h-[24px]"
                                 >
                                   {resident.roomRemarks ? (
                                     <span className="inline-flex items-center gap-2">
-                                      <span className="bg-yellow-200 px-2 py-1 text-xs font-medium rounded">
+                                      <span className="bg-yellow-200 dark:bg-yellow-800 px-2 py-1 text-xs font-medium rounded text-black dark:text-yellow-100">
                                         {stripDateFromRemarks(resident.roomRemarks)}
                                       </span>
                                       <button
@@ -447,11 +447,11 @@ export default function NoordPage() {
                                 </div>
                               )
                             ) : (
-                              <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>
+                              <span className="italic text-muted-foreground">Leeg</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black border-r-2 border-black text-center align-middle h-14">
-                            {resident ? resident.badge : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-foreground border-r border-border text-center align-middle h-14">
+                            {resident ? resident.badge : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
                         </tr>
                         );
@@ -467,7 +467,7 @@ export default function NoordPage() {
         {/* First Floor Rooms - Page 2 */}
         <div className="page-break space-y-8">
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-black border-r-2 border-black align-middle h-16">Eerste Verdieping</h2>
+            <h2 className="text-xl font-bold text-foreground border-r border-border align-middle h-16">Eerste Verdieping</h2>
             <p className="text-sm text-muted-foreground">1.14 - 1.19 (Meisjes)</p>
           </div>
           {firstFloorRooms.map(room => {
@@ -478,63 +478,63 @@ export default function NoordPage() {
             return (
               <div key={room} className="bg-card shadow-sm rounded-lg overflow-hidden border-2 border-border">
                 {/* Room Header */}
-                <div className="bg-gray-100 px-4 py-3 border-b-2 border-black dark:border-gray-300">
-                  <h3 className="text-lg font-semibold text-black border-r-2 border-black align-middle h-16">Kamer {room}</h3>
+                <div className="bg-muted px-4 py-3 border-b border-border dark:border-gray-700">
+                  <h3 className="text-lg font-semibold text-foreground border-r border-border align-middle h-16">Kamer {room}</h3>
                   <p className="text-sm text-muted-foreground">{roomResidents.length} van {maxBeds} bedden bezet</p>
                 </div>
                 
                 {/* Room Table */}
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y-2 divide-black dark:divide-gray-300">
+                  <table className="min-w-full divide-y divide-border">
                     <thead className="bg-teal-700 text-white">
                       <tr>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Bed
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Achternaam
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Voornaam
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Nationaliteit
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Taal
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Geslacht
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Opmerkingen
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r-2 border-black align-middle h-12 bg-foreground text-white">
+                        <th className="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider border-r border-border align-middle h-12 bg-primary text-primary-foreground">
                           Badge
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-card divide-y-2 divide-black dark:divide-gray-300">
+                    <tbody className="bg-card divide-y divide-border">
                       {Array.from({ length: maxBeds }, (_, bedIndex) => {
                         const bedNumber = bedIndex + 1;
                         const resident = roomResidents.find(r => r.bedNumber === bedNumber);
                         const index = bedIndex;
                         
                         return (
-                        <tr key={resident?.id || `${room}-bed-${bedNumber}`} className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} hover:bg-accent/50 transition-colors border-b-2 border-black dark:border-gray-300`}>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black border-r-2 border-black text-center align-middle h-14">
+                        <tr key={resident?.id || `${room}-bed-${bedNumber}`} className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} hover:bg-accent/50 transition-colors border-b border-border`}>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-foreground border-r border-border text-center align-middle h-14">
                             {bedNumber}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center align-middle h-14">
-                            {resident ? resident.lastName : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r border-border text-center align-middle h-14">
+                            {resident ? resident.lastName : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center align-middle h-14">
-                            {resident ? resident.firstName : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r border-border text-center align-middle h-14">
+                            {resident ? resident.firstName : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center align-middle h-14">
-                            {resident ? resident.nationality : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r border-border text-center align-middle h-14">
+                            {resident ? resident.nationality : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-black border-r-2 border-black text-center align-middle h-14">
+                          <td className="px-4 py-3 text-sm font-medium text-foreground border-r border-border text-center align-middle h-14">
                             {resident ? (
                               editingLanguage[resident.id] !== undefined ? (
                                 <div className="flex items-center gap-2">
@@ -546,14 +546,14 @@ export default function NoordPage() {
                                       ...editingLanguage,
                                       [resident.id]: e.target.value
                                     })}
-                                    className="flex-1 px-3 py-2 text-sm border-2 border-black rounded focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
+                                    className="flex-1 px-3 py-2 text-sm border-2 border-input rounded focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                     placeholder="Taal bewerken..."
                                     autoComplete="on"
                                     autoFocus
                                   />
                                   <button
                                     onClick={() => handleLanguageSave(resident.id)}
-                                    className="px-3 py-2 bg-foreground text-white text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-foreground/90"
+                                    className="px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-primary/90"
                                   >
                                     ✓
                                   </button>
@@ -566,7 +566,7 @@ export default function NoordPage() {
                                 </div>
                               ) : (
                                 <div
-                                  className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                                  className="cursor-pointer hover:bg-muted px-2 py-1 rounded"
                                   onClick={() => setEditingLanguage({
                                     ...editingLanguage,
                                     [resident.id]: resident.language || ''
@@ -576,13 +576,13 @@ export default function NoordPage() {
                                 </div>
                               )
                             ) : (
-                              <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>
+                              <span className="italic text-muted-foreground">Leeg</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border-r-2 border-black text-center align-middle h-14">
-                            {resident ? formatGender(resident.gender) : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground border-r border-border text-center align-middle h-14">
+                            {resident ? formatGender(resident.gender) : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-black border-r-2 border-black text-center align-middle h-14">
+                          <td className="px-4 py-3 text-sm font-medium text-foreground border-r border-border text-center align-middle h-14">
                             {resident ? (
                               editingRemarks[resident.id] !== undefined ? (
                                 <div className="flex items-center gap-2">
@@ -594,13 +594,13 @@ export default function NoordPage() {
                                       ...editingRemarks,
                                       [resident.id]: e.target.value
                                     })}
-                                    className="flex-1 px-3 py-2 text-sm border-2 border-black rounded focus:ring-2 focus:ring-ring focus:border-transparent text-black bg-white dark:bg-gray-700"
+                                    className="flex-1 px-3 py-2 text-sm border-2 border-input rounded focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                     placeholder="Opmerking toevoegen..."
                                     autoFocus
                                   />
                                   <button
                                     onClick={() => handleRemarksSave(resident.id)}
-                                    className="px-3 py-2 bg-foreground text-white text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-foreground/90"
+                                    className="px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded min-w-[32px] h-10 flex items-center justify-center hover:bg-primary/90"
                                   >
                                     ✓
                                   </button>
@@ -614,11 +614,11 @@ export default function NoordPage() {
                               ) : (
                                 <div
                                   onClick={() => handleRemarksEdit(resident.id, resident.roomRemarks || '')}
-                                  className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-[24px]"
+                                  className="cursor-pointer hover:bg-muted p-1 rounded min-h-[24px]"
                                 >
                                   {resident.roomRemarks ? (
                                     <span className="inline-flex items-center gap-2">
-                                      <span className="bg-yellow-200 px-2 py-1 text-xs font-medium rounded">
+                                      <span className="bg-yellow-200 dark:bg-yellow-800 px-2 py-1 text-xs font-medium rounded text-black dark:text-yellow-100">
                                         {stripDateFromRemarks(resident.roomRemarks)}
                                       </span>
                                       <button
@@ -635,11 +635,11 @@ export default function NoordPage() {
                                 </div>
                               )
                             ) : (
-                              <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>
+                              <span className="italic text-muted-foreground">Leeg</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black border-r-2 border-black text-center align-middle h-14">
-                            {resident ? resident.badge : <span className="italic text-muted-foreground dark:text-gray-500">Leeg</span>}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-foreground border-r border-border text-center align-middle h-14">
+                            {resident ? resident.badge : <span className="italic text-muted-foreground">Leeg</span>}
                           </td>
                         </tr>
                         );
@@ -653,7 +653,7 @@ export default function NoordPage() {
         </div>
 
         {/* Summary */}
-        <div className="mt-4 flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
+        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
           <div>
             Toont <span className="font-medium">{filteredData.length}</span> van{' '}
             <span className="font-medium">{noordData.length}</span> bewoners in Noord gebouw
