@@ -1,0 +1,417 @@
+'use client';
+
+import { useState } from 'react';
+import DashboardLayout from '../../components/layout/DashboardLayout';
+import { Search, ChefHat, Printer } from 'lucide-react';
+import { useData } from "../../../lib/DataContext";
+import { formatDate } from '../../../lib/utils';
+
+export default function KeukenlijstPage() {
+  const { residents, updateInDataMatchIt } = useData();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRoom, setFilterRoom] = useState('');
+  const [editingRemarks, setEditingRemarks] = useState<{[key: number]: string}>({});
+  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
+
+  // Use residents data with fallback to empty array to prevent undefined errors
+  const keukenlijst = residents || [];
+
+  const filteredData = keukenlijst.filter(resident => {
+    const matchesSearch = 
+      resident.badge?.toString().includes(searchTerm) ||
+      resident.room?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (resident.lastName || resident.last_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (resident.firstName || resident.first_name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRoom = !filterRoom || resident.room === filterRoom;
+    
+    return matchesSearch && matchesRoom;
+  });
+
+  const uniqueRooms = [...new Set(keukenlijst.map(r => r.room).filter(Boolean))].sort();
+
+  // Handler functions for editable functionality
+  const handleRemarksEdit = (residentId: number, currentRemarks: string) => {
+    setEditingRemarks({
+      ...editingRemarks,
+      [residentId]: currentRemarks || ''
+    });
+  };
+
+  const handleRemarksSave = (residentId: number) => {
+    const newRemarks = editingRemarks[residentId] || '';
+    updateInDataMatchIt(residentId, { remarks: newRemarks });
+    
+    // Remove from editing state
+    const newEditing = { ...editingRemarks };
+    delete newEditing[residentId];
+    setEditingRemarks(newEditing);
+  };
+
+  const handleRemarksCancel = (residentId: number) => {
+    const newEditing = { ...editingRemarks };
+    delete newEditing[residentId];
+    setEditingRemarks(newEditing);
+  };
+
+  const handleMealTimeToggle = (residentId: number, mealType: string, currentValue: boolean) => {
+    updateInDataMatchIt(residentId, { [mealType]: !currentValue });
+  };
+
+
+  return (
+    <>
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 ${printOrientation};
+            margin: 5mm;
+          }
+          
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          
+          body, html {
+            background: white !important;
+            color: black !important;
+            font-family: Arial, sans-serif !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          
+          .no-print {
+            display: none !important;
+          }
+          
+          .print-only {
+            display: block !important;
+            position: relative !important;
+            z-index: 999 !important;
+            transform: scale(0.9);
+            transform-origin: top left;
+            width: 111.11%;
+          }
+        }
+        
+        @media screen {
+          .print-only {
+            display: none !important;
+          }
+        }
+      `}</style>
+    <DashboardLayout className="no-print">
+      <div className="p-6 no-print">
+        {/* Header - Matching PDF Layout */}
+        <div className="mb-8">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-foreground font-title">STEENOKKERZEEL KEUKENLIJST</h1>
+          </div>
+          
+          <div className="bg-card shadow-sm rounded-lg p-4 mb-6 border border-border">
+            <div className="flex justify-between items-center">
+              <div className="text-lg font-semibold text-foreground">
+                {formatDate(new Date())}
+              </div>
+              <div className="text-lg font-semibold text-foreground">
+                {keukenlijst.length} p
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters and Actions */}
+        <div className="mb-6 space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Zoek op naam, badge, kamer..."
+                  className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Room Filter */}
+            <select
+              className="px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring bg-background text-foreground"
+              value={filterRoom}
+              onChange={(e) => setFilterRoom(e.target.value)}
+            >
+              <option value="">Alle kamers</option>
+              {uniqueRooms.map(room => (
+                <option key={room} value={room}>Kamer {room}</option>
+              ))}
+            </select>
+
+            {/* Orientation Toggle */}
+            <select
+              value={printOrientation}
+              onChange={(e) => setPrintOrientation(e.target.value as 'portrait' | 'landscape')}
+              className="px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring bg-background text-foreground"
+            >
+              <option value="portrait">Portrait</option>
+              <option value="landscape">Landscape</option>
+            </select>
+
+            {/* Print Button */}
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 focus:ring-2 focus:ring-ring flex items-center gap-2 transition-colors"
+            >
+              <Printer className="h-5 w-5" />
+              Print ({printOrientation === 'portrait' ? 'Portrait' : 'Landscape'})
+            </button>
+
+          </div>
+        </div>
+
+
+        {/* Table */}
+        <div className="bg-card shadow-sm rounded-lg overflow-hidden border border-border">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
+              <thead className="bg-teal-700 text-white">
+                <tr>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    Badge
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    Achternaam
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    Voornaam
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    Wooneenheid
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    OPMERKINGEN
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider">
+                    Ontbijt
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider">
+                    Middag
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider">
+                    16 u
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider">
+                    Avond
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider">
+                    21 u
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-card divide-y divide-gray-200 dark:divide-gray-600">
+                {filteredData.map((resident, index) => (
+                  <tr key={resident.id} className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} hover:bg-accent/50 transition-colors`}>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-foreground">
+                      {resident.badge}
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-foreground">
+                      {resident.lastName}
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-foreground">
+                      {resident.firstName}
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-foreground">
+                      {resident.room}
+                    </td>
+                    <td className="px-3 py-3 text-sm text-foreground">
+                      {(() => {
+                        // Check if this resident is being edited
+                        const isEditing = editingRemarks[resident.id] !== undefined;
+                        
+                        return isEditing ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={editingRemarks[resident.id]}
+                              onChange={(e) => setEditingRemarks({
+                                ...editingRemarks,
+                                [resident.id]: e.target.value
+                              })}
+                              className="flex-1 px-2 py-1 text-xs border border-input rounded focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
+                              placeholder="Opmerking toevoegen..."
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => {
+                                handleRemarksSave(resident.id);
+                                
+                                // Remove from editing state
+                                const newEditing = { ...editingRemarks };
+                                delete newEditing[resident.id];
+                                setEditingRemarks(newEditing);
+                              }}
+                              className="px-2 py-1 bg-primary text-primary-foreground text-xs rounded hover:bg-primary/90"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newEditing = { ...editingRemarks };
+                                delete newEditing[resident.id];
+                                setEditingRemarks(newEditing);
+                              }}
+                              className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => {
+                              setEditingRemarks({
+                                ...editingRemarks,
+                                [resident.id]: resident.remarks || ''
+                              });
+                            }}
+                            className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-[24px]"
+                          >
+                            {resident.remarks ? (
+                              <span className="bg-yellow-300 px-2 py-1 text-xs font-medium rounded text-accent-foreground">
+                                {resident.remarks}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">Klik om opmerking toe te voegen</span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </td>
+                    {/* Ontbijt */}
+                    <td className="px-3 py-3 text-center whitespace-nowrap text-sm text-gray-900 border-l border-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={resident.ontbijt || false}
+                        onChange={() => handleMealTimeToggle(resident.id, 'ontbijt', resident.ontbijt)}
+                        className="h-4 w-4 text-foreground focus:ring-ring border-gray-300 rounded cursor-pointer"
+                      />
+                    </td>
+                    {/* Middag */}
+                    <td className="px-3 py-3 text-center whitespace-nowrap text-sm text-gray-900 border-l border-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={resident.middag || false}
+                        onChange={() => handleMealTimeToggle(resident.id, 'middag', resident.middag)}
+                        className="h-4 w-4 text-foreground focus:ring-ring border-gray-300 rounded cursor-pointer"
+                      />
+                    </td>
+                    {/* 16 u */}
+                    <td className="px-3 py-3 text-center whitespace-nowrap text-sm text-gray-900 border-l border-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={resident.snack16 || false}
+                        onChange={() => handleMealTimeToggle(resident.id, 'snack16', resident.snack16)}
+                        className="h-4 w-4 text-foreground focus:ring-ring border-gray-300 rounded cursor-pointer"
+                      />
+                    </td>
+                    {/* Avond */}
+                    <td className="px-3 py-3 text-center whitespace-nowrap text-sm text-gray-900 border-l border-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={resident.avond || false}
+                        onChange={() => handleMealTimeToggle(resident.id, 'avond', resident.avond)}
+                        className="h-4 w-4 text-foreground focus:ring-ring border-gray-300 rounded cursor-pointer"
+                      />
+                    </td>
+                    {/* 21 u */}
+                    <td className="px-3 py-3 text-center whitespace-nowrap text-sm text-gray-900 border-l border-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={resident.snack21 || false}
+                        onChange={() => handleMealTimeToggle(resident.id, 'snack21', resident.snack21)}
+                        className="h-4 w-4 text-foreground focus:ring-ring border-gray-300 rounded cursor-pointer"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className="mt-4 flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
+          <div>
+            Toont <span className="font-medium">{filteredData.length}</span> van{' '}
+            <span className="font-medium">{keukenlijst.length}</span> bewoners
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
+
+    {/* Print-only layout - optimized for single page */}
+    <div className="print-only">
+      {/* Header */}
+      <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>
+        STEENOKKERZEEL KEUKENLIJST
+      </div>
+      
+      {/* Info bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', fontSize: '10px', fontWeight: 'bold' }}>
+        <div style={{ fontWeight: 'bold' }}>
+          {formatDate(new Date())}
+        </div>
+        <div style={{ fontWeight: 'bold' }}>
+          {keukenlijst.length} p
+        </div>
+      </div>
+
+      {/* Table optimized for single page */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8px', border: '2px solid black' }}>
+        <thead>
+          <tr style={{ backgroundColor: '#E6E6FA', color: 'black' }}>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Badge</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Achternaam</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Voornaam</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Kamer</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>OPMERKING</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Ontbijt</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Middag</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>16u</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>Avond</th>
+            <th style={{ border: '1px solid black', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>21u</th>
+          </tr>
+        </thead>
+        <tbody>
+          {keukenlijst.map((resident) => (
+            <tr key={resident.id}>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.badge}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', fontSize: '8px' }}>{resident.lastName}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'left', fontSize: '8px' }}>{resident.firstName}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '8px' }}>{resident.room}</td>
+              <td style={{ 
+                border: '1px solid black', 
+                padding: '1px', 
+                textAlign: 'left', 
+                fontSize: '8px', 
+                backgroundColor: resident.remarks ? '#FDE047' : 'transparent',
+                color: resident.remarks ? '#1E40AF' : 'black'
+              }}>
+                {resident.remarks || '-'}
+              </td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '9px' }}>{resident.ontbijt ? '✓' : ''}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '9px' }}>{resident.middag ? '✓' : ''}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '9px' }}>{resident.snack16 ? '✓' : ''}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '9px' }}>{resident.avond ? '✓' : ''}</td>
+              <td style={{ border: '1px solid black', padding: '1px', textAlign: 'center', fontSize: '9px' }}>{resident.snack21 ? '✓' : ''}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    </>
+  );
+}
