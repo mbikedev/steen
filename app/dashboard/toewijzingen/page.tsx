@@ -408,10 +408,10 @@ const Toewijzingen = () => {
   const applyExcelColors = async () => {
     setLoading(true);
     try {
-      // Color mapping from Excel template-1.xlsx
+      // Color mapping from Excel template-1.xlsx (corrected based on analysis)
       const residentColorMap: { [key: string]: ColorStatus } = {
         // Red cells (FFFF0000) - Adult/Legal age
-        'Tesfaldet Ateshim Weldegergish': 'red',
+        'Girmay Filmon Tesfamichael': 'red',
         'Mohammed Seid Abdelkhadr': 'red',
         'Sahle Ruta Weldeslasie': 'red',
         'Tewelde Faniel Tesfaldet': 'red',
@@ -433,24 +433,78 @@ const Toewijzingen = () => {
         'Gebremariam Adhanom Measho': 'blue',
         'Hakimi Shaheen': 'blue',
         'Haile Merhawi Weldu': 'blue',
+        
+        // Additional residents that may have colors (Excel parsing issues)
+        'Abdela Selah Ali': 'gray', // Had parsing error, treating as uncertain
+        'ABDELA Omer Suleman': 'gray', // Had parsing error, treating as uncertain
+        'Isak Diana Tesfu': 'gray', // Had parsing error, treating as uncertain
+        'Luzizila Ngongo Grace Albertine': 'gray', // Had parsing error, treating as uncertain
+        'Lizizila Ngongo Merveille Albertine': 'gray', // Had parsing error, treating as uncertain
+        'Abdulrahman EL TAHHAN': 'gray', // Had parsing error, treating as uncertain
+        'Lizizila Ngongo Junior': 'gray', // Had parsing error, treating as uncertain
+        'Ahmed Ibrahim SHATA': 'gray', // Had parsing error, treating as uncertain
+        'Seim Tsehaye Kidane': 'gray', // Had parsing error, treating as uncertain
+        'Ebrahim Mohammed Abdullah Tahmer': 'gray', // Had parsing error, treating as uncertain
+        'Mansoor Sherzad': 'gray', // Had parsing error, treating as uncertain
+        'KHAROTI Ahmad': 'gray', // Had parsing error, treating as uncertain
+        'Panzo David Joao Garcia': 'gray', // Had parsing error, treating as uncertain
+        'Mawambi Jair Carlos': 'gray', // Had parsing error, treating as uncertain
       };
 
       // Find and apply colors to matching resident names
       const updatedColors: CellColorData = { ...cellColors };
       let updatedCount = 0;
+      const processedNames: string[] = [];
+
+      // Normalize name function for better matching
+      const normalizeName = (name: string) => {
+        return name.trim().toLowerCase().replace(/\s+/g, ' ');
+      };
+
+      // Create normalized lookup map
+      const normalizedColorMap: { [key: string]: { originalName: string, color: ColorStatus } } = {};
+      Object.entries(residentColorMap).forEach(([name, color]) => {
+        normalizedColorMap[normalizeName(name)] = { originalName: name, color };
+      });
 
       for (let row = RESIDENT_ROW_MIN; row <= RESIDENT_ROW_MAX; row++) {
         for (let column = IB_COLUMN_MIN; column <= IB_COLUMN_MAX; column++) {
           const cellKey = `${row}-${column}`;
           const residentName = cellData[cellKey];
           
-          if (residentName && residentColorMap[residentName]) {
-            const color = residentColorMap[residentName];
-            updatedColors[cellKey] = color;
-            updatedCount++;
+          if (residentName && residentName.trim()) {
+            const normalizedResidentName = normalizeName(residentName);
             
-            // Save to database
-            await saveGridData(row, column, residentName, color);
+            // Try exact match first
+            let matchFound = false;
+            if (normalizedColorMap[normalizedResidentName]) {
+              const { originalName, color } = normalizedColorMap[normalizedResidentName];
+              updatedColors[cellKey] = color;
+              updatedCount++;
+              processedNames.push(`"${residentName}" -> ${color} (exact match with "${originalName}")`);
+              
+              // Save to database
+              await saveGridData(row, column, residentName, color);
+              matchFound = true;
+            }
+            
+            // If no exact match, try partial matching for common variations
+            if (!matchFound) {
+              for (const [normalizedExcelName, { originalName, color }] of Object.entries(normalizedColorMap)) {
+                // Check if names contain each other (for name variations)
+                if ((normalizedResidentName.includes(normalizedExcelName) || normalizedExcelName.includes(normalizedResidentName)) 
+                    && Math.abs(normalizedResidentName.length - normalizedExcelName.length) < 10) {
+                  updatedColors[cellKey] = color;
+                  updatedCount++;
+                  processedNames.push(`"${residentName}" -> ${color} (partial match with "${originalName}")`);
+                  
+                  // Save to database
+                  await saveGridData(row, column, residentName, color);
+                  matchFound = true;
+                  break;
+                }
+              }
+            }
           }
         }
       }
@@ -459,10 +513,102 @@ const Toewijzingen = () => {
       setCellColors(updatedColors);
       saveColorsToLocalStorage(updatedColors);
       
-      alert(`Applied colors to ${updatedCount} resident assignments!`);
+      // Show detailed results
+      const detailMessage = processedNames.length > 0 
+        ? `\n\nDetails:\n${processedNames.join('\n')}`
+        : '\n\nNo resident names matched the Excel template.';
+      
+      alert(`Applied colors to ${updatedCount} resident assignments!${detailMessage}`);
     } catch (error) {
       console.error('Error applying Excel colors:', error);
       alert('Error applying colors. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkColorColumn = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/toewijzingen/add-color-column', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('✅ Color status column is ready! You can now apply Excel colors.');
+      } else if (result.needsManualSetup) {
+        alert(`❌ Color column needs manual setup.\n\nPlease run this SQL in your Supabase dashboard:\n\n${result.suggestion}\n\nAfter running this SQL, the gray colors will work properly.`);
+      } else {
+        alert(`Error checking color column: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Error checking color column:', error);
+      alert('Error checking color column. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearColorsFromEmptyCells = async () => {
+    setLoading(true);
+    try {
+      const updatedColors: CellColorData = { ...cellColors };
+      let clearedCount = 0;
+      const clearedCells: string[] = [];
+
+      // Check all cells in the grid (resident cells and backup cells)
+      for (let row = RESIDENT_ROW_MIN; row <= RESIDENT_ROW_MAX; row++) {
+        for (let column = IB_COLUMN_MIN; column <= IB_COLUMN_MAX; column++) {
+          const cellKey = `${row}-${column}`;
+          const residentName = cellData[cellKey];
+          
+          // If cell is empty but has a color, remove the color
+          if ((!residentName || residentName.trim() === '') && updatedColors[cellKey]) {
+            delete updatedColors[cellKey];
+            clearedCount++;
+            clearedCells.push(cellKey);
+            
+            // Update database to remove color
+            await saveGridData(row, column, '', null);
+          }
+        }
+      }
+
+      // Also check backup rows (15-17, columns 0-9)
+      for (let row = 15; row <= 17; row++) {
+        for (let column = 0; column <= 9; column++) {
+          const cellKey = `${row}-${column}`;
+          const residentName = cellData[cellKey];
+          
+          // If cell is empty but has a color, remove the color
+          if ((!residentName || residentName.trim() === '') && updatedColors[cellKey]) {
+            delete updatedColors[cellKey];
+            clearedCount++;
+            clearedCells.push(cellKey);
+            
+            // Update database to remove color
+            await saveGridData(row, column, '', null);
+          }
+        }
+      }
+
+      // Update state
+      setCellColors(updatedColors);
+      saveColorsToLocalStorage(updatedColors);
+      
+      if (clearedCount > 0) {
+        alert(`Cleared colors from ${clearedCount} empty cells!\n\nCells cleared: ${clearedCells.join(', ')}`);
+      } else {
+        alert('No colors found in empty cells.');
+      }
+    } catch (error) {
+      console.error('Error clearing colors from empty cells:', error);
+      alert('Error clearing colors. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -1093,6 +1239,15 @@ const Toewijzingen = () => {
               {loading ? 'Setting up...' : 'Setup Database'}
             </button>
             <button
+              onClick={checkColorColumn}
+              disabled={loading}
+              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              title="Check if color status column exists in database"
+            >
+              <Palette className="h-4 w-4" />
+              Check Color Column
+            </button>
+            <button
               onClick={applyExcelColors}
               disabled={loading}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
@@ -1100,6 +1255,15 @@ const Toewijzingen = () => {
             >
               <Palette className="h-4 w-4" />
               Apply Excel Colors
+            </button>
+            <button
+              onClick={clearColorsFromEmptyCells}
+              disabled={loading}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              title="Remove colors from empty cells"
+            >
+              <X className="h-4 w-4" />
+              Clear Empty Colors
             </button>
           </div>
         </div>
