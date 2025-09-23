@@ -307,11 +307,9 @@ const Toewijzingen = () => {
       });
     }
 
-    // Save to database with color
+    // Save to database - always save color status, even for empty cells
     const residentName = cellData[cellId] || "";
-    if (residentName) {
-      await saveGridData(rowNumber, columnNumber, residentName, color);
-    }
+    await saveGridData(rowNumber, columnNumber, residentName, color);
 
     setShowColorMenu(null);
   };
