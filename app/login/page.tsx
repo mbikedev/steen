@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Lock, Mail, Shield, Sparkles, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../lib/AuthContext';
+import { ThemeToggle } from '../components/ui/theme-toggle';
 
 interface LoginFormData {
   email: string;
@@ -115,6 +116,11 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,#fff,rgba(255,255,255,0.6))] dark:bg-grid-slate-700/25 dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.5))]" />
+      
+      {/* Theme Toggle - Top Right */}
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
       
       <div className="relative w-full max-w-md">
         {/* Logo Section */}

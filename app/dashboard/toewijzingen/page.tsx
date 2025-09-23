@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import DashboardLayout from '@/app/components/layout/DashboardLayout';
 import { Upload, Download, Trash2, X, Palette } from 'lucide-react';
+import { ThemeToggle } from '../../components/ui/theme-toggle';
 import * as XLSX from 'xlsx';
 import { useData } from '../../../lib/DataContext';
 
@@ -1195,6 +1196,12 @@ const Toewijzingen = () => {
             </a>
             <h1 className="text-2xl font-bold">Toewijzingen</h1>
           </div>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+          </div>
+        </div>
+        
+        <div className="flex justify-end items-center mb-4">
           <div className="flex gap-3">
             <button
               onClick={clearSelectedCells}

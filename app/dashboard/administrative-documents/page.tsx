@@ -1,29 +1,41 @@
-'use client';
+"use client";
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import DashboardLayout from '../../components/layout/DashboardLayout';
-import { Search, Filter, FileText, FolderOpen, ExternalLink, ChevronDown, RefreshCw } from 'lucide-react';
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import DashboardLayout from "../../components/layout/DashboardLayout";
+import {
+  Search,
+  Filter,
+  FileText,
+  FolderOpen,
+  ExternalLink,
+  ChevronDown,
+  RefreshCw,
+  Recycle,
+  Database,
+} from "lucide-react";
 import { useData } from "../../../lib/DataContext";
 import { formatDate } from "../../../lib/utils";
-import ResidentDocumentsModal from '../../components/ResidentDocumentsModal';
-import { apiService } from '../../../lib/api-service';
+import ResidentDocumentsModal from "../../components/ResidentDocumentsModal";
+import { apiService } from "../../../lib/api-service";
 
 function AdministrativeDocumentsPageContent() {
   const { bewonerslijst, outResidents, moveToOutAndDelete } = useData();
   const searchParams = useSearchParams();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [selectedResident, setSelectedResident] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedDocumentType, setSelectedDocumentType] = useState('IN');
+  const [selectedDocumentType, setSelectedDocumentType] = useState("IN");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [editingStatus, setEditingStatus] = useState<{[key: number]: boolean}>({});
+  const [editingStatus, setEditingStatus] = useState<{
+    [key: number]: boolean;
+  }>({});
   const [isSyncing, setIsSyncing] = useState(false);
-  
+
   // Handle search from URL parameters
   useEffect(() => {
-    const searchQuery = searchParams.get('search');
+    const searchQuery = searchParams.get("search");
     if (searchQuery) {
       setSearchTerm(searchQuery);
     }
@@ -32,99 +44,317 @@ function AdministrativeDocumentsPageContent() {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (isDropdownOpen && !(event.target as Element).closest('.dropdown-container')) {
+      if (
+        isDropdownOpen &&
+        !(event.target as Element).closest(".dropdown-container")
+      ) {
         setIsDropdownOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isDropdownOpen]);
 
-  // Sync documents for all residents (IN + OUT)
+  // Enhanced sync with orphan recovery for all residents (IN + OUT)
   const handleSyncDocuments = async () => {
     setIsSyncing(true);
 
-    type DocumentSyncSummary = { syncedDocs: number; residentsWithUpdates: number };
-    const summary: Record<'IN' | 'OUT', DocumentSyncSummary> = {
-      IN: { syncedDocs: 0, residentsWithUpdates: 0 },
-      OUT: { syncedDocs: 0, residentsWithUpdates: 0 },
-    };
-
     try {
-      const syncTargets: Array<{ type: 'IN' | 'OUT'; residents: any[] }> = [
-        { type: 'IN', residents: inResidents || [] },
-        { type: 'OUT', residents: outResidents || [] },
-      ];
+      const results = {
+        IN: {
+          storageSync: { syncedDocs: 0, residentsWithUpdates: 0 },
+          orphanRecovery: { recovered: 0, updated: 0, errors: [] as string[] },
+          generalSync: { synced: 0, total: 0, errors: [] as string[] },
+        },
+        OUT: {
+          storageSync: { syncedDocs: 0, residentsWithUpdates: 0 },
+          orphanRecovery: { recovered: 0, updated: 0, errors: [] as string[] },
+          generalSync: { synced: 0, total: 0, errors: [] as string[] },
+        },
+      };
 
-      for (const { type, residents } of syncTargets) {
-        if (!Array.isArray(residents) || residents.length === 0) {
-          continue;
-        }
-
+      // Run smart sync for both IN and OUT documents
+      for (const type of ["IN", "OUT"] as const) {
         try {
-          const storageFiles = await apiService.listAdministrativeDocumentFiles(type);
-
-          if (!storageFiles || storageFiles.length === 0) {
-            console.log(`No ${type} documents found in storage to sync.`);
-            continue;
-          }
-
-          for (const resident of residents) {
-            if (!resident?.badge || !resident?.id) {
-              continue;
-            }
-
-            try {
-              const { synced } = await apiService.syncResidentDocuments(
-                resident.badge,
-                resident.id,
-                type,
-                { storageFiles, residentName: { firstName: resident.firstName, lastName: resident.lastName } }
-              );
-
-              if (synced > 0) {
-                summary[type].syncedDocs += synced;
-                summary[type].residentsWithUpdates += 1;
-                console.log(`Synced ${synced} ${type} documents for resident ${resident.badge}`);
-              }
-            } catch (residentError) {
-              console.error(`Failed to sync ${type} documents for resident ${resident.badge}:`, residentError);
-            }
-          }
-        } catch (listError) {
-          console.error(`Unable to list ${type} documents from storage:`, listError);
+          console.log(`🚀 Starting smart sync for ${type} documents...`);
+          const result = await apiService.smartSyncAllDocuments(type);
+          results[type] = {
+            storageSync: result.storageSync,
+            orphanRecovery: result.orphanRecovery,
+            generalSync: result.generalSync || {
+              synced: 0,
+              total: 0,
+              errors: [],
+            },
+          };
+          console.log(`✅ ${type} smart sync completed:`, result);
+        } catch (typeError) {
+          console.error(`Error in ${type} smart sync:`, typeError);
+          results[type].orphanRecovery.errors.push(
+            `${type} sync failed: ${typeError instanceof Error ? typeError.message : "Unknown error"}`,
+          );
         }
       }
 
-      const totalSynced = summary.IN.syncedDocs + summary.OUT.syncedDocs;
-      const totalResidents = summary.IN.residentsWithUpdates + summary.OUT.residentsWithUpdates;
+      // Calculate totals
+      const totalGeneralDocs =
+        results.IN.generalSync.synced + results.OUT.generalSync.synced;
+      const totalNewDocs =
+        results.IN.storageSync.syncedDocs + results.OUT.storageSync.syncedDocs;
+      const totalRecovered =
+        results.IN.orphanRecovery.recovered +
+        results.OUT.orphanRecovery.recovered;
+      const totalUpdated =
+        results.IN.orphanRecovery.updated + results.OUT.orphanRecovery.updated;
+      const totalErrors =
+        results.IN.orphanRecovery.errors.length +
+        results.OUT.orphanRecovery.errors.length +
+        results.IN.generalSync.errors.length +
+        results.OUT.generalSync.errors.length;
 
-      if (totalSynced > 0) {
+      // Build result message
+      const messages: string[] = [];
+
+      if (totalGeneralDocs > 0) {
         const details: string[] = [];
-        if (summary.IN.syncedDocs > 0) {
-          details.push(`${summary.IN.syncedDocs} IN document${summary.IN.syncedDocs === 1 ? '' : 's'} (${summary.IN.residentsWithUpdates} residents)`);
+        if (results.IN.generalSync.synced > 0) {
+          details.push(`${results.IN.generalSync.synced} IN documents`);
         }
-        if (summary.OUT.syncedDocs > 0) {
-          details.push(`${summary.OUT.syncedDocs} OUT document${summary.OUT.syncedDocs === 1 ? '' : 's'} (${summary.OUT.residentsWithUpdates} residents)`);
+        if (results.OUT.generalSync.synced > 0) {
+          details.push(`${results.OUT.generalSync.synced} OUT documents`);
         }
-
-        let message = `Successfully synced ${totalSynced} document${totalSynced === 1 ? '' : 's'} for ${totalResidents} resident${totalResidents === 1 ? '' : 's'}`;
-        if (details.length > 0) {
-          message += `\n- ${details.join('\n- ')}`;
-        }
-        alert(message);
-      } else {
-        alert('No new documents found to sync.');
+        messages.push(
+          `📂 Synced ${totalGeneralDocs} general document${totalGeneralDocs === 1 ? "" : "s"}: ${details.join(", ")}`,
+        );
       }
+
+      if (totalNewDocs > 0) {
+        const details: string[] = [];
+        if (results.IN.storageSync.syncedDocs > 0) {
+          details.push(`${results.IN.storageSync.syncedDocs} new IN documents`);
+        }
+        if (results.OUT.storageSync.syncedDocs > 0) {
+          details.push(
+            `${results.OUT.storageSync.syncedDocs} new OUT documents`,
+          );
+        }
+        messages.push(
+          `📄 Found and synced ${totalNewDocs} resident-specific document${totalNewDocs === 1 ? "" : "s"}: ${details.join(", ")}`,
+        );
+      }
+
+      if (totalRecovered > 0) {
+        const details: string[] = [];
+        if (results.IN.orphanRecovery.recovered > 0) {
+          details.push(`${results.IN.orphanRecovery.recovered} IN`);
+        }
+        if (results.OUT.orphanRecovery.recovered > 0) {
+          details.push(`${results.OUT.orphanRecovery.recovered} OUT`);
+        }
+        messages.push(
+          `🔄 Recovered ${totalRecovered} orphaned document${totalRecovered === 1 ? "" : "s"}: ${details.join(", ")}`,
+        );
+      }
+
+      if (totalUpdated > 0) {
+        const details: string[] = [];
+        if (results.IN.orphanRecovery.updated > 0) {
+          details.push(`${results.IN.orphanRecovery.updated} IN`);
+        }
+        if (results.OUT.orphanRecovery.updated > 0) {
+          details.push(`${results.OUT.orphanRecovery.updated} OUT`);
+        }
+        messages.push(
+          `🔧 Updated ${totalUpdated} document link${totalUpdated === 1 ? "" : "s"}: ${details.join(", ")}`,
+        );
+      }
+
+      if (totalErrors > 0) {
+        messages.push(
+          `⚠️ ${totalErrors} error${totalErrors === 1 ? "" : "s"} occurred (check console for details)`,
+        );
+        // Log errors to console for debugging
+        [
+          ...results.IN.orphanRecovery.errors,
+          ...results.OUT.orphanRecovery.errors,
+        ].forEach((error) => {
+          console.error("Sync error:", error);
+        });
+      }
+
+      if (messages.length === 0) {
+        messages.push("✅ All documents are already synchronized");
+      }
+
+      const finalMessage = [
+        "🎉 Enhanced Document Synchronization Complete!",
+        "",
+        ...messages,
+        "",
+        "This sync automatically:",
+        "• Finds new documents in storage",
+        "• Recovers orphaned documents using badge numbers",
+        "• Updates document links using resident names",
+        "• Maintains document integrity after data refreshes",
+      ].join("\n");
+
+      alert(finalMessage);
 
       // Reload the page to refresh the document counts
       window.location.reload();
     } catch (error) {
-      console.error('Error during document sync:', error);
-      alert('An error occurred while syncing documents. Please check the console for details.');
+      console.error("Error during enhanced document sync:", error);
+      alert(
+        "An error occurred during enhanced document synchronization. Please check the console for details.",
+      );
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Orphan recovery for documents that lost connection after data refresh
+  const handleRecoverOrphans = async () => {
+    setIsSyncing(true);
+
+    try {
+      const results = {
+        IN: { recovered: 0, updated: 0, errors: [] as string[] },
+        OUT: { recovered: 0, updated: 0, errors: [] as string[] },
+      };
+
+      // Run orphan recovery for both IN and OUT documents
+      for (const type of ["IN", "OUT"] as const) {
+        try {
+          console.log(`🔄 Starting orphan recovery for ${type} documents...`);
+          const result = await apiService.recoverOrphanedDocuments(type);
+          results[type] = result;
+          console.log(`✅ ${type} orphan recovery completed:`, result);
+        } catch (typeError) {
+          console.error(`Error in ${type} orphan recovery:`, typeError);
+          results[type].errors.push(
+            `${type} recovery failed: ${typeError instanceof Error ? typeError.message : "Unknown error"}`,
+          );
+        }
+      }
+
+      // Calculate totals
+      const totalRecovered = results.IN.recovered + results.OUT.recovered;
+      const totalUpdated = results.IN.updated + results.OUT.updated;
+      const totalErrors = results.IN.errors.length + results.OUT.errors.length;
+
+      // Build result message
+      const messages: string[] = [];
+
+      if (totalRecovered > 0) {
+        const details: string[] = [];
+        if (results.IN.recovered > 0) {
+          details.push(`${results.IN.recovered} IN`);
+        }
+        if (results.OUT.recovered > 0) {
+          details.push(`${results.OUT.recovered} OUT`);
+        }
+        messages.push(
+          `🔄 Recovered ${totalRecovered} orphaned document${totalRecovered === 1 ? "" : "s"}: ${details.join(", ")}`,
+        );
+      }
+
+      if (totalUpdated > 0) {
+        const details: string[] = [];
+        if (results.IN.updated > 0) {
+          details.push(`${results.IN.updated} IN`);
+        }
+        if (results.OUT.updated > 0) {
+          details.push(`${results.OUT.updated} OUT`);
+        }
+        messages.push(
+          `🔧 Updated ${totalUpdated} document link${totalUpdated === 1 ? "" : "s"}: ${details.join(", ")}`,
+        );
+      }
+
+      if (totalErrors > 0) {
+        messages.push(
+          `⚠️ ${totalErrors} error${totalErrors === 1 ? "" : "s"} occurred (check console for details)`,
+        );
+        // Log errors to console for debugging
+        [...results.IN.errors, ...results.OUT.errors].forEach((error) => {
+          console.error("Recovery error:", error);
+        });
+      }
+
+      if (messages.length === 0) {
+        messages.push(
+          "✅ No orphaned documents found - all documents are properly linked",
+        );
+      }
+
+      const finalMessage = [
+        "🔄 Orphaned Document Recovery Complete!",
+        "",
+        ...messages,
+        "",
+        "This recovery process:",
+        "• Finds documents with broken resident links",
+        "• Reconnects them using badge numbers (most reliable)",
+        "• Falls back to name matching when badge unavailable",
+        "• Perfect for recovering documents after data refreshes",
+      ].join("\n");
+
+      alert(finalMessage);
+
+      // Reload the page to refresh the document counts
+      window.location.reload();
+    } catch (error) {
+      console.error("Error during orphan recovery:", error);
+      alert(
+        "An error occurred during orphan recovery. Please check the console for details.",
+      );
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Setup database columns for enhanced document synchronization
+  const handleSetupDatabase = async () => {
+    setIsSyncing(true);
+
+    try {
+      console.log(
+        "🔧 Setting up database columns for enhanced document synchronization...",
+      );
+
+      const response = await fetch(
+        "/api/administrative-documents/setup-columns",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(
+          "✅ Database Setup Complete!\n\nThe enhanced document synchronization columns have been added successfully. You can now use Smart Sync and Recover Orphans features.",
+        );
+      } else if (result.needsManualSetup) {
+        alert(
+          `⚠️ Manual Database Setup Required\n\nPlease run the following SQL in your Supabase SQL Editor:\n\n${result.sql}\n\nAfter running this SQL, the enhanced synchronization features will work properly.`,
+        );
+      } else {
+        alert(
+          `❌ Database Setup Failed\n\n${result.error}\n\nPlease check the console for more details.`,
+        );
+      }
+    } catch (error) {
+      console.error("Error during database setup:", error);
+      alert(
+        "An error occurred during database setup. Please check the console for details.",
+      );
     } finally {
       setIsSyncing(false);
     }
@@ -139,19 +369,27 @@ function AdministrativeDocumentsPageContent() {
     if (!residents || !Array.isArray(residents)) {
       return [];
     }
-    
-    return residents.filter(resident => {
+
+    return residents.filter((resident) => {
       if (!resident) return false;
-      
-      const matchesSearch = 
-        (resident.lastName && resident.lastName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (resident.firstName && resident.firstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+
+      const matchesSearch =
+        (resident.lastName &&
+          resident.lastName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (resident.firstName &&
+          resident.firstName
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())) ||
         (resident.badge && resident.badge.toString().includes(searchTerm)) ||
-        (resident.nationality && resident.nationality.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (resident.ovNumber && resident.ovNumber.toLowerCase().includes(searchTerm.toLowerCase()));
-      
+        (resident.nationality &&
+          resident.nationality
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())) ||
+        (resident.ovNumber &&
+          resident.ovNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+
       const matchesStatus = !filterStatus || resident.status === filterStatus;
-      
+
       return matchesSearch && matchesStatus;
     });
   };
@@ -160,11 +398,11 @@ function AdministrativeDocumentsPageContent() {
   const filteredOutResidents = getFilteredResidents(outResidents || []);
 
   // Use appropriate residents based on selected document type
-  const currentResidents = selectedDocumentType === 'IN' ? filteredInResidents : filteredOutResidents;
-  
+  const currentResidents =
+    selectedDocumentType === "IN" ? filteredInResidents : filteredOutResidents;
+
   // Sort residents by badge number
   const sortedResidents = currentResidents.sort((a, b) => a.badge - b.badge);
-
 
   const handleResidentClick = (resident: any) => {
     setSelectedResident(resident);
@@ -175,52 +413,77 @@ function AdministrativeDocumentsPageContent() {
     // Store current URL to prevent any navigation
     const currentPath = window.location.pathname;
     const currentSearch = window.location.search;
-    
+
     setIsModalOpen(false);
     setSelectedResident(null);
-    
+
     // Ensure we stay on the current page
     setTimeout(() => {
-      if (window.location.pathname !== currentPath || window.location.search !== currentSearch) {
-        console.log('Navigation detected after modal close, restoring location');
-        window.history.replaceState({}, '', currentPath + currentSearch);
+      if (
+        window.location.pathname !== currentPath ||
+        window.location.search !== currentSearch
+      ) {
+        console.log(
+          "Navigation detected after modal close, restoring location",
+        );
+        window.history.replaceState({}, "", currentPath + currentSearch);
       }
     }, 10);
   };
 
   const handleStatusChange = (residentId: number, newStatus: string) => {
-    console.log(`🔄 handleStatusChange called with residentId: ${residentId}, newStatus: ${newStatus}`);
+    console.log(
+      `🔄 handleStatusChange called with residentId: ${residentId}, newStatus: ${newStatus}`,
+    );
     console.log(`📋 bewonerslijst length:`, bewonerslijst?.length);
-    console.log(`🔍 Looking for resident with ID: ${residentId} in bewonerslijst`);
-    console.log(`📋 Available resident IDs in bewonerslijst:`, bewonerslijst?.map(r => ({ id: r.id, badge: r.badge, name: `${r.first_name} ${r.last_name}` })));
-    
-    if (newStatus === 'OUT') {
-      let resident = bewonerslijst.find(r => r.id === residentId);
+    console.log(
+      `🔍 Looking for resident with ID: ${residentId} in bewonerslijst`,
+    );
+    console.log(
+      `📋 Available resident IDs in bewonerslijst:`,
+      bewonerslijst?.map((r) => ({
+        id: r.id,
+        badge: r.badge,
+        name: `${r.first_name} ${r.last_name}`,
+      })),
+    );
+
+    if (newStatus === "OUT") {
+      let resident = bewonerslijst.find((r) => r.id === residentId);
       console.log(`🔄 Found resident in bewonerslijst by ID:`, resident);
-      
+
       // If not found by ID, try to find by badge number (fallback)
       if (!resident) {
-        console.log(`🔍 Resident not found by ID, trying to find by badge number...`);
+        console.log(
+          `🔍 Resident not found by ID, trying to find by badge number...`,
+        );
         // We need to get the badge number from the current residents list
-        const currentResident = currentResidents.find(r => r.id === residentId);
+        const currentResident = currentResidents.find(
+          (r) => r.id === residentId,
+        );
         if (currentResident) {
-          console.log(`🔍 Found current resident with badge:`, currentResident.badge);
-          resident = bewonerslijst.find(r => r.badge === currentResident.badge);
+          console.log(
+            `🔍 Found current resident with badge:`,
+            currentResident.badge,
+          );
+          resident = bewonerslijst.find(
+            (r) => r.badge === currentResident.badge,
+          );
           console.log(`🔄 Found resident in bewonerslijst by badge:`, resident);
         }
       }
-      
+
       const confirmed = window.confirm(
-        `Weet u zeker dat u ${resident?.first_name} ${resident?.last_name} wilt verplaatsen naar OUT?\n\nDe bewoner wordt verplaatst naar de OUT sectie van Administratieve Documenten en verwijderd uit alle andere lijsten.`
+        `Weet u zeker dat u ${resident?.first_name} ${resident?.last_name} wilt verplaatsen naar OUT?\n\nDe bewoner wordt verplaatst naar de OUT sectie van Administratieve Documenten en verwijderd uit alle andere lijsten.`,
       );
-      
+
       if (!confirmed) {
-        console.log('❌ User cancelled OUT action');
+        console.log("❌ User cancelled OUT action");
         setEditingStatus({ ...editingStatus, [residentId]: false });
         return;
       }
-      
-      console.log('✅ User confirmed OUT action, calling moveToOutAndDelete');
+
+      console.log("✅ User confirmed OUT action, calling moveToOutAndDelete");
       // Move to OUT and delete from all lists
       moveToOutAndDelete(residentId);
       setEditingStatus({ ...editingStatus, [residentId]: false });
@@ -244,30 +507,31 @@ function AdministrativeDocumentsPageContent() {
             size: A4 portrait;
             margin: 15mm;
           }
-          
+
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
           }
-          
-          body, html {
+
+          body,
+          html {
             background: white !important;
             color: black !important;
             font-family: Arial, sans-serif !important;
             margin: 0 !important;
             padding: 0 !important;
           }
-          
+
           .no-print {
             display: none !important;
           }
-          
+
           .print-only {
             display: block !important;
           }
         }
-        
+
         @media screen {
           .print-only {
             display: none !important;
@@ -280,37 +544,47 @@ function AdministrativeDocumentsPageContent() {
           {/* Header */}
           <div className="mb-8">
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-foreground font-title">OOC STEENOKKERZEEL</h1>
+              <h1 className="text-2xl font-bold text-foreground font-title">
+                OOC STEENOKKERZEEL
+              </h1>
               <div className="flex items-center justify-center mt-2">
-                <span className="text-lg text-muted-foreground mr-2">Administratieve Documenten</span>
+                <span className="text-lg text-muted-foreground mr-2">
+                  Administratieve Documenten
+                </span>
                 <div className="relative dropdown-container">
                   <button
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="flex items-center space-x-1 px-3 py-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded-md text-lg font-semibold transition-colors"
                   >
                     <span>{selectedDocumentType}</span>
-                    <ChevronDown className={`w-4 h-4 transform transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`w-4 h-4 transform transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+                    />
                   </button>
                   {isDropdownOpen && (
                     <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-md shadow-lg z-50 min-w-full">
                       <button
                         onClick={() => {
-                          setSelectedDocumentType('IN');
+                          setSelectedDocumentType("IN");
                           setIsDropdownOpen(false);
                         }}
                         className={`w-full px-4 py-2 text-left hover:bg-accent transition-colors ${
-                          selectedDocumentType === 'IN' ? 'bg-accent text-accent-foreground' : 'text-foreground'
+                          selectedDocumentType === "IN"
+                            ? "bg-accent text-accent-foreground"
+                            : "text-foreground"
                         }`}
                       >
                         IN
                       </button>
                       <button
                         onClick={() => {
-                          setSelectedDocumentType('OUT');
+                          setSelectedDocumentType("OUT");
                           setIsDropdownOpen(false);
                         }}
                         className={`w-full px-4 py-2 text-left hover:bg-accent transition-colors ${
-                          selectedDocumentType === 'OUT' ? 'bg-accent text-accent-foreground' : 'text-foreground'
+                          selectedDocumentType === "OUT"
+                            ? "bg-accent text-accent-foreground"
+                            : "text-foreground"
                         }`}
                       >
                         OUT
@@ -318,31 +592,65 @@ function AdministrativeDocumentsPageContent() {
                     </div>
                   )}
                 </div>
-                <span className="text-lg text-muted-foreground ml-2">- Bewonersoverzicht</span>
+                <span className="text-lg text-muted-foreground ml-2">
+                  - Bewonersoverzicht
+                </span>
               </div>
             </div>
-            
+
             <div className="bg-card shadow-sm rounded-lg p-4 mb-6 border border-border">
               <div className="grid grid-cols-3 gap-4 items-center">
-                <div className={`px-3 py-2 text-center font-semibold rounded ${
-                  selectedDocumentType === 'IN' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'
-                }`}>
+                <div
+                  className={`px-3 py-2 text-center font-semibold rounded ${
+                    selectedDocumentType === "IN"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground"
+                  }`}
+                >
                   <FileText className="inline-block w-4 h-4 mr-2" />
                   Bewonersoverzicht ({selectedDocumentType})
                 </div>
                 <div className="text-center text-foreground">
-                  <span className="text-sm">Totaal Bewoners: {sortedResidents.length}</span>
-                  <p className="text-xs text-muted-foreground mt-1">Klik op een bewoner om documenten te bekijken</p>
+                  <span className="text-sm">
+                    Totaal Bewoners: {sortedResidents.length}
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Klik op een bewoner om documenten te bekijken
+                  </p>
                 </div>
                 <div className="text-right flex gap-2 justify-end">
+                  <button
+                    onClick={handleSetupDatabase}
+                    disabled={isSyncing}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    title="Setup database columns for enhanced document synchronization"
+                  >
+                    <Database
+                      className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+                    />
+                    {isSyncing ? "Setting up..." : "Setup Database"}
+                  </button>
                   <button
                     onClick={handleSyncDocuments}
                     disabled={isSyncing}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                    title="Sync documents from storage for all residents"
+                    title="Complete sync: finds new documents + recovers orphaned documents"
                   >
-                    <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                    {isSyncing ? 'Syncing...' : 'Sync Documents'}
+                    <RefreshCw
+                      className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+                    />
+                    {isSyncing ? "Smart Syncing..." : "Smart Sync"}
+                  </button>
+                  <button
+                    onClick={handleRecoverOrphans}
+                    disabled={isSyncing}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    title="Recover documents that lost connection after data refresh"
+                  >
+                    <Recycle
+                      className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+                    />
+                    {isSyncing ? "Recovering..." : "Recover Orphans"}
                   </button>
                 </div>
               </div>
@@ -350,120 +658,134 @@ function AdministrativeDocumentsPageContent() {
           </div>
 
           {/* Search and Filter Controls - Only show for IN */}
-          {selectedDocumentType === 'IN' && (
+          {selectedDocumentType === "IN" && (
             <div className="bg-card shadow-sm rounded-lg p-4 mb-6 border border-border">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Zoek op naam, badgenummer, nationaliteit..."
-                  className="w-full pl-10 pr-4 py-2 border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-primary bg-background text-foreground"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <select
-                  className="w-full pl-10 pr-4 py-2 border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-primary bg-background text-foreground"
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                  <option value="">Alle Statussen</option>
-                  <option value="Actief">Actief</option>
-                  <option value="OUT">OUT</option>
-                </select>
-              </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Zoek op naam, badgenummer, nationaliteit..."
+                    className="w-full pl-10 pr-4 py-2 border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-primary bg-background text-foreground"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <select
+                    className="w-full pl-10 pr-4 py-2 border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-primary bg-background text-foreground"
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  >
+                    <option value="">Alle Statussen</option>
+                    <option value="Actief">Actief</option>
+                    <option value="OUT">OUT</option>
+                  </select>
+                </div>
               </div>
             </div>
           )}
 
           {/* Content based on selected document type */}
-          {selectedDocumentType === 'IN' ? (
+          {selectedDocumentType === "IN" ? (
             <div>
               {/* Resident Directory Table */}
               <div className="bg-card shadow-sm rounded-lg overflow-hidden border border-border">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-border">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Badge Nr.
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Volledige Naam
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Kamer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Nationaliteit
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-card divide-y divide-border">
-                  {sortedResidents.map((resident, index) => (
-                    <tr 
-                      key={resident.badge} 
-                      className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted'} hover:bg-accent cursor-pointer transition-colors`}
-                      onClick={() => handleResidentClick(resident)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">
-                        {resident.badge}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                        <div className="flex items-center">
-                          <div className="font-medium">{resident.lastName}, {resident.firstName}</div>
-                          <FolderOpen className="w-4 h-4 ml-2 text-muted-foreground" />
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                        {resident.room || 'Niet toegewezen'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                        {resident.nationality}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center justify-between">
-                          <div className="relative">
-                            {editingStatus[resident.id] ? (
-                              <select
-                                autoFocus
-                                value={resident.status}
-                                onChange={(e) => handleStatusChange(resident.id, e.target.value)}
-                                onBlur={() => setEditingStatus({ ...editingStatus, [resident.id]: false })}
-                                className="text-xs font-semibold rounded-full px-2 py-1 border-2 border-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <option value="Actief">Actief</option>
-                                <option value="OUT">OUT</option>
-                              </select>
-                            ) : (
-                              <span 
-                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity ${
-                                  resident.status === 'Actief' 
-                                    ? 'bg-accent text-accent-foreground'
-                                    : resident.status === 'OUT'
-                                    ? 'bg-secondary text-secondary-foreground'
-                                    : 'bg-destructive/10 text-destructive'
-                                }`}
-                                onClick={(e) => handleStatusClick(e, resident.id)}
-                                title="Klik om status te wijzigen"
-                              >
-                                {resident.status}
-                              </span>
-                            )}
-                          </div>
-                          <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Badge Nr.
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Volledige Naam
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Kamer
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Nationaliteit
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-card divide-y divide-border">
+                      {sortedResidents.map((resident, index) => (
+                        <tr
+                          key={resident.badge}
+                          className={`${index % 2 === 0 ? "bg-card" : "bg-muted"} hover:bg-accent cursor-pointer transition-colors`}
+                          onClick={() => handleResidentClick(resident)}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">
+                            {resident.badge}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                            <div className="flex items-center">
+                              <div className="font-medium">
+                                {resident.lastName}, {resident.firstName}
+                              </div>
+                              <FolderOpen className="w-4 h-4 ml-2 text-muted-foreground" />
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                            {resident.room || "Niet toegewezen"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                            {resident.nationality}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center justify-between">
+                              <div className="relative">
+                                {editingStatus[resident.id] ? (
+                                  <select
+                                    autoFocus
+                                    value={resident.status}
+                                    onChange={(e) =>
+                                      handleStatusChange(
+                                        resident.id,
+                                        e.target.value,
+                                      )
+                                    }
+                                    onBlur={() =>
+                                      setEditingStatus({
+                                        ...editingStatus,
+                                        [resident.id]: false,
+                                      })
+                                    }
+                                    className="text-xs font-semibold rounded-full px-2 py-1 border-2 border-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <option value="Actief">Actief</option>
+                                    <option value="OUT">OUT</option>
+                                  </select>
+                                ) : (
+                                  <span
+                                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity ${
+                                      resident.status === "Actief"
+                                        ? "bg-accent text-accent-foreground"
+                                        : resident.status === "OUT"
+                                          ? "bg-secondary text-secondary-foreground"
+                                          : "bg-destructive/10 text-destructive"
+                                    }`}
+                                    onClick={(e) =>
+                                      handleStatusClick(e, resident.id)
+                                    }
+                                    title="Klik om status te wijzigen"
+                                  >
+                                    {resident.status}
+                                  </span>
+                                )}
+                              </div>
+                              <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
                   </table>
                 </div>
               </div>
@@ -491,7 +813,9 @@ function AdministrativeDocumentsPageContent() {
                     />
                   </div>
                   <div className="text-center text-muted-foreground">
-                    <span className="text-sm">OUT Bewoners: {sortedResidents.length}</span>
+                    <span className="text-sm">
+                      OUT Bewoners: {sortedResidents.length}
+                    </span>
                     <p className="text-xs mt-1">Bewoners die zijn uitgegaan</p>
                   </div>
                 </div>
@@ -523,9 +847,9 @@ function AdministrativeDocumentsPageContent() {
                       </thead>
                       <tbody className="bg-card divide-y divide-border">
                         {sortedResidents.map((resident, index) => (
-                          <tr 
-                            key={resident.badge} 
-                            className={`${index % 2 === 0 ? 'bg-card' : 'bg-muted hover:bg-accent cursor-pointer transition-colors'}`}
+                          <tr
+                            key={resident.badge}
+                            className={`${index % 2 === 0 ? "bg-card" : "bg-muted hover:bg-accent cursor-pointer transition-colors"}`}
                             onClick={() => handleResidentClick(resident)}
                           >
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">
@@ -533,12 +857,14 @@ function AdministrativeDocumentsPageContent() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                               <div className="flex items-center">
-                                <div className="font-medium">{resident.lastName}, {resident.firstName}</div>
+                                <div className="font-medium">
+                                  {resident.lastName}, {resident.firstName}
+                                </div>
                                 <FolderOpen className="w-4 h-4 ml-2 text-muted-foreground" />
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                              {resident.room || 'Niet toegewezen'}
+                              {resident.room || "Niet toegewezen"}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                               {resident.nationality}
@@ -550,8 +876,18 @@ function AdministrativeDocumentsPageContent() {
                                     <select
                                       autoFocus
                                       value={resident.status}
-                                      onChange={(e) => handleStatusChange(resident.id, e.target.value)}
-                                      onBlur={() => setEditingStatus({ ...editingStatus, [resident.id]: false })}
+                                      onChange={(e) =>
+                                        handleStatusChange(
+                                          resident.id,
+                                          e.target.value,
+                                        )
+                                      }
+                                      onBlur={() =>
+                                        setEditingStatus({
+                                          ...editingStatus,
+                                          [resident.id]: false,
+                                        })
+                                      }
                                       className="text-xs font-semibold rounded-full px-2 py-1 border-2 border-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                                       onClick={(e) => e.stopPropagation()}
                                     >
@@ -559,9 +895,11 @@ function AdministrativeDocumentsPageContent() {
                                       <option value="OUT">OUT</option>
                                     </select>
                                   ) : (
-                                    <span 
+                                    <span
                                       className="inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity bg-secondary text-secondary-foreground"
-                                      onClick={(e) => handleStatusClick(e, resident.id)}
+                                      onClick={(e) =>
+                                        handleStatusClick(e, resident.id)
+                                      }
                                       title="Klik om status te wijzigen"
                                     >
                                       {resident.status}
@@ -591,7 +929,8 @@ function AdministrativeDocumentsPageContent() {
                       Er zijn momenteel geen bewoners met OUT status.
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Bewoners verschijnen hier wanneer hun status wordt gewijzigd naar OUT.
+                      Bewoners verschijnen hier wanneer hun status wordt
+                      gewijzigd naar OUT.
                     </p>
                   </div>
                 </div>
@@ -604,129 +943,165 @@ function AdministrativeDocumentsPageContent() {
       {/* Print Version */}
       <div className="print-only">
         {/* Print Header */}
-        <div style={{ 
-          textAlign: 'center', 
-          marginBottom: '20px',
-          borderBottom: '2px solid #000',
-          paddingBottom: '10px'
-        }}>
-          <h1 style={{ 
-            fontSize: '24px', 
-            fontWeight: 'bold', 
-            margin: '0 0 10px 0',
-            color: '#000'
-          }}>
+        <div
+          style={{
+            textAlign: "center",
+            marginBottom: "20px",
+            borderBottom: "2px solid #000",
+            paddingBottom: "10px",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: "24px",
+              fontWeight: "bold",
+              margin: "0 0 10px 0",
+              color: "#000",
+            }}
+          >
             OOC STEENOKKERZEEL
           </h1>
-          <h2 style={{ 
-            fontSize: '16px', 
-            margin: '0',
-            color: '#333'
-          }}>
+          <h2
+            style={{
+              fontSize: "16px",
+              margin: "0",
+              color: "#333",
+            }}
+          >
             Administratieve Documenten - Bewonersoverzicht
           </h2>
-          <div style={{
-            fontSize: '12px',
-            color: '#666',
-            marginTop: '5px'
-          }}>
-            Totaal Bewoners: {sortedResidents.length} | Gegenereerd: {formatDate(new Date())}
+          <div
+            style={{
+              fontSize: "12px",
+              color: "#666",
+              marginTop: "5px",
+            }}
+          >
+            Totaal Bewoners: {sortedResidents.length} | Gegenereerd:{" "}
+            {formatDate(new Date())}
           </div>
         </div>
 
         {/* Print Table */}
-        <table style={{ 
-          width: '100%', 
-          borderCollapse: 'collapse',
-          fontSize: '10px',
-          border: '1px solid #000'
-        }}>
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            fontSize: "10px",
+            border: "1px solid #000",
+          }}
+        >
           <thead>
-            <tr style={{ backgroundColor: '#f0f0f0' }}>
-              <th style={{ 
-                border: '1px solid #000',
-                padding: '8px',
-                textAlign: 'left',
-                fontWeight: 'bold',
-                width: '12%'
-              }}>
+            <tr style={{ backgroundColor: "#f0f0f0" }}>
+              <th
+                style={{
+                  border: "1px solid #000",
+                  padding: "8px",
+                  textAlign: "left",
+                  fontWeight: "bold",
+                  width: "12%",
+                }}
+              >
                 BADGE NR.
               </th>
-              <th style={{ 
-                border: '1px solid #000',
-                padding: '8px',
-                textAlign: 'left',
-                fontWeight: 'bold',
-                width: '35%'
-              }}>
+              <th
+                style={{
+                  border: "1px solid #000",
+                  padding: "8px",
+                  textAlign: "left",
+                  fontWeight: "bold",
+                  width: "35%",
+                }}
+              >
                 VOLLEDIGE NAAM
               </th>
-              <th style={{ 
-                border: '1px solid #000',
-                padding: '8px',
-                textAlign: 'left',
-                fontWeight: 'bold',
-                width: '15%'
-              }}>
+              <th
+                style={{
+                  border: "1px solid #000",
+                  padding: "8px",
+                  textAlign: "left",
+                  fontWeight: "bold",
+                  width: "15%",
+                }}
+              >
                 KAMER
               </th>
-              <th style={{ 
-                border: '1px solid #000',
-                padding: '8px',
-                textAlign: 'left',
-                fontWeight: 'bold',
-                width: '25%'
-              }}>
+              <th
+                style={{
+                  border: "1px solid #000",
+                  padding: "8px",
+                  textAlign: "left",
+                  fontWeight: "bold",
+                  width: "25%",
+                }}
+              >
                 NATIONALITEIT
               </th>
-              <th style={{ 
-                border: '1px solid #000',
-                padding: '8px',
-                textAlign: 'left',
-                fontWeight: 'bold',
-                width: '13%'
-              }}>
+              <th
+                style={{
+                  border: "1px solid #000",
+                  padding: "8px",
+                  textAlign: "left",
+                  fontWeight: "bold",
+                  width: "13%",
+                }}
+              >
                 STATUS
               </th>
             </tr>
           </thead>
           <tbody>
             {sortedResidents.map((resident, index) => (
-              <tr key={resident.badge} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
-                <td style={{ 
-                  border: '1px solid #000',
-                  padding: '6px',
-                  fontWeight: 'bold',
-                  color: '#0066cc'
-                }}>
+              <tr
+                key={resident.badge}
+                style={{
+                  backgroundColor: index % 2 === 0 ? "#fff" : "#f9f9f9",
+                }}
+              >
+                <td
+                  style={{
+                    border: "1px solid #000",
+                    padding: "6px",
+                    fontWeight: "bold",
+                    color: "#0066cc",
+                  }}
+                >
                   {resident.badge}
                 </td>
-                <td style={{ 
-                  border: '1px solid #000',
-                  padding: '6px',
-                  fontWeight: '500'
-                }}>
+                <td
+                  style={{
+                    border: "1px solid #000",
+                    padding: "6px",
+                    fontWeight: "500",
+                  }}
+                >
                   {resident.lastName}, {resident.firstName}
                 </td>
-                <td style={{ 
-                  border: '1px solid #000',
-                  padding: '6px'
-                }}>
-                  {resident.room || 'Niet toegewezen'}
+                <td
+                  style={{
+                    border: "1px solid #000",
+                    padding: "6px",
+                  }}
+                >
+                  {resident.room || "Niet toegewezen"}
                 </td>
-                <td style={{ 
-                  border: '1px solid #000',
-                  padding: '6px'
-                }}>
+                <td
+                  style={{
+                    border: "1px solid #000",
+                    padding: "6px",
+                  }}
+                >
                   {resident.nationality}
                 </td>
-                <td style={{ 
-                  border: '1px solid #000',
-                  padding: '6px',
-                  textAlign: 'center',
-                  fontWeight: 'bold',
-                  color: resident.status === 'Actief' ? '#008000' : '#cc0000'
-                }}>
+                <td
+                  style={{
+                    border: "1px solid #000",
+                    padding: "6px",
+                    textAlign: "center",
+                    fontWeight: "bold",
+                    color: resident.status === "Actief" ? "#008000" : "#cc0000",
+                  }}
+                >
                   {resident.status}
                 </td>
               </tr>
@@ -735,14 +1110,16 @@ function AdministrativeDocumentsPageContent() {
         </table>
 
         {/* Print Footer */}
-        <div style={{
-          marginTop: '20px',
-          fontSize: '8px',
-          color: '#666',
-          textAlign: 'center',
-          borderTop: '1px solid #ccc',
-          paddingTop: '10px'
-        }}>
+        <div
+          style={{
+            marginTop: "20px",
+            fontSize: "8px",
+            color: "#666",
+            textAlign: "center",
+            borderTop: "1px solid #ccc",
+            paddingTop: "10px",
+          }}
+        >
           OOC Steenokkerzeel - Administratieve Documenten | Pagina 1
         </div>
       </div>
