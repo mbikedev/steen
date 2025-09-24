@@ -55,7 +55,6 @@ const Toewijzingen = () => {
   const [tempValue, setTempValue] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
-  const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState<string | null>(null);
   const [showColorMenu, setShowColorMenu] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,35 +124,6 @@ const Toewijzingen = () => {
     [],
   );
 
-  const deleteGridData = useCallback(
-    async (rowNumber: number, columnNumber: number) => {
-      try {
-        const response = await fetch(
-          `/api/toewijzingen/grid?row_number=${rowNumber}&column_number=${columnNumber}`,
-          {
-            method: "DELETE",
-          },
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Failed to delete grid data from database:", errorText);
-          throw new Error(
-            `Failed to delete: ${response.status} ${response.statusText}`,
-          );
-        }
-
-        const data = await response.json();
-        console.log("Grid data deleted successfully:", data);
-        return data;
-      } catch (error) {
-        console.error("Error deleting grid data from database:", error);
-        throw error; // Re-throw to allow caller to handle
-      }
-    },
-    [],
-  );
-
   const persistResidentCells = useCallback(
     async (cells: CellData, colors: CellColorData) => {
       const pending: Array<Promise<any>> = [];
@@ -167,12 +137,10 @@ const Toewijzingen = () => {
           const color = colors[cellKey] ?? null;
 
           pending.push(
-            saveGridData(row, column, residentName, undefined).catch(
-              (error) => {
-                console.warn(`Failed to persist cell ${cellKey}:`, error);
-                // Don't fail the whole batch if one cell fails
-              },
-            ),
+            saveGridData(row, column, residentName, color).catch((error) => {
+              console.warn(`Failed to persist cell ${cellKey}:`, error);
+              // Don't fail the whole batch if one cell fails
+            }),
           );
 
           if (pending.length >= 10) {
@@ -314,74 +282,6 @@ const Toewijzingen = () => {
     setShowColorMenu(null);
   };
 
-  const saveAllStaffData = async () => {
-    const defaultStaff = [
-      { position: 1, name: "Kris B" },
-      { position: 2, name: "Torben" },
-      { position: 3, name: "Didar" },
-      { position: 4, name: "Dorien" },
-      { position: 5, name: "Evelien" },
-      { position: 6, name: "Yasmina" },
-      { position: 7, name: "Imane" },
-      { position: 8, name: "Kirsten" },
-      { position: 9, name: "Monica" },
-    ];
-
-    for (const staff of defaultStaff) {
-      try {
-        await fetch("/api/toewijzingen/staff", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(staff),
-        });
-      } catch (error) {
-        console.error("Error saving staff:", staff.name, error);
-      }
-    }
-  };
-
-  const saveAllGridData = async () => {
-    for (const [cellKey, residentName] of Object.entries(cellData)) {
-      if (residentName && residentName.trim() !== "") {
-        const [rowStr, colStr] = cellKey.split("-");
-        const rowNumber = parseInt(rowStr);
-        const columnNumber = parseInt(colStr);
-
-        try {
-          await fetch("/api/toewijzingen/grid", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              row_number: rowNumber,
-              column_number: columnNumber,
-              resident_name: residentName,
-            }),
-          });
-        } catch (error) {
-          console.error("Error saving grid data:", cellKey, error);
-        }
-      }
-    }
-  };
-
-  const saveAllData = async () => {
-    setLoading(true);
-    try {
-      await saveAllStaffData();
-      await saveAllGridData();
-      alert("All data saved successfully!");
-    } catch (error) {
-      console.error("Error saving all data:", error);
-      alert("Error saving data. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const setupDatabase = async () => {
     setLoading(true);
     try {
@@ -395,253 +295,16 @@ const Toewijzingen = () => {
       const result = await response.json();
 
       if (response.ok) {
-        alert("Database setup completed successfully!");
+        alert("Database setup succesvol voltooid!");
         // Reload data after setup
         await loadData();
       } else {
         console.error("Setup error:", result);
-        alert("Database setup failed. Please check console for details.");
+        alert("Database setup mislukt. Controleer de console voor details.");
       }
     } catch (error) {
       console.error("Error setting up database:", error);
-      alert("Error setting up database. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const applyExcelColors = async () => {
-    setLoading(true);
-    try {
-      // Color mapping from Excel template-1.xlsx (corrected based on analysis)
-      const residentColorMap: { [key: string]: ColorStatus } = {
-        // Red cells (FFFF0000) - Adult/Legal age
-        "Girmay Filmon Tesfamichael": "red",
-        "Mohammed Seid Abdelkhadr": "red",
-        "Sahle Ruta Weldeslasie": "red",
-        "Tewelde Faniel Tesfaldet": "red",
-        "Gebrezgabiher Thomas Zeray": "red",
-        "Berhane Muzit Mehari": "red",
-        "Diomande Mory": "red",
-        "Teklemichael Simon Luul": "red",
-        "Mahtsen Ambesajer Teklab": "red",
-        "Da Silva Kumpbela Marta": "red",
-        "Kahsay Merhawi Mengstu": "red",
-        "Berhe Maebel Kebedom": "red",
-        "Kidane Daniel Berhe": "red",
-        "Zere Fanuel Shewit": "red",
-        "Nazari Ahmad Zafar": "red",
-        "Camara Christine": "red",
-        "Geremariam Aman Teklezgi": "red",
-
-        // Blue cells (FF0070C0) - Transfer pending
-        "Gebremariam Adhanom Measho": "blue",
-        "Hakimi Shaheen": "blue",
-        "Haile Merhawi Weldu": "blue",
-
-        // Additional residents that may have colors (Excel parsing issues)
-        "Abdela Selah Ali": "gray", // Had parsing error, treating as uncertain
-        "ABDELA Omer Suleman": "gray", // Had parsing error, treating as uncertain
-        "Isak Diana Tesfu": "gray", // Had parsing error, treating as uncertain
-        "Luzizila Ngongo Grace Albertine": "gray", // Had parsing error, treating as uncertain
-        "Lizizila Ngongo Merveille Albertine": "gray", // Had parsing error, treating as uncertain
-        "Abdulrahman EL TAHHAN": "gray", // Had parsing error, treating as uncertain
-        "Lizizila Ngongo Junior": "gray", // Had parsing error, treating as uncertain
-        "Ahmed Ibrahim SHATA": "gray", // Had parsing error, treating as uncertain
-        "Seim Tsehaye Kidane": "gray", // Had parsing error, treating as uncertain
-        "Ebrahim Mohammed Abdullah Tahmer": "gray", // Had parsing error, treating as uncertain
-        "Mansoor Sherzad": "gray", // Had parsing error, treating as uncertain
-        "KHAROTI Ahmad": "gray", // Had parsing error, treating as uncertain
-        "Panzo David Joao Garcia": "gray", // Had parsing error, treating as uncertain
-        "Mawambi Jair Carlos": "gray", // Had parsing error, treating as uncertain
-      };
-
-      // Find and apply colors to matching resident names
-      const updatedColors: CellColorData = { ...cellColors };
-      let updatedCount = 0;
-      const processedNames: string[] = [];
-
-      // Normalize name function for better matching
-      const normalizeName = (name: string) => {
-        return name.trim().toLowerCase().replace(/\s+/g, " ");
-      };
-
-      // Create normalized lookup map
-      const normalizedColorMap: {
-        [key: string]: { originalName: string; color: ColorStatus };
-      } = {};
-      Object.entries(residentColorMap).forEach(([name, color]) => {
-        normalizedColorMap[normalizeName(name)] = { originalName: name, color };
-      });
-
-      for (let row = RESIDENT_ROW_MIN; row <= RESIDENT_ROW_MAX; row++) {
-        for (let column = IB_COLUMN_MIN; column <= IB_COLUMN_MAX; column++) {
-          const cellKey = `${row}-${column}`;
-          const residentName = cellData[cellKey];
-
-          if (residentName && residentName.trim()) {
-            const normalizedResidentName = normalizeName(residentName);
-
-            // Try exact match first
-            let matchFound = false;
-            if (normalizedColorMap[normalizedResidentName]) {
-              const { originalName, color } =
-                normalizedColorMap[normalizedResidentName];
-              updatedColors[cellKey] = color;
-              updatedCount++;
-              processedNames.push(
-                `"${residentName}" -> ${color} (exact match with "${originalName}")`,
-              );
-
-              // Save to database
-              await saveGridData(row, column, residentName, color);
-              matchFound = true;
-            }
-
-            // If no exact match, try partial matching for common variations
-            if (!matchFound) {
-              for (const [
-                normalizedExcelName,
-                { originalName, color },
-              ] of Object.entries(normalizedColorMap)) {
-                // Check if names contain each other (for name variations)
-                if (
-                  (normalizedResidentName.includes(normalizedExcelName) ||
-                    normalizedExcelName.includes(normalizedResidentName)) &&
-                  Math.abs(
-                    normalizedResidentName.length - normalizedExcelName.length,
-                  ) < 10
-                ) {
-                  updatedColors[cellKey] = color;
-                  updatedCount++;
-                  processedNames.push(
-                    `"${residentName}" -> ${color} (partial match with "${originalName}")`,
-                  );
-
-                  // Save to database
-                  await saveGridData(row, column, residentName, color);
-                  matchFound = true;
-                  break;
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // Update state
-      setCellColors(updatedColors);
-
-      // Show detailed results
-      const detailMessage =
-        processedNames.length > 0
-          ? `\n\nDetails:\n${processedNames.join("\n")}`
-          : "\n\nNo resident names matched the Excel template.";
-
-      alert(
-        `Applied colors to ${updatedCount} resident assignments!${detailMessage}`,
-      );
-    } catch (error) {
-      console.error("Error applying Excel colors:", error);
-      alert("Error applying colors. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkColorColumn = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/toewijzingen/add-color-column", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        alert(
-          "✅ Color status column is ready! You can now apply Excel colors.",
-        );
-      } else if (result.needsManualSetup) {
-        alert(
-          `❌ Color column needs manual setup.\n\nPlease run this SQL in your Supabase dashboard:\n\n${result.suggestion}\n\nAfter running this SQL, the gray colors will work properly.`,
-        );
-      } else {
-        alert(`Error checking color column: ${result.message}`);
-      }
-    } catch (error) {
-      console.error("Error checking color column:", error);
-      alert("Error checking color column. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const clearColorsFromEmptyCells = async () => {
-    setLoading(true);
-    try {
-      const updatedColors: CellColorData = { ...cellColors };
-      let clearedCount = 0;
-      const clearedCells: string[] = [];
-
-      // Check all cells in the grid (resident cells and backup cells)
-      for (let row = RESIDENT_ROW_MIN; row <= RESIDENT_ROW_MAX; row++) {
-        for (let column = IB_COLUMN_MIN; column <= IB_COLUMN_MAX; column++) {
-          const cellKey = `${row}-${column}`;
-          const residentName = cellData[cellKey];
-
-          // If cell is empty but has a color, remove the color
-          if (
-            (!residentName || residentName.trim() === "") &&
-            updatedColors[cellKey]
-          ) {
-            delete updatedColors[cellKey];
-            clearedCount++;
-            clearedCells.push(cellKey);
-
-            // Update database to remove color
-            await saveGridData(row, column, "", null);
-          }
-        }
-      }
-
-      // Also check backup rows (15-17, columns 0-9)
-      for (let row = 15; row <= 17; row++) {
-        for (let column = 0; column <= 9; column++) {
-          const cellKey = `${row}-${column}`;
-          const residentName = cellData[cellKey];
-
-          // If cell is empty but has a color, remove the color
-          if (
-            (!residentName || residentName.trim() === "") &&
-            updatedColors[cellKey]
-          ) {
-            delete updatedColors[cellKey];
-            clearedCount++;
-            clearedCells.push(cellKey);
-
-            // Update database to remove color
-            await saveGridData(row, column, "", null);
-          }
-        }
-      }
-
-      // Update state
-      setCellColors(updatedColors);
-
-      if (clearedCount > 0) {
-        alert(
-          `Cleared colors from ${clearedCount} empty cells!\n\nCells cleared: ${clearedCells.join(", ")}`,
-        );
-      } else {
-        alert("No colors found in empty cells.");
-      }
-    } catch (error) {
-      console.error("Error clearing colors from empty cells:", error);
-      alert("Error clearing colors. Please try again.");
+      alert("Fout bij het instellen van database. Probeer het opnieuw.");
     } finally {
       setLoading(false);
     }
@@ -694,7 +357,14 @@ const Toewijzingen = () => {
         const [rowStr, colStr] = cellKey.split("-");
         const rowNumber = parseInt(rowStr);
         const columnNumber = parseInt(colStr);
-        await saveGridData(rowNumber, columnNumber, residentName, undefined);
+        // Preserve existing color when pasting
+        const existingColor = cellColors[cellKey] ?? undefined;
+        await saveGridData(
+          rowNumber,
+          columnNumber,
+          residentName,
+          existingColor,
+        );
 
         if (
           rowNumber >= RESIDENT_ROW_MIN &&
@@ -710,10 +380,10 @@ const Toewijzingen = () => {
         }
       }
 
-      alert(`Pasted ${Object.keys(pastedData).length} cells successfully!`);
+      alert(`${Object.keys(pastedData).length} cellen succesvol geplakt!`);
     } catch (error) {
       console.error("Error pasting data:", error);
-      alert("Error pasting data. Please try again.");
+      alert("Fout bij het plakken van gegevens. Probeer het opnieuw.");
     }
   };
 
@@ -777,49 +447,6 @@ const Toewijzingen = () => {
     }
   };
 
-  const clearSelectedCells = async () => {
-    if (selectedCells.size === 0) {
-      alert("No cells selected. Use Ctrl/Cmd+Click to select cells.");
-      return;
-    }
-
-    const confirmMessage = `Clear ${selectedCells.size} selected cell${selectedCells.size > 1 ? "s" : ""}?`;
-    if (!confirm(confirmMessage)) return;
-
-    setLoading(true);
-    try {
-      // Clear each selected cell
-      for (const cellId of selectedCells) {
-        const [rowStr, colStr] = cellId.split("-");
-        const rowNumber = parseInt(rowStr);
-        const columnNumber = parseInt(colStr);
-
-        // Update local state first
-        setCellData((prev) => {
-          const newData = { ...prev };
-          delete newData[cellId];
-          return newData;
-        });
-        setCellColors((prev) => {
-          const newColors = { ...prev };
-          delete newColors[cellId];
-          return newColors;
-        });
-
-        // Delete from database by sending empty string (API will handle deletion)
-        await saveGridData(rowNumber, columnNumber, "", undefined);
-      }
-
-      setSelectedCells(new Set());
-      alert(`Cleared ${selectedCells.size} cells successfully!`);
-    } catch (error) {
-      console.error("Error clearing selected cells:", error);
-      alert("Error clearing cells. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const clearAllCells = async () => {
     const residentCells: string[] = [];
     const allColoredCells: string[] = [];
@@ -852,11 +479,11 @@ const Toewijzingen = () => {
     }
 
     if (residentCells.length === 0 && allColoredCells.length === 0) {
-      alert("No data or colors to clear.");
+      alert("Geen gegevens of kleuren om te wissen.");
       return;
     }
 
-    const confirmMessage = `Clear ALL ${residentCells.length} resident assignments and ${allColoredCells.length} cell colors? This cannot be undone!`;
+    const confirmMessage = `ALLE ${residentCells.length} bewonerstoewijzingen en ${allColoredCells.length} celkleuren wissen? Dit kan niet ongedaan worden gemaakt!`;
     if (!confirm(confirmMessage)) return;
 
     setLoading(true);
@@ -886,11 +513,11 @@ const Toewijzingen = () => {
 
       setSelectedCells(new Set());
       alert(
-        `Cleared ${residentCells.length} cells and ${allColoredCells.length} colors successfully!`,
+        `${residentCells.length} cellen en ${allColoredCells.length} kleuren succesvol gewist!`,
       );
     } catch (error) {
       console.error("Error clearing all cells:", error);
-      alert("Error clearing cells. Please try again.");
+      alert("Fout bij het wissen van cellen. Probeer het opnieuw.");
     } finally {
       setLoading(false);
     }
@@ -939,7 +566,7 @@ const Toewijzingen = () => {
       console.log(`Successfully saved staff position ${position}`);
     } catch (error) {
       console.error(`Failed to save staff position ${position}:`, error);
-      alert(`Failed to save staff name. Please try again.`);
+      alert(`Fout bij het opslaan van personeelsnaam. Probeer het opnieuw.`);
     }
 
     setEditingCell(null);
@@ -1019,7 +646,7 @@ const Toewijzingen = () => {
       console.log(`Successfully saved cell ${cellId} to database`);
     } catch (error) {
       console.error(`Failed to save cell ${cellId}:`, error);
-      alert(`Failed to save cell data. Please try again.`);
+      alert(`Fout bij het opslaan van celgegevens. Probeer het opnieuw.`);
     }
 
     const trimmedValue = tempValue.trim();
@@ -1157,12 +784,12 @@ const Toewijzingen = () => {
           }
 
           alert(
-            `Successfully imported ${Object.keys(importedCellData).length} resident assignments!`,
+            `${Object.keys(importedCellData).length} bewonerstoewijzingen succesvol geïmporteerd!`,
           );
         } catch (error) {
           console.error("Error saving imported data:", error);
           alert(
-            "Data imported locally but failed to save to database. Data will still be visible.",
+            "Gegevens lokaal geïmporteerd maar opslaan in database mislukt. Gegevens zijn nog steeds zichtbaar.",
           );
         } finally {
           setLoading(false);
@@ -1173,9 +800,9 @@ const Toewijzingen = () => {
           fileInputRef.current.value = "";
         }
       } catch (error) {
-        console.error("Error reading Excel file:", error);
+        console.error("Fout bij lezen Excel bestand:", error);
         alert(
-          "Error reading Excel file. Please check the file format and try again.",
+          "Fout bij lezen Excel bestand. Controleer het bestandsformaat en probeer opnieuw.",
         );
         setLoading(false);
       }
@@ -1189,11 +816,31 @@ const Toewijzingen = () => {
     // Format: Columns A-I are for resident data (mapping to grid columns 1-9, column A maps to Kris B)
     const templateData = [
       // Row 1 - Maps to grid row 3 (number 1) - Column A maps to Kris B
-      ["Sample Resident 1", "", "Sample Resident 2", "", "", "", "", "", ""],
+      [
+        "Voorbeeld Bewoner 1",
+        "",
+        "Voorbeeld Bewoner 2",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
       // Row 2 - Maps to grid row 4 (number 2)
-      ["", "Sample Resident 3", "", "", "Sample Resident 4", "", "", "", ""],
+      [
+        "",
+        "Voorbeeld Bewoner 3",
+        "",
+        "",
+        "Voorbeeld Bewoner 4",
+        "",
+        "",
+        "",
+        "",
+      ],
       // Row 3 - Maps to grid row 5 (number 3)
-      ["", "", "", "", "", "Sample Resident 5", "", "", ""],
+      ["", "", "", "", "", "Voorbeeld Bewoner 5", "", "", ""],
       // Row 4 - Maps to grid row 6 (number 4)
       ["", "", "", "", "", "", "", "", ""],
       // Row 5 - Maps to grid row 7 (number 5)
@@ -1379,7 +1026,7 @@ const Toewijzingen = () => {
             <h1 className="text-2xl font-bold">Toewijzingen</h1>
           </div>
           <div className="flex justify-center items-center h-64">
-            <div className="text-lg">Loading...</div>
+            <div className="text-lg">Laden...</div>
           </div>
         </div>
       </div>
@@ -1410,16 +1057,16 @@ const Toewijzingen = () => {
               onClick={clearAllCells}
               disabled={loading}
               className="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              title="Clear all resident assignments"
+              title="Alle bewonerstoewijzingen wissen"
             >
               <Trash2 className="h-4 w-4" />
-              Clear All
+              Alles Wissen
             </button>
             <button
               onClick={addNewRow}
               disabled={loading}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              title="Add new row"
+              title="Nieuwe rij toevoegen"
             >
               <svg
                 className="h-4 w-4"
@@ -1434,13 +1081,13 @@ const Toewijzingen = () => {
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              Add Row
+              Rij Toevoegen
             </button>
             <button
               onClick={addNewColumn}
               disabled={loading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              title="Add new column"
+              title="Nieuwe kolom toevoegen"
             >
               <svg
                 className="h-4 w-4"
@@ -1455,7 +1102,7 @@ const Toewijzingen = () => {
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              Add Column
+              Kolom Toevoegen
             </button>
             <button
               onClick={downloadTemplate}
@@ -1463,23 +1110,23 @@ const Toewijzingen = () => {
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
-              Template
+              Sjabloon
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={loading}
               className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              title="Import Excel file (11 rows x 9 columns - uses columns A-I, maps to grid rows 3-13, columns 1-9)"
+              title="Excel-bestand importeren (11 rijen x 9 kolommen - gebruikt kolommen A-I, wordt toegewezen aan rasterrijen 3-13, kolommen 1-9)"
             >
               <Upload className="h-4 w-4" />
-              Import Excel (11x9)
+              Excel Importeren (11x9)
             </button>
             <button
               onClick={setupDatabase}
               disabled={loading}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? "Setting up..." : "Setup Database"}
+              {loading ? "Instellen..." : "Database Instellen"}
             </button>
           </div>
         </div>
@@ -1547,7 +1194,7 @@ const Toewijzingen = () => {
                             }
                           }}
                           className="p-1 hover:bg-red-200 dark:hover:bg-red-800 rounded text-red-600 dark:text-red-400"
-                          title="Clear all backup cells"
+                          title="Alle backup cellen wissen"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -1631,7 +1278,7 @@ const Toewijzingen = () => {
                                     onClick={() =>
                                       handleStaffCellClick(colIndex, staffName)
                                     }
-                                    title="Click to edit staff name"
+                                    title="Klik om personeelsnaam te bewerken"
                                   >
                                     {staffName}
                                   </div>
@@ -1707,7 +1354,7 @@ const Toewijzingen = () => {
                                           );
                                         }}
                                         className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded dark:text-white"
-                                        title="Set color status"
+                                        title="Kleurstatus instellen"
                                       >
                                         <Palette className="h-3 w-3" />
                                       </button>
@@ -1728,7 +1375,7 @@ const Toewijzingen = () => {
                                       className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                     >
                                       <span className="w-3 h-3 bg-red-500 rounded"></span>
-                                      Adult (Legal age)
+                                      Volwassen (Meerderjarig)
                                     </button>
                                     <button
                                       onClick={() =>
@@ -1737,7 +1384,7 @@ const Toewijzingen = () => {
                                       className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                     >
                                       <span className="w-3 h-3 bg-blue-500 rounded"></span>
-                                      Transfer pending
+                                      Transfer
                                     </button>
                                     <button
                                       onClick={() =>
@@ -1746,7 +1393,7 @@ const Toewijzingen = () => {
                                       className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                     >
                                       <span className="w-3 h-3 bg-gray-500 rounded"></span>
-                                      Age uncertain
+                                      Leeftijdstwijfel
                                     </button>
                                     <button
                                       onClick={() =>
@@ -1755,7 +1402,7 @@ const Toewijzingen = () => {
                                       className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                     >
                                       <span className="w-3 h-3 border border-gray-400 rounded"></span>
-                                      Clear status
+                                      Status wissen
                                     </button>
                                   </div>
                                 )}
@@ -1869,7 +1516,7 @@ const Toewijzingen = () => {
                                             }
                                           }}
                                           className="p-1 hover:bg-red-200 dark:hover:bg-red-800 rounded text-red-600 dark:text-red-400"
-                                          title="Delete cell content"
+                                          title="Celinhoud verwijderen"
                                         >
                                           <X className="h-3 w-3" />
                                         </button>
@@ -1891,7 +1538,7 @@ const Toewijzingen = () => {
                                       className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                     >
                                       <span className="w-3 h-3 bg-red-500 rounded"></span>
-                                      Adult (Legal age)
+                                      Volwassen (Meerderjarig)
                                     </button>
                                     <button
                                       onClick={() =>
@@ -1900,7 +1547,7 @@ const Toewijzingen = () => {
                                       className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                     >
                                       <span className="w-3 h-3 bg-blue-500 rounded"></span>
-                                      Transfer pending
+                                      Transfer
                                     </button>
                                     <button
                                       onClick={() =>
@@ -1909,7 +1556,7 @@ const Toewijzingen = () => {
                                       className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                     >
                                       <span className="w-3 h-3 bg-gray-500 rounded"></span>
-                                      Age uncertain
+                                      Leeftijdstwijfel
                                     </button>
                                     <button
                                       onClick={() =>
@@ -1918,7 +1565,7 @@ const Toewijzingen = () => {
                                       className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                     >
                                       <span className="w-3 h-3 border border-gray-400 rounded"></span>
-                                      Clear status
+                                      Status wissen
                                     </button>
                                   </div>
                                 )}
