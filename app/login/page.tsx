@@ -1,11 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Eye, EyeOff, Lock, Mail, Shield, Sparkles, AlertCircle, CheckCircle } from 'lucide-react';
-import { useAuth } from '../../lib/AuthContext';
-import { ThemeToggle } from '../components/ui/theme-toggle';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  Shield,
+  Sparkles,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
+import { useAuth } from "../../lib/AuthContext";
+import { ThemeToggle } from "../components/ui/theme-toggle";
 
 interface LoginFormData {
   email: string;
@@ -15,9 +24,9 @@ interface LoginFormData {
 
 export default function LoginPage() {
   const [formData, setFormData] = useState<LoginFormData>({
-    email: '',
-    password: '',
-    rememberMe: false
+    email: "",
+    password: "",
+    rememberMe: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +40,7 @@ export default function LoginPage() {
     setMounted(true);
     // Check if already logged in
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
   }, [router, isAuthenticated]);
 
@@ -48,9 +57,9 @@ export default function LoginPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
     // Clear errors when user starts typing
     if (error) setError(null);
@@ -58,19 +67,19 @@ export default function LoginPage() {
 
   const validateForm = () => {
     if (!formData.email.trim()) {
-      setError('Email is verplicht');
+      setError("Email is verplicht");
       return false;
     }
-    if (!formData.email.includes('@')) {
-      setError('Voer een geldig email adres in');
+    if (!formData.email.includes("@")) {
+      setError("Voer een geldig email adres in");
       return false;
     }
     if (!formData.password.trim()) {
-      setError('Wachtwoord is verplicht');
+      setError("Wachtwoord is verplicht");
       return false;
     }
     if (formData.password.length < 6) {
-      setError('Wachtwoord moet minimaal 6 tekens zijn');
+      setError("Wachtwoord moet minimaal 6 tekens zijn");
       return false;
     }
     return true;
@@ -84,44 +93,38 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const success = await login(formData.email, formData.password, formData.rememberMe);
-      
-      if (success) {
-        setSuccess('Succesvol ingelogd!');
+      const result = await login(formData.email, formData.password);
+
+      if (result.success) {
+        setSuccess("Succesvol ingelogd!");
         // Redirect after short delay
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push("/dashboard");
         }, 1500);
       } else {
-        setError('Ongeldige inloggegevens');
+        setError(result.error || "Ongeldige inloggegevens");
       }
     } catch (error) {
-      console.error('Login error:', error instanceof Error ? error.message : 'Unknown error');
-      setError('Er is een fout opgetreden. Probeer opnieuw.');
+      console.error(
+        "Login error:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      setError("Er is een fout opgetreden. Probeer opnieuw.");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleDemoLogin = () => {
-    setFormData({
-      email: 'admin@ooc.be',
-      password: 'admin123',
-      rememberMe: false
-    });
-    setError(null);
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,#fff,rgba(255,255,255,0.6))] dark:bg-grid-slate-700/25 dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.5))]" />
-      
+
       {/* Theme Toggle - Top Right */}
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle />
       </div>
-      
+
       <div className="relative w-full max-w-md">
         {/* Logo Section */}
         <div className="text-center mb-8">
@@ -165,31 +168,14 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Demo Credentials Info */}
-          <div className="mb-6 p-4 bg-muted border border-border rounded-xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Demo Account</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Email: admin@ooc.be<br />
-                  Wachtwoord: admin123
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleDemoLogin}
-                className="px-3 py-1.5 text-xs bg-foreground hover:bg-foreground/90 text-background rounded-lg transition-colors font-medium"
-              >
-                Gebruik Demo
-              </button>
-            </div>
-          </div>
-
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Input */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
                 Email Adres
               </label>
               <div className="relative">
@@ -212,7 +198,10 @@ export default function LoginPage() {
 
             {/* Password Input */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
                 Wachtwoord
               </label>
               <div className="relative">
@@ -255,7 +244,10 @@ export default function LoginPage() {
                   onChange={handleInputChange}
                   className="h-4 w-4 text-primary focus:ring-ring border-input rounded bg-white dark:bg-gray-700"
                 />
-                <label htmlFor="rememberMe" className="ml-2 block text-sm text-foreground">
+                <label
+                  htmlFor="rememberMe"
+                  className="ml-2 block text-sm text-foreground"
+                >
                   Ingelogd blijven
                 </label>
               </div>
@@ -271,18 +263,34 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+              className="w-full flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
             >
               {isLoading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary-foreground"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Inloggen...
                 </>
               ) : (
-                'Inloggen'
+                "Inloggen"
               )}
             </button>
           </form>
@@ -290,7 +298,7 @@ export default function LoginPage() {
           {/* Footer Links */}
           <div className="mt-8 pt-6 border-t border-border">
             <p className="text-center text-sm text-muted-foreground">
-              Geen account?{' '}
+              Geen account?{" "}
               <Link
                 href="/signup"
                 className="font-medium text-foreground hover:text-foreground/80 transition-colors"

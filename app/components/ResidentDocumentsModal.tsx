@@ -693,33 +693,33 @@ export default function ResidentDocumentsModal({
                     <img
                       src={residentPhoto}
                       alt={`${resident.firstName} ${resident.lastName}`}
-                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-4 border-white shadow-lg"
+                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-4 border-primary-foreground shadow-lg"
                     />
                   ) : (
                     <div
-                      className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full p-2 sm:p-3 flex items-center justify-center shadow-lg"
+                      className="w-12 h-12 sm:w-16 sm:h-16 bg-background rounded-full p-2 sm:p-3 flex items-center justify-center shadow-lg"
                       title="Geen foto beschikbaar - Upload een foto in Bewoners Overzicht"
                     >
                       <User className="w-6 h-6 sm:w-10 sm:h-10 text-foreground" />
                     </div>
                   )}
                 </div>
-                <div className="text-white min-w-0 flex-1">
+                <div className="text-primary-foreground min-w-0 flex-1">
                   <h2 className="text-lg sm:text-xl lg:text-2xl font-bold truncate">
                     {resident.firstName} {resident.lastName}
                   </h2>
                   <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2 lg:space-x-4 mt-1">
-                    <span className="flex items-center bg-white/20 backdrop-blur-sm px-2 py-1 rounded-lg text-white text-xs sm:text-sm">
+                    <span className="flex items-center bg-primary-foreground/20 backdrop-blur-sm px-2 py-1 rounded-lg text-primary-foreground text-xs sm:text-sm">
                       <Hash className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       Badge:{" "}
-                      <span className="text-yellow-300 font-semibold ml-1">
+                      <span className="text-primary-foreground font-bold ml-1">
                         {resident.badge}
                       </span>
                     </span>
-                    <span className="flex items-center bg-white/20 backdrop-blur-sm px-2 py-1 rounded-lg text-white text-xs sm:text-sm">
+                    <span className="flex items-center bg-primary-foreground/20 backdrop-blur-sm px-2 py-1 rounded-lg text-primary-foreground text-xs sm:text-sm">
                       <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       Kamer:{" "}
-                      <span className="text-foreground font-semibold ml-1">
+                      <span className="text-primary-foreground font-bold ml-1">
                         {resident.room || "Niet toegewezen"}
                       </span>
                     </span>
@@ -754,7 +754,7 @@ export default function ResidentDocumentsModal({
                     }
                   }, 10);
                 }}
-                className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1.5 sm:p-2 transition-colors flex-shrink-0"
+                className="text-primary-foreground hover:bg-primary-foreground hover:bg-opacity-20 rounded-full p-1.5 sm:p-2 transition-colors flex-shrink-0"
               >
                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
@@ -897,7 +897,7 @@ export default function ResidentDocumentsModal({
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-full sm:w-auto px-3 py-2 text-sm border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-foreground dark:text-foreground"
+                      className="w-full sm:w-auto px-3 py-2 text-sm border border-border rounded-md bg-background text-foreground"
                     >
                       {categories.map((cat) => (
                         <option key={cat} value={cat}>
@@ -913,7 +913,7 @@ export default function ResidentDocumentsModal({
                     <select
                       value={selectedDocumentType}
                       onChange={(e) => setSelectedDocumentType(e.target.value)}
-                      className="w-full sm:w-auto px-3 py-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-foreground dark:text-foreground text-sm"
+                      className="w-full sm:w-auto px-3 py-2 border border-border rounded-md bg-background text-foreground text-sm"
                       title="Selecteer documenttype voor betere organisatie"
                     >
                       <option value="other">Selecteer Documenttype</option>
@@ -978,11 +978,11 @@ export default function ResidentDocumentsModal({
                   {filteredDocuments.map((doc) => (
                     <div
                       key={doc.id}
-                      className="bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-lg p-3 sm:p-4 hover:shadow-lg transition-shadow relative"
+                      className="bg-card border border-border rounded-lg p-3 sm:p-4 hover:shadow-lg transition-shadow relative"
                     >
                       {/* Delete Confirmation */}
                       {deleteConfirm === doc.id && (
-                        <div className="absolute inset-0 bg-white dark:bg-gray-700 rounded-lg p-3 sm:p-4 flex flex-col justify-center items-center z-10">
+                        <div className="absolute inset-0 bg-card rounded-lg p-3 sm:p-4 flex flex-col justify-center items-center z-10">
                           <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-foreground mb-2" />
                           <p className="text-xs sm:text-sm text-center mb-3 text-foreground dark:text-foreground">
                             Dit document verwijderen?
@@ -996,7 +996,7 @@ export default function ResidentDocumentsModal({
                             </button>
                             <button
                               onClick={() => setDeleteConfirm(null)}
-                              className="px-2 sm:px-3 py-1 bg-gray-300 dark:bg-gray-600 text-foreground dark:text-gray-300 rounded text-xs sm:text-sm hover:bg-gray-400"
+                              className="px-2 sm:px-3 py-1 bg-muted text-muted-foreground rounded text-xs sm:text-sm hover:bg-muted/80"
                             >
                               Annuleren
                             </button>
@@ -1028,7 +1028,7 @@ export default function ResidentDocumentsModal({
                                   ? "bg-accent text-accent-foreground"
                                   : doc.documentType === "geboorteakte"
                                     ? "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300"
-                                    : "bg-gray-100 text-foreground dark:bg-gray-600 dark:text-gray-300"
+                                    : "bg-muted text-muted-foreground"
                           }`}
                           title={getDocumentLabel(doc)}
                         >
@@ -1064,7 +1064,7 @@ export default function ResidentDocumentsModal({
 
                 {filteredDocuments.length === 0 && (
                   <div className="text-center py-8 sm:py-12 px-4">
-                    <Folder className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 dark:text-muted-foreground mx-auto mb-4" />
+                    <Folder className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground dark:text-muted-foreground mb-2 text-sm sm:text-base">
                       Nog geen documenten geüpload
                     </p>
