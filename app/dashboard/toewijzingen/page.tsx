@@ -501,6 +501,55 @@ const Toewijzingen = () => {
     }
   };
 
+  const clearSelectedCells = async () => {
+    if (selectedCells.size === 0) return;
+
+    const selectedCellsArray = Array.from(selectedCells);
+    const confirmMessage = `${selectedCellsArray.length} geselecteerde cellen wissen?`;
+    if (!confirm(confirmMessage)) return;
+
+    setLoading(true);
+    try {
+      // Clear selected cells from database and local state
+      for (const cellId of selectedCellsArray) {
+        const [rowStr, colStr] = cellId.split("-");
+        const rowNumber = parseInt(rowStr);
+        const columnNumber = parseInt(colStr);
+
+        // Clear from database
+        await saveGridData(rowNumber, columnNumber, "", undefined);
+      }
+
+      // Clear local state
+      setCellData((prev) => {
+        const newData = { ...prev };
+        selectedCellsArray.forEach((cellId) => {
+          delete newData[cellId];
+        });
+        return newData;
+      });
+
+      // Clear colors for selected cells
+      setCellColors((prev) => {
+        const newColors = { ...prev };
+        selectedCellsArray.forEach((cellId) => {
+          delete newColors[cellId];
+        });
+        return newColors;
+      });
+
+      // Clear selection
+      setSelectedCells(new Set());
+      
+      alert(`${selectedCellsArray.length} geselecteerde cellen succesvol gewist!`);
+    } catch (error) {
+      console.error("Error clearing selected cells:", error);
+      alert("Fout bij het wissen van geselecteerde cellen. Probeer het opnieuw.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const clearAllCells = async () => {
     const residentCells: string[] = [];
     const allColoredCells: string[] = [];
@@ -1554,7 +1603,7 @@ const Toewijzingen = () => {
           ref={fileInputRef}
           type="file"
           accept=".xlsx,.xls"
-          onChange={handleFileImport}
+          onChange={handleExcelImport}
           style={{ display: "none" }}
         />
       </div>
