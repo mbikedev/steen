@@ -282,6 +282,60 @@ const Toewijzingen = () => {
     setShowColorMenu(null);
   };
 
+  const saveAllStaffData = async () => {
+    const defaultStaff = [
+      { position: 1, name: "Kris B" },
+      { position: 2, name: "Torben" },
+      { position: 3, name: "Didar" },
+      { position: 4, name: "Dorien" },
+      { position: 5, name: "Evelien" },
+      { position: 6, name: "Yasmina" },
+      { position: 7, name: "Imane" },
+      { position: 8, name: "Kirsten" },
+      { position: 9, name: "Monica" },
+    ];
+
+    for (const staff of defaultStaff) {
+      try {
+        await fetch("/api/toewijzingen/staff", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(staff),
+        });
+      } catch (error) {
+        console.error("Error saving staff:", staff.name, error);
+      }
+    }
+  };
+
+  const saveAllGridData = async () => {
+    for (const [cellKey, residentName] of Object.entries(cellData)) {
+      if (residentName && residentName.trim() !== "") {
+        const [rowStr, colStr] = cellKey.split("-");
+        const rowNumber = parseInt(rowStr);
+        const columnNumber = parseInt(colStr);
+
+        try {
+          await fetch("/api/toewijzingen/grid", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              row_number: rowNumber,
+              column_number: columnNumber,
+              resident_name: residentName,
+            }),
+          });
+        } catch (error) {
+          console.error("Error saving grid data:", cellKey, error);
+        }
+      }
+    }
+  };
+
   const setupDatabase = async () => {
     setLoading(true);
     try {
@@ -897,118 +951,32 @@ const Toewijzingen = () => {
         return;
       }
 
-      const trimmedIbName = ibName?.trim();
-      const trimmedResidentName = residentName?.trim();
-
-      if (!trimmedIbName || !trimmedResidentName) {
-        return;
-      }
-
-      const normalizeValue = (value: string) =>
-        value
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^a-z0-9\s'-]/gi, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .toLowerCase();
-
-      const normalizedResidentName = normalizeValue(trimmedResidentName);
-      const normalizedIbName = normalizeValue(trimmedIbName);
-
-      if (!normalizedResidentName || !normalizedIbName) {
-        return;
-      }
-
-      const findByBadge = () => {
-        const badgeMatch = trimmedResidentName.match(/\b(\d{3,})\b/);
-        if (!badgeMatch) return null;
-        const normalizedBadge = badgeMatch[1].replace(/^0+/, "");
-        return (
-          dataMatchIt.find((resident: any) => {
-            if (resident?.badge == null) {
-              return false;
-            }
-            const residentBadge = String(resident.badge).replace(/^0+/, "");
-            return residentBadge === normalizedBadge;
-          }) || null
-        );
-      };
-
-      const findByName = () => {
-        const matches = dataMatchIt.filter((resident: any) => {
-          const firstName = resident?.firstName ?? resident?.first_name ?? "";
-          const lastName = resident?.lastName ?? resident?.last_name ?? "";
-          if (!firstName && !lastName) {
-            return false;
-          }
-          const firstLast = normalizeValue(`${firstName} ${lastName}`);
-          const lastFirst = normalizeValue(`${lastName} ${firstName}`);
-          return (
-            (firstLast && firstLast === normalizedResidentName) ||
-            (lastFirst && lastFirst === normalizedResidentName)
-          );
-        });
-
-        if (matches.length === 1) {
-          return matches[0];
+      const updatedResidents = dataMatchIt.map((resident: any) => {
+        const residentFullName =
+          `${resident.firstName || ""} ${resident.lastName || ""}`.trim();
+        if (residentFullName === residentName.trim()) {
+          return {
+            ...resident,
+            referencePerson: ibName,
+          };
         }
-
-        if (matches.length > 1) {
-          const exactFirstLast = matches.find((resident: any) => {
-            const first = resident?.firstName ?? resident?.first_name ?? "";
-            const last = resident?.lastName ?? resident?.last_name ?? "";
-            const firstLast = normalizeValue(`${first} ${last}`);
-            return firstLast === normalizedResidentName;
-          });
-          if (exactFirstLast) {
-            return exactFirstLast;
-          }
-          return matches[0];
-        }
-
-        return (
-          dataMatchIt.find((resident: any) => {
-            const first = resident?.firstName ?? resident?.first_name ?? "";
-            const last = resident?.lastName ?? resident?.last_name ?? "";
-            const firstLast = normalizeValue(`${first} ${last}`);
-            return (
-              firstLast &&
-              (firstLast.includes(normalizedResidentName) ||
-                normalizedResidentName.includes(firstLast))
-            );
-          }) || null
-        );
-      };
-
-      const matchedResident = findByBadge() ?? findByName();
-
-      if (!matchedResident?.id) {
-        console.warn(
-          `No matching resident found for "${trimmedResidentName}" in column ${columnNumber}; skipping referent update.`,
-        );
-        return;
-      }
-
-      const currentReference = matchedResident.reference_person ?? null;
-      if (
-        currentReference &&
-        normalizeValue(String(currentReference)) === normalizedIbName
-      ) {
-        console.log(
-          `Resident ${matchedResident.badge ?? matchedResident.id} already assigned to IB ${trimmedIbName}.`,
-        );
-        return;
-      }
-
-      console.log(
-        `Assigning IB "${trimmedIbName}" as referent for resident ${matchedResident.badge ?? matchedResident.id} (${trimmedResidentName}) in column ${columnNumber}.`,
-      );
-      updateInDataMatchIt(matchedResident.id, {
-        referencePerson: trimmedIbName,
+        return resident;
       });
+
+      const changedResident = updatedResidents.find(
+        (r: any) =>
+          `${r.firstName || ""} ${r.lastName || ""}`.trim() ===
+            residentName.trim() && r.referencePerson === ibName,
+      );
+
+      if (changedResident) {
+        updateInDataMatchIt(updatedResidents);
+      }
     } catch (error) {
-      console.error("Error updating residents referent:", error);
+      console.error(
+        `Error updating referent for resident "${residentName}" to IB "${ibName}":`,
+        error,
+      );
     }
   };
 
@@ -1046,13 +1014,15 @@ const Toewijzingen = () => {
             </a>
             <h1 className="text-2xl font-bold">Toewijzingen</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <ThemeToggle />
-          </div>
-        </div>
-
-        <div className="flex justify-end items-center mb-4">
-          <div className="flex gap-3">
+            <button
+              onClick={clearSelectedCells}
+              disabled={loading || selectedCells.size === 0}
+              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            >
+              Clear Selected ({selectedCells.size})
+            </button>
             <button
               onClick={clearAllCells}
               disabled={loading}
@@ -1156,14 +1126,14 @@ const Toewijzingen = () => {
                             console.log(
                               "Clear all backup cells button clicked",
                             );
-                            // Clear all backup cells immediately in UI
+
+                            // Clear local state for backup rows (rows 15-17)
                             const newCellData = { ...cellData };
                             const newCellColors = { ...cellColors };
                             for (let row = 15; row <= 17; row++) {
                               for (let col = 0; col <= 9; col++) {
-                                const cellId = `${row}-${col}`;
-                                delete newCellData[cellId];
-                                delete newCellColors[cellId];
+                                delete newCellData[`${row}-${col}`];
+                                delete newCellColors[`${row}-${col}`];
                               }
                             }
                             setCellData(newCellData);
@@ -1172,7 +1142,7 @@ const Toewijzingen = () => {
                               "UI state cleared for all backup cells",
                             );
 
-                            // Clear from database in parallel
+                            // Clear from database
                             try {
                               const clearPromises = [];
                               for (let row = 15; row <= 17; row++) {
@@ -1201,379 +1171,377 @@ const Toewijzingen = () => {
                       </div>
                     </td>
                   ) : (
-                    Array.from({ length: maxColumn + 1 }, (_, colIndex) => (
-                      <td
-                        key={colIndex}
-                        className="border-2 border-gray-500 dark:border-gray-400 dark:bg-gray-800 p-2 min-h-[60px] whitespace-nowrap"
-                      >
-                        {/* Header rows */}
-                        {colIndex === 0 && rowIndex === 0 && (
-                          <span className="font-bold">Verlof</span>
-                        )}
-                        {colIndex === 0 && rowIndex === 1 && (
-                          <span className="font-bold">Aantal:</span>
-                        )}
-                        {colIndex === 0 && rowIndex === 2 && (
-                          <span className="font-bold">IB's</span>
-                        )}
+                    Array.from({ length: maxColumn + 1 }, (_, colIndex) => {
+                      const cellId = `${rowIndex}-${colIndex}`;
+                      const cellValue = cellData[cellId] || "";
+                      const isSelected = selectedCells.has(cellId);
+                      const cellColor = cellColors[cellId];
+                      const staffName = getStaffName(colIndex);
 
-                        {/* Row numbers */}
-                        {colIndex === 0 &&
-                          rowIndex >= 3 &&
-                          rowIndex <= maxRow && <span>{rowIndex - 2}</span>}
+                      return (
+                        <td
+                          key={colIndex}
+                          className="border-2 border-gray-500 dark:border-gray-400 dark:bg-gray-800 p-2 min-h-[60px] whitespace-nowrap"
+                        >
+                          {/* Header rows */}
+                          {rowIndex === 0 && colIndex === 0 ? (
+                            <div className="text-center font-bold">
+                              <span className="font-bold">Verlof</span>
+                            </div>
+                          ) : rowIndex === 1 && colIndex === 0 ? (
+                            <div className="text-center font-semibold">
+                              <span className="font-bold">Aantal:</span>
+                            </div>
+                          ) : rowIndex === 2 && colIndex === 0 ? (
+                            <div className="text-center font-bold">
+                              <span className="font-bold">IB's</span>
+                            </div>
+                          ) : (
+                            // Display cells based on their position
+                            <>
+                              {/* Row numbers on the left */}
+                              {colIndex === 0 &&
+                              rowIndex >= 3 &&
+                              rowIndex <= 13 ? (
+                                <div className="text-center font-bold">
+                                  {rowIndex - 2}
+                                </div>
+                              ) : null}
 
-                        {/* Counts row */}
-                        {rowIndex === 1 &&
-                          colIndex >= 1 &&
-                          colIndex <= maxColumn && (
-                            <span className="font-bold">
-                              {getResidentCount(colIndex)}
-                            </span>
-                          )}
+                              {/* Weekend/Vakantie labels */}
+                              {rowIndex === 0 &&
+                              colIndex >= 1 &&
+                              colIndex <= 9 ? (
+                                <div className="text-center font-bold">
+                                  {colIndex <= 7 ? "Weekend" : "Vakantie"}
+                                </div>
+                              ) : null}
 
-                        {/* Staff names row - now editable */}
-                        {rowIndex === 2 &&
-                          colIndex >= 1 &&
-                          colIndex <= maxColumn &&
-                          (() => {
-                            const cellId = `staff-${colIndex}`;
-                            const staffName =
-                              getStaffName(colIndex) ||
-                              (colIndex === 1
-                                ? "Kris B"
-                                : colIndex === 2
-                                  ? "Torben"
-                                  : colIndex === 3
-                                    ? "Didar"
-                                    : colIndex === 4
-                                      ? "Dorien"
-                                      : colIndex === 5
-                                        ? "Evelien"
-                                        : colIndex === 6
-                                          ? "Yasmina"
-                                          : colIndex === 7
-                                            ? "Imane"
-                                            : colIndex === 8
-                                              ? "Kirsten"
-                                              : "Monica");
-                            const isEditing = editingCell === cellId;
+                              {/* Resident count row */}
+                              {rowIndex === 1 &&
+                              colIndex >= 1 &&
+                              colIndex <= 9 ? (
+                                <div className="text-center font-semibold">
+                                  {getResidentCount(colIndex)}
+                                </div>
+                              ) : null}
 
-                            return (
-                              <div className="relative">
-                                {isEditing ? (
-                                  <input
-                                    type="text"
-                                    value={tempValue}
-                                    onChange={handleCellChange}
-                                    onBlur={() => handleStaffCellBlur(colIndex)}
-                                    onKeyDown={(e) =>
-                                      handleStaffKeyDown(e, colIndex)
-                                    }
-                                    className="w-full p-1 text-sm font-bold border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                    autoFocus
-                                  />
-                                ) : (
-                                  <div
-                                    className="cursor-pointer p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 font-bold"
-                                    onClick={() =>
-                                      handleStaffCellClick(colIndex, staffName)
-                                    }
-                                    title="Klik om personeelsnaam te bewerken"
-                                  >
-                                    {staffName}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-
-                        {/* Editable resident cells */}
-                        {rowIndex >= 3 &&
-                          rowIndex <= maxRow &&
-                          colIndex >= 1 &&
-                          colIndex <= maxColumn &&
-                          (() => {
-                            const cellId = `${rowIndex}-${colIndex}`;
-                            const cellValue = cellData[cellId] || "";
-                            const isEditing = editingCell === cellId;
-                            const isSelected = selectedCells.has(cellId);
-                            const cellColor = cellColors[cellId];
-
-                            // Determine background color based on status
-                            let bgColor = "";
-                            if (cellColor === "red") {
-                              bgColor = "bg-red-900 text-white";
-                            } else if (cellColor === "blue") {
-                              bgColor = "bg-blue-900 text-white";
-                            } else if (cellColor === "gray") {
-                              bgColor = "bg-gray-900 text-white";
-                            }
-
-                            return (
-                              <div className="relative">
-                                {isEditing ? (
-                                  <input
-                                    type="text"
-                                    value={tempValue}
-                                    onChange={handleCellChange}
-                                    onBlur={() => handleCellBlur(cellId)}
-                                    onKeyDown={(e) => handleKeyDown(e, cellId)}
-                                    className="w-full p-1 text-sm border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                    autoFocus
-                                  />
-                                ) : (
-                                  <div className="flex items-center gap-1">
+                              {/* Staff row */}
+                              {rowIndex === 2 &&
+                              colIndex >= 1 &&
+                              colIndex <= 9 ? (
+                                <div className="text-center">
+                                  {editingCell === `staff-${colIndex}` ? (
+                                    <input
+                                      type="text"
+                                      value={tempValue}
+                                      onChange={handleCellChange}
+                                      onBlur={() =>
+                                        handleStaffCellBlur(colIndex)
+                                      }
+                                      onKeyDown={(e) =>
+                                        handleStaffKeyDown(e, colIndex)
+                                      }
+                                      className="w-full p-1 text-sm font-bold border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                      autoFocus
+                                    />
+                                  ) : (
                                     <div
-                                      className={`flex-1 min-h-[20px] cursor-pointer p-1 rounded whitespace-pre-wrap transition-colors ${
-                                        isSelected
-                                          ? "border-2 border-blue-500"
-                                          : ""
-                                      } ${
-                                        bgColor ||
-                                        "hover:bg-gray-100 dark:hover:bg-gray-700"
-                                      } ${!bgColor ? "dark:text-white" : ""}`}
-                                      onClick={(e) =>
-                                        handleCellClick(e, cellId, cellValue)
+                                      className="cursor-pointer p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 font-bold"
+                                      onClick={() =>
+                                        handleStaffCellClick(
+                                          colIndex,
+                                          staffName,
+                                        )
                                       }
-                                      title={
-                                        isSelected
-                                          ? "Selected (Ctrl/Cmd+Click to deselect)"
-                                          : "Ctrl/Cmd+Click to select"
-                                      }
+                                      title="Klik om personeelsnaam te bewerken"
                                     >
-                                      {cellValue}
+                                      {staffName}
                                     </div>
-                                    {cellValue && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setShowColorMenu(
-                                            showColorMenu === cellId
-                                              ? null
-                                              : cellId,
-                                          );
-                                        }}
-                                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded dark:text-white"
-                                        title="Kleurstatus instellen"
-                                      >
-                                        <Palette className="h-3 w-3" />
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
+                                  )}
+                                </div>
+                              ) : null}
 
-                                {/* Color menu dropdown */}
-                                {showColorMenu === cellId && (
-                                  <div className="absolute z-10 mt-1 bg-white dark:bg-gray-800 border-2 border-gray-500 dark:border-gray-400 rounded shadow-lg p-2">
-                                    <div className="text-xs font-semibold mb-1">
-                                      Status:
-                                    </div>
-                                    <button
-                                      onClick={() =>
-                                        handleColorChange(cellId, "red")
-                                      }
-                                      className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
-                                    >
-                                      <span className="w-3 h-3 bg-red-500 rounded"></span>
-                                      Volwassen (Meerderjarig)
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        handleColorChange(cellId, "blue")
-                                      }
-                                      className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
-                                    >
-                                      <span className="w-3 h-3 bg-blue-500 rounded"></span>
-                                      Transfer
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        handleColorChange(cellId, "gray")
-                                      }
-                                      className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
-                                    >
-                                      <span className="w-3 h-3 bg-gray-500 rounded"></span>
-                                      Leeftijdstwijfel
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        handleColorChange(cellId, null)
-                                      }
-                                      className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
-                                    >
-                                      <span className="w-3 h-3 border border-gray-400 rounded"></span>
-                                      Status wissen
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
+                              {/* Resident cells (rows 3-13, columns 1-9) */}
+                              {rowIndex >= 3 &&
+                              rowIndex <= 13 &&
+                              colIndex >= 1 &&
+                              colIndex <= 9 ? (
+                                <div className="relative">
+                                  {/* Determine background color based on status */}
+                                  {(() => {
+                                    let bgColor = "";
+                                    if (cellColor === "red") {
+                                      bgColor = "bg-red-900 text-white";
+                                    } else if (cellColor === "blue") {
+                                      bgColor = "bg-blue-900 text-white";
+                                    } else if (cellColor === "gray") {
+                                      bgColor = "bg-gray-900 text-white";
+                                    }
 
-                        {/* Editable backup staff rows 16, 17, 18 */}
-                        {(rowIndex === 15 ||
-                          rowIndex === 16 ||
-                          rowIndex === 17) &&
-                          colIndex >= 0 &&
-                          colIndex <= 9 &&
-                          (() => {
-                            const cellId = `${rowIndex}-${colIndex}`;
-                            const cellValue = cellData[cellId] || "";
-                            const isEditing = editingCell === cellId;
-                            const isSelected = selectedCells.has(cellId);
-                            const cellColor = cellColors[cellId];
-
-                            // Determine background color based on status
-                            let bgColor = "";
-                            if (cellColor === "red") {
-                              bgColor = "bg-red-900 text-white";
-                            } else if (cellColor === "blue") {
-                              bgColor = "bg-blue-900 text-white";
-                            } else if (cellColor === "gray") {
-                              bgColor = "bg-gray-900 text-white";
-                            }
-
-                            return (
-                              <div className="relative">
-                                {isEditing ? (
-                                  <input
-                                    type="text"
-                                    value={tempValue}
-                                    onChange={handleCellChange}
-                                    onBlur={() => handleCellBlur(cellId)}
-                                    onKeyDown={(e) => handleKeyDown(e, cellId)}
-                                    className="w-full p-1 text-sm border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                    autoFocus
-                                  />
-                                ) : (
-                                  <div className="flex items-center gap-1">
-                                    <div
-                                      className={`flex-1 min-h-[20px] cursor-pointer p-1 rounded whitespace-pre-wrap transition-colors ${
-                                        isSelected
-                                          ? "border-2 border-blue-500"
-                                          : ""
-                                      } ${
-                                        bgColor ||
-                                        "hover:bg-gray-100 dark:hover:bg-gray-700"
-                                      } ${!bgColor ? "dark:text-white" : ""}`}
-                                      onClick={(e) =>
-                                        handleCellClick(e, cellId, cellValue)
-                                      }
-                                      title={
-                                        isSelected
-                                          ? "Selected (Ctrl/Cmd+Click to deselect)"
-                                          : "Ctrl/Cmd+Click to select"
-                                      }
-                                    >
-                                      {cellValue}
-                                    </div>
-                                    {(cellValue || true) && (
-                                      <div className="flex gap-1">
-                                        <button
-                                          onClick={async (e) => {
-                                            e.stopPropagation();
-                                            console.log(
-                                              "Delete button clicked for cell:",
+                                    return editingCell === cellId ? (
+                                      <input
+                                        type="text"
+                                        value={tempValue}
+                                        onChange={handleCellChange}
+                                        onBlur={() => handleCellBlur(cellId)}
+                                        onKeyDown={(e) =>
+                                          handleKeyDown(e, cellId)
+                                        }
+                                        className="w-full p-1 text-sm border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        autoFocus
+                                      />
+                                    ) : (
+                                      <div className="flex items-center gap-1">
+                                        <div
+                                          className={`flex-1 min-h-[20px] cursor-pointer p-1 rounded whitespace-pre-wrap transition-colors ${
+                                            isSelected
+                                              ? "border-2 border-blue-500"
+                                              : ""
+                                          } ${
+                                            bgColor ||
+                                            "hover:bg-gray-100 dark:hover:bg-gray-700"
+                                          } ${!bgColor ? "dark:text-white" : ""}`}
+                                          onClick={(e) =>
+                                            handleCellClick(
+                                              e,
                                               cellId,
-                                            );
-                                            const [rowStr, colStr] =
-                                              cellId.split("-");
-                                            const rowNumber = parseInt(rowStr);
-                                            const columnNumber =
-                                              parseInt(colStr);
-
-                                            // Clear cell data immediately in UI
-                                            setCellData((prev) => {
-                                              const newData = { ...prev };
-                                              delete newData[cellId];
-                                              return newData;
-                                            });
-
-                                            // Clear cell color immediately in UI
-                                            setCellColors((prev) => {
-                                              const newColors = { ...prev };
-                                              delete newColors[cellId];
-                                              return newColors;
-                                            });
-
-                                            // Save to database
-                                            try {
-                                              await saveGridData(
-                                                rowNumber,
-                                                columnNumber,
-                                                "",
-                                                undefined,
+                                              cellValue,
+                                            )
+                                          }
+                                          title={
+                                            cellValue ||
+                                            "Click to edit resident"
+                                          }
+                                        >
+                                          {cellValue}
+                                        </div>
+                                        {cellValue && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setShowColorMenu(
+                                                showColorMenu === cellId
+                                                  ? null
+                                                  : cellId,
                                               );
+                                            }}
+                                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded dark:text-white"
+                                            title="Kleurstatus instellen"
+                                          >
+                                            <Palette className="h-3 w-3" />
+                                          </button>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+
+                                  {/* Color menu dropdown */}
+                                  {showColorMenu === cellId && (
+                                    <div className="absolute z-10 mt-1 bg-white dark:bg-gray-800 border-2 border-gray-500 dark:border-gray-400 rounded shadow-lg p-2">
+                                      <div className="text-xs font-semibold mb-1">
+                                        Status:
+                                      </div>
+                                      <button
+                                        onClick={() =>
+                                          handleColorChange(cellId, "red")
+                                        }
+                                        className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+                                      >
+                                        <span className="w-3 h-3 bg-red-500 rounded"></span>
+                                        Volwassen (Meerderjarig)
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleColorChange(cellId, "blue")
+                                        }
+                                        className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+                                      >
+                                        <span className="w-3 h-3 bg-blue-500 rounded"></span>
+                                        Transfer
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleColorChange(cellId, "gray")
+                                        }
+                                        className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+                                      >
+                                        <span className="w-3 h-3 bg-gray-500 rounded"></span>
+                                        Leeftijdstwijfel
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleColorChange(cellId, null)
+                                        }
+                                        className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+                                      >
+                                        <span className="w-3 h-3 border border-gray-400 rounded"></span>
+                                        Status wissen
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : null}
+
+                              {/* Backup cells (rows 15-17, columns 0-9) */}
+                              {(rowIndex === 15 ||
+                                rowIndex === 16 ||
+                                rowIndex === 17) &&
+                              colIndex >= 0 &&
+                              colIndex <= 9 ? (
+                                <div className="relative">
+                                  {(() => {
+                                    // Determine background color based on status
+                                    let bgColor = "";
+                                    if (cellColor === "red") {
+                                      bgColor = "bg-red-900 text-white";
+                                    } else if (cellColor === "blue") {
+                                      bgColor = "bg-blue-900 text-white";
+                                    } else if (cellColor === "gray") {
+                                      bgColor = "bg-gray-900 text-white";
+                                    }
+
+                                    return editingCell === cellId ? (
+                                      <input
+                                        type="text"
+                                        value={tempValue}
+                                        onChange={handleCellChange}
+                                        onBlur={() => handleCellBlur(cellId)}
+                                        onKeyDown={(e) =>
+                                          handleKeyDown(e, cellId)
+                                        }
+                                        className="w-full p-1 text-sm border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        autoFocus
+                                      />
+                                    ) : (
+                                      <div className="flex items-center gap-1">
+                                        <div
+                                          className={`flex-1 min-h-[20px] cursor-pointer p-1 rounded whitespace-pre-wrap transition-colors ${
+                                            isSelected
+                                              ? "border-2 border-blue-500"
+                                              : ""
+                                          } ${
+                                            bgColor ||
+                                            "hover:bg-gray-100 dark:hover:bg-gray-700"
+                                          } ${!bgColor ? "dark:text-white" : ""}`}
+                                          onClick={(e) =>
+                                            handleCellClick(
+                                              e,
+                                              cellId,
+                                              cellValue,
+                                            )
+                                          }
+                                          title={
+                                            cellValue ||
+                                            "Click to edit backup cell"
+                                          }
+                                        >
+                                          {cellValue}
+                                        </div>
+                                        {cellValue && (
+                                          <button
+                                            onClick={async (e) => {
+                                              e.stopPropagation();
                                               console.log(
-                                                "Successfully cleared cell from database:",
+                                                "Delete button clicked for cell:",
                                                 cellId,
                                               );
-                                            } catch (error) {
-                                              console.warn(
-                                                "Failed to clear cell from database:",
-                                                error,
-                                              );
-                                            }
-                                          }}
-                                          className="p-1 hover:bg-red-200 dark:hover:bg-red-800 rounded text-red-600 dark:text-red-400"
-                                          title="Celinhoud verwijderen"
-                                        >
-                                          <X className="h-3 w-3" />
-                                        </button>
+                                              setCellData((prev) => {
+                                                const newData = { ...prev };
+                                                delete newData[cellId];
+                                                return newData;
+                                              });
+                                              setCellColors((prev) => {
+                                                const newColors = { ...prev };
+                                                delete newColors[cellId];
+                                                return newColors;
+                                              });
+                                              const [rowStr, colStr] =
+                                                cellId.split("-");
+                                              const rowNumber =
+                                                parseInt(rowStr);
+                                              const columnNumber =
+                                                parseInt(colStr);
+                                              try {
+                                                await saveGridData(
+                                                  rowNumber,
+                                                  columnNumber,
+                                                  "",
+                                                  undefined,
+                                                );
+                                                console.log(
+                                                  "Successfully cleared cell from database:",
+                                                  cellId,
+                                                );
+                                              } catch (error) {
+                                                console.warn(
+                                                  "Failed to clear cell from database:",
+                                                  cellId,
+                                                  error,
+                                                );
+                                              }
+                                            }}
+                                            className="p-1 hover:bg-red-200 dark:hover:bg-red-800 rounded text-red-600 dark:text-red-400"
+                                            title="Celinhoud verwijderen"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </button>
+                                        )}
                                       </div>
-                                    )}
-                                  </div>
-                                )}
+                                    );
+                                  })()}
 
-                                {/* Color menu dropdown */}
-                                {showColorMenu === cellId && (
-                                  <div className="absolute z-10 mt-1 bg-white dark:bg-gray-800 border-2 border-gray-500 dark:border-gray-400 rounded shadow-lg p-2">
-                                    <div className="text-xs font-semibold mb-1">
-                                      Status:
+                                  {/* Color menu dropdown */}
+                                  {showColorMenu === cellId && (
+                                    <div className="absolute z-10 mt-1 bg-white dark:bg-gray-800 border-2 border-gray-500 dark:border-gray-400 rounded shadow-lg p-2">
+                                      <div className="text-xs font-semibold mb-1">
+                                        Status:
+                                      </div>
+                                      <button
+                                        onClick={() =>
+                                          handleColorChange(cellId, "red")
+                                        }
+                                        className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+                                      >
+                                        <span className="w-3 h-3 bg-red-500 rounded"></span>
+                                        Volwassen (Meerderjarig)
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleColorChange(cellId, "blue")
+                                        }
+                                        className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+                                      >
+                                        <span className="w-3 h-3 bg-blue-500 rounded"></span>
+                                        Transfer
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleColorChange(cellId, "gray")
+                                        }
+                                        className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+                                      >
+                                        <span className="w-3 h-3 bg-gray-500 rounded"></span>
+                                        Leeftijdstwijfel
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleColorChange(cellId, null)
+                                        }
+                                        className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+                                      >
+                                        <span className="w-3 h-3 border border-gray-400 rounded"></span>
+                                        Status wissen
+                                      </button>
                                     </div>
-                                    <button
-                                      onClick={() =>
-                                        handleColorChange(cellId, "red")
-                                      }
-                                      className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
-                                    >
-                                      <span className="w-3 h-3 bg-red-500 rounded"></span>
-                                      Volwassen (Meerderjarig)
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        handleColorChange(cellId, "blue")
-                                      }
-                                      className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
-                                    >
-                                      <span className="w-3 h-3 bg-blue-500 rounded"></span>
-                                      Transfer
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        handleColorChange(cellId, "gray")
-                                      }
-                                      className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
-                                    >
-                                      <span className="w-3 h-3 bg-gray-500 rounded"></span>
-                                      Leeftijdstwijfel
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        handleColorChange(cellId, null)
-                                      }
-                                      className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
-                                    >
-                                      <span className="w-3 h-3 border border-gray-400 rounded"></span>
-                                      Status wissen
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                      </td>
-                    ))
+                                  )}
+                                </div>
+                              ) : null}
+                            </>
+                          )}
+                        </td>
+                      );
+                    })
                   )}
                 </tr>
               ))}
@@ -1586,8 +1554,8 @@ const Toewijzingen = () => {
           ref={fileInputRef}
           type="file"
           accept=".xlsx,.xls"
-          onChange={handleExcelImport}
-          className="hidden"
+          onChange={handleFileImport}
+          style={{ display: "none" }}
         />
       </div>
     </div>
