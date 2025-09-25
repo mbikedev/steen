@@ -220,21 +220,23 @@ function DashboardPage() {
               backgroundPosition: "center",
             }}
           >
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-              <div>
-                <h1 className="text-4xl font-bold text-white">
+            {/* Subtle dark gradient overlay for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-900/50 via-slate-900/60 to-slate-900/40 rounded-3xl" />
+            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div className="bg-slate-900/80 backdrop-blur-md rounded-xl p-6 border border-slate-700/50 shadow-xl">
+                <h1 className="text-4xl font-bold text-slate-50 drop-shadow-lg">
                   Welkom Terug
                   {user?.email ? `, ${user.email.split("@")[0]}` : ""}!
                 </h1>
-                <p className="mt-3 text-lg text-white font-medium">
+                <p className="mt-3 text-xl text-slate-100 font-semibold drop-shadow-md">
                   OOC Steenokkerzeel Beheer Dashboard
                 </p>
               </div>
-              <div className="text-right bg-secondary rounded-2xl p-6 border border-border">
-                <p className="text-2xl font-bold text-secondary-foreground">
+              <div className="text-right bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-2xl p-6 border border-slate-300/50 dark:border-slate-600/50 shadow-xl">
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   {formatDateWithDay(new Date())}
                 </p>
-                <p className="text-sm text-muted-foreground font-semibold mt-1">
+                <p className="text-sm text-slate-700 dark:text-slate-300 font-semibold mt-1">
                   Week {getISOWeek(new Date())}
                 </p>
               </div>

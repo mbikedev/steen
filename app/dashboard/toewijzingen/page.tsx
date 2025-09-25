@@ -178,66 +178,68 @@ const Toewijzingen = () => {
     );
 
     try {
-      let staff: StaffMember[] = [];
-      try {
-        const staffResponse = await fetch("/api/toewijzingen/staff");
-        if (staffResponse.ok) {
-          const staffData = await staffResponse.json();
-          if (Array.isArray(staffData)) {
-            staff = staffData;
-          }
-        }
-      } catch (error) {
-        console.warn("Failed to load staff data from API, using defaults");
-      }
+      // Load staff and grid data in parallel for better performance
+      const [staffResponse, gridResponse] = await Promise.all([
+        fetch("/api/toewijzingen/staff").catch(() => null),
+        fetch("/api/toewijzingen/grid").catch(() => null),
+      ]);
 
+      // Process staff data
+      let staff: StaffMember[] = [];
+      if (staffResponse && staffResponse.ok) {
+        const staffData = await staffResponse.json();
+        if (Array.isArray(staffData)) {
+          staff = staffData;
+        }
+      }
       if (staff.length === 0) {
         staff = fallbackStaff;
       }
       setStaffData(staff);
 
+      // Process grid data
       let cellDataMap: CellData = {};
       let cellColorMap: CellColorData = {};
+      let needsInitialSetup = false;
 
-      try {
-        const gridResponse = await fetch("/api/toewijzingen/grid");
-        if (gridResponse.ok) {
-          const grid = await gridResponse.json();
-          if (Array.isArray(grid)) {
-            const dbCellData: CellData = {};
-            const dbCellColors: CellColorData = {};
-            grid.forEach((item: GridData) => {
-              const cellKey = `${item.row_number}-${item.column_number}`;
-              const name =
-                typeof item.resident_name === "string"
-                  ? item.resident_name
-                  : "";
-              dbCellData[cellKey] = name;
-              if (item.color_status) {
-                dbCellColors[cellKey] = item.color_status;
-              }
-            });
-            cellDataMap =
-              Object.keys(dbCellData).length === 0
-                ? { ...defaultCellData }
-                : dbCellData;
-            cellColorMap = dbCellColors;
-          }
+      if (gridResponse && gridResponse.ok) {
+        const grid = await gridResponse.json();
+        if (Array.isArray(grid) && grid.length > 0) {
+          const dbCellData: CellData = {};
+          const dbCellColors: CellColorData = {};
+          grid.forEach((item: GridData) => {
+            const cellKey = `${item.row_number}-${item.column_number}`;
+            const name =
+              typeof item.resident_name === "string"
+                ? item.resident_name
+                : "";
+            dbCellData[cellKey] = name;
+            if (item.color_status) {
+              dbCellColors[cellKey] = item.color_status;
+            }
+          });
+          cellDataMap = dbCellData;
+          cellColorMap = dbCellColors;
+        } else {
+          // Database is empty, needs initial setup
+          needsInitialSetup = true;
+          cellDataMap = { ...defaultCellData };
         }
-      } catch (error) {
-        console.warn("Failed to load grid data from API, using defaults");
+      } else {
+        // API failed, use defaults and mark for setup
+        needsInitialSetup = true;
         cellDataMap = { ...defaultCellData };
         cellColorMap = {};
-      }
-
-      if (Object.keys(cellDataMap).length === 0) {
-        cellDataMap = { ...defaultCellData };
       }
 
       setCellData(cellDataMap);
       setCellColors(cellColorMap);
 
-      await persistResidentCells(cellDataMap, cellColorMap);
+      // Only persist to database if this is initial setup (database was empty)
+      if (needsInitialSetup) {
+        console.log("Initial setup detected, persisting default data...");
+        await persistResidentCells(cellDataMap, cellColorMap);
+      }
 
       setLoading(false);
     } catch (error) {
@@ -246,7 +248,7 @@ const Toewijzingen = () => {
       const fallbackCellData = { ...defaultCellData };
       setCellData(fallbackCellData);
       setCellColors({});
-      await persistResidentCells(fallbackCellData, {});
+      // Only persist on error if database needs setup
       setLoading(false);
     }
   }, [persistResidentCells]);
@@ -254,7 +256,7 @@ const Toewijzingen = () => {
   // Load data from database on mount
   useEffect(() => {
     void loadData();
-  }, [loadData]);
+  }, []);  // Remove loadData dependency to prevent re-runs
 
   const handleColorChange = async (cellId: string, color: ColorStatus) => {
     const [rowStr, colStr] = cellId.split("-");
@@ -1032,18 +1034,18 @@ const Toewijzingen = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="p-6">
-          <div className="flex items-center gap-4 mb-6">
+        <div className="p-3 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-4 mb-6">
             <a
               href="/dashboard"
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+              className="px-3 py-2 sm:px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 text-sm sm:text-base"
             >
-              ← Back to Dashboard
+              ← <span className="hidden sm:inline">Back to Dashboard</span><span className="sm:hidden">Back</span>
             </a>
-            <h1 className="text-2xl font-bold">Toewijzingen</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Toewijzingen</h1>
           </div>
           <div className="flex justify-center items-center h-64">
-            <div className="text-lg">Laden...</div>
+            <div className="text-base sm:text-lg">Laden...</div>
           </div>
         </div>
       </div>
@@ -1052,43 +1054,44 @@ const Toewijzingen = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-4">
+      <div className="p-3 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-6 gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <a
               href="/dashboard"
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+              className="px-3 py-2 sm:px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 text-sm sm:text-base"
             >
-              ← Back to Dashboard
+              ← <span className="hidden sm:inline">Back to Dashboard</span><span className="sm:hidden">Back</span>
             </a>
-            <h1 className="text-2xl font-bold">Toewijzingen</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Toewijzingen</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
             <ThemeToggle />
             <button
               onClick={clearSelectedCells}
               disabled={loading || selectedCells.size === 0}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-2 py-2 sm:px-4 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              Clear Selected ({selectedCells.size})
+              <span className="hidden sm:inline">Clear Selected ({selectedCells.size})</span>
+              <span className="sm:hidden">Clear ({selectedCells.size})</span>
             </button>
             <button
               onClick={clearAllCells}
               disabled={loading}
-              className="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-2 py-2 sm:px-4 bg-red-700 text-white rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
               title="Alle bewonerstoewijzingen wissen"
             >
-              <Trash2 className="h-4 w-4" />
-              Alles Wissen
+              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden md:inline">Alles Wissen</span>
             </button>
             <button
               onClick={addNewRow}
               disabled={loading}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-2 py-2 sm:px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
               title="Nieuwe rij toevoegen"
             >
               <svg
-                className="h-4 w-4"
+                className="h-3 w-3 sm:h-4 sm:w-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -1100,16 +1103,17 @@ const Toewijzingen = () => {
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              Rij Toevoegen
+              <span className="hidden lg:inline">Rij Toevoegen</span>
+              <span className="lg:hidden">+Rij</span>
             </button>
             <button
               onClick={addNewColumn}
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-2 py-2 sm:px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
               title="Nieuwe kolom toevoegen"
             >
               <svg
-                className="h-4 w-4"
+                className="h-3 w-3 sm:h-4 sm:w-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -1121,40 +1125,44 @@ const Toewijzingen = () => {
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              Kolom Toevoegen
+              <span className="hidden lg:inline">Kolom Toevoegen</span>
+              <span className="lg:hidden">+Kol</span>
             </button>
             <button
               onClick={downloadTemplate}
               disabled={loading}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-2 py-2 sm:px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              <Download className="h-4 w-4" />
-              Sjabloon
+              <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden md:inline">Sjabloon</span>
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={loading}
-              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-2 py-2 sm:px-4 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
               title="Excel-bestand importeren (11 rijen x 9 kolommen - gebruikt kolommen A-I, wordt toegewezen aan rasterrijen 3-13, kolommen 1-9)"
             >
-              <Upload className="h-4 w-4" />
-              Excel Importeren (11x9)
+              <Upload className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden lg:inline">Excel Importeren (11x9)</span>
+              <span className="lg:hidden">Import</span>
             </button>
             <button
               onClick={setupDatabase}
               disabled={loading}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-2 py-2 sm:px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm"
             >
-              {loading ? "Instellen..." : "Database Instellen"}
+              <span className="hidden md:inline">{loading ? "Instellen..." : "Database Instellen"}</span>
+              <span className="md:hidden">{loading ? "Setup..." : "Setup"}</span>
             </button>
           </div>
         </div>
 
         <div
-          className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden toewijzingen-container pb-16"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto overflow-y-hidden toewijzingen-container pb-16"
           tabIndex={0}
         >
-          <table className="border-collapse table-auto">
+          <div className="min-w-max">
+            <table className="border-collapse table-auto w-full">
             <tbody>
               {Array.from({ length: maxRow + 5 }, (_, rowIndex) => (
                 <tr
@@ -1230,7 +1238,7 @@ const Toewijzingen = () => {
                       return (
                         <td
                           key={colIndex}
-                          className="border-2 border-gray-500 dark:border-gray-400 dark:bg-gray-800 p-2 min-h-[60px] whitespace-nowrap"
+                          className="border-2 border-gray-500 dark:border-gray-400 dark:bg-gray-800 p-1 sm:p-2 min-h-[50px] sm:min-h-[60px] whitespace-nowrap min-w-[80px] sm:min-w-[100px]"
                         >
                           {/* Header rows */}
                           {rowIndex === 0 && colIndex === 0 ? (
@@ -1291,12 +1299,12 @@ const Toewijzingen = () => {
                                       onKeyDown={(e) =>
                                         handleStaffKeyDown(e, colIndex)
                                       }
-                                      className="w-full p-1 text-sm font-bold border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                      className="w-full p-1 text-xs sm:text-sm font-bold border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                       autoFocus
                                     />
                                   ) : (
                                     <div
-                                      className="cursor-pointer p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 font-bold"
+                                      className="cursor-pointer p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 font-bold text-xs sm:text-sm"
                                       onClick={() =>
                                         handleStaffCellClick(
                                           colIndex,
@@ -1337,13 +1345,13 @@ const Toewijzingen = () => {
                                         onKeyDown={(e) =>
                                           handleKeyDown(e, cellId)
                                         }
-                                        className="w-full p-1 text-sm border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        className="w-full p-1 text-xs sm:text-sm border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                         autoFocus
                                       />
                                     ) : (
                                       <div className="flex items-center gap-1">
                                         <div
-                                          className={`flex-1 min-h-[20px] cursor-pointer p-1 rounded whitespace-pre-wrap transition-colors ${
+                                          className={`flex-1 min-h-[20px] cursor-pointer p-1 rounded whitespace-pre-wrap transition-colors text-xs sm:text-sm ${
                                             isSelected
                                               ? "border-2 border-blue-500"
                                               : ""
@@ -1378,7 +1386,7 @@ const Toewijzingen = () => {
                                             className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded dark:text-white"
                                             title="Kleurstatus instellen"
                                           >
-                                            <Palette className="h-3 w-3" />
+                                            <Palette className="h-3 w-3 sm:h-4 sm:w-4" />
                                           </button>
                                         )}
                                       </div>
@@ -1387,7 +1395,7 @@ const Toewijzingen = () => {
 
                                   {/* Color menu dropdown */}
                                   {showColorMenu === cellId && (
-                                    <div className="absolute z-10 mt-1 bg-white dark:bg-gray-800 border-2 border-gray-500 dark:border-gray-400 rounded shadow-lg p-2">
+                                    <div className="absolute z-10 mt-1 bg-white dark:bg-gray-800 border-2 border-gray-500 dark:border-gray-400 rounded shadow-lg p-2 min-w-[200px] right-0 sm:right-auto">
                                       <div className="text-xs font-semibold mb-1">
                                         Status:
                                       </div>
@@ -1397,8 +1405,8 @@ const Toewijzingen = () => {
                                         }
                                         className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                       >
-                                        <span className="w-3 h-3 bg-red-500 rounded"></span>
-                                        Volwassen (Meerderjarig)
+                                        <span className="w-3 h-3 bg-red-500 rounded flex-shrink-0"></span>
+                                        <span className="truncate">Volwassen (Meerderjarig)</span>
                                       </button>
                                       <button
                                         onClick={() =>
@@ -1406,8 +1414,8 @@ const Toewijzingen = () => {
                                         }
                                         className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                       >
-                                        <span className="w-3 h-3 bg-blue-500 rounded"></span>
-                                        Transfer
+                                        <span className="w-3 h-3 bg-blue-500 rounded flex-shrink-0"></span>
+                                        <span className="truncate">Transfer</span>
                                       </button>
                                       <button
                                         onClick={() =>
@@ -1415,8 +1423,8 @@ const Toewijzingen = () => {
                                         }
                                         className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                       >
-                                        <span className="w-3 h-3 bg-gray-500 rounded"></span>
-                                        Leeftijdstwijfel
+                                        <span className="w-3 h-3 bg-gray-500 rounded flex-shrink-0"></span>
+                                        <span className="truncate">Leeftijdstwijfel</span>
                                       </button>
                                       <button
                                         onClick={() =>
@@ -1424,8 +1432,8 @@ const Toewijzingen = () => {
                                         }
                                         className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                       >
-                                        <span className="w-3 h-3 border border-gray-400 rounded"></span>
-                                        Status wissen
+                                        <span className="w-3 h-3 border border-gray-400 rounded flex-shrink-0"></span>
+                                        <span className="truncate">Status wissen</span>
                                       </button>
                                     </div>
                                   )}
@@ -1459,13 +1467,13 @@ const Toewijzingen = () => {
                                         onKeyDown={(e) =>
                                           handleKeyDown(e, cellId)
                                         }
-                                        className="w-full p-1 text-sm border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        className="w-full p-1 text-xs sm:text-sm border-0 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                         autoFocus
                                       />
                                     ) : (
                                       <div className="flex items-center gap-1">
                                         <div
-                                          className={`flex-1 min-h-[20px] cursor-pointer p-1 rounded whitespace-pre-wrap transition-colors ${
+                                          className={`flex-1 min-h-[20px] cursor-pointer p-1 rounded whitespace-pre-wrap transition-colors text-xs sm:text-sm ${
                                             isSelected
                                               ? "border-2 border-blue-500"
                                               : ""
@@ -1533,7 +1541,7 @@ const Toewijzingen = () => {
                                             className="p-1 hover:bg-red-200 dark:hover:bg-red-800 rounded text-red-600 dark:text-red-400"
                                             title="Celinhoud verwijderen"
                                           >
-                                            <X className="h-3 w-3" />
+                                            <X className="h-3 w-3 sm:h-4 sm:w-4" />
                                           </button>
                                         )}
                                       </div>
@@ -1542,7 +1550,7 @@ const Toewijzingen = () => {
 
                                   {/* Color menu dropdown */}
                                   {showColorMenu === cellId && (
-                                    <div className="absolute z-10 mt-1 bg-white dark:bg-gray-800 border-2 border-gray-500 dark:border-gray-400 rounded shadow-lg p-2">
+                                    <div className="absolute z-10 mt-1 bg-white dark:bg-gray-800 border-2 border-gray-500 dark:border-gray-400 rounded shadow-lg p-2 min-w-[200px] right-0 sm:right-auto">
                                       <div className="text-xs font-semibold mb-1">
                                         Status:
                                       </div>
@@ -1552,8 +1560,8 @@ const Toewijzingen = () => {
                                         }
                                         className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                       >
-                                        <span className="w-3 h-3 bg-red-500 rounded"></span>
-                                        Volwassen (Meerderjarig)
+                                        <span className="w-3 h-3 bg-red-500 rounded flex-shrink-0"></span>
+                                        <span className="truncate">Volwassen (Meerderjarig)</span>
                                       </button>
                                       <button
                                         onClick={() =>
@@ -1561,8 +1569,8 @@ const Toewijzingen = () => {
                                         }
                                         className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                       >
-                                        <span className="w-3 h-3 bg-blue-500 rounded"></span>
-                                        Transfer
+                                        <span className="w-3 h-3 bg-blue-500 rounded flex-shrink-0"></span>
+                                        <span className="truncate">Transfer</span>
                                       </button>
                                       <button
                                         onClick={() =>
@@ -1570,8 +1578,8 @@ const Toewijzingen = () => {
                                         }
                                         className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                       >
-                                        <span className="w-3 h-3 bg-gray-500 rounded"></span>
-                                        Leeftijdstwijfel
+                                        <span className="w-3 h-3 bg-gray-500 rounded flex-shrink-0"></span>
+                                        <span className="truncate">Leeftijdstwijfel</span>
                                       </button>
                                       <button
                                         onClick={() =>
@@ -1579,8 +1587,8 @@ const Toewijzingen = () => {
                                         }
                                         className="block w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
                                       >
-                                        <span className="w-3 h-3 border border-gray-400 rounded"></span>
-                                        Status wissen
+                                        <span className="w-3 h-3 border border-gray-400 rounded flex-shrink-0"></span>
+                                        <span className="truncate">Status wissen</span>
                                       </button>
                                     </div>
                                   )}
@@ -1595,7 +1603,8 @@ const Toewijzingen = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
 
         {/* Hidden file input for Excel import */}
