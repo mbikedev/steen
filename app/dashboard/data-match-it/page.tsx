@@ -1285,11 +1285,12 @@ function DataMatchItPageContent() {
               className={`px-2 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
                 !canUndo
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
               }`}
               title="Ongedaan maken (Ctrl+Z)"
             >
               <Undo className="h-4 w-4 flex-shrink-0" />
+              <span className="sm:hidden">Terug</span>
               <span className="hidden sm:inline">Ongedaan</span>
             </button>
 
@@ -1306,11 +1307,12 @@ function DataMatchItPageContent() {
               className={`px-2 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
                 !canRedo
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
               }`}
               title="Opnieuw (Ctrl+Shift+Z)"
             >
               <Redo className="h-4 w-4 flex-shrink-0" />
+              <span className="sm:hidden">Vooruit</span>
               <span className="hidden sm:inline">Opnieuw</span>
             </button>
 
@@ -1321,8 +1323,8 @@ function DataMatchItPageContent() {
               disabled={selectedResidents.size === 0}
               className={`px-2 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1 ${
                 selectedResidents.size === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-destructive text-white hover:bg-destructive/90 dark:hover:bg-destructive/80'
+                  ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                  : 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600'
               }`}
             >
               <Trash2 className="h-4 w-4 flex-shrink-0" />
@@ -1335,27 +1337,30 @@ function DataMatchItPageContent() {
             <button 
               onClick={handlePasteUsers}
               disabled={isPasting}
-              className="px-2 sm:px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center justify-center gap-1 sm:gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed text-xs sm:text-sm col-span-2 sm:col-span-1"
+              className="px-2 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 flex items-center justify-center gap-1 sm:gap-2 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-xs sm:text-sm col-span-2 sm:col-span-1"
             >
               <Clipboard className="h-4 w-4 flex-shrink-0" />
+              <span className="sm:hidden">{isPasting ? 'Plak...' : 'Plak'}</span>
               <span className="hidden sm:inline">{isPasting ? 'Plakken...' : 'Plakken'}</span>
             </button>
 
             {/* Excel Upload Button */}
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="px-2 sm:px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
+              className="px-2 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
             >
               <Upload className="h-4 w-4 flex-shrink-0" />
+              <span className="sm:hidden">Excel</span>
               <span className="hidden sm:inline">Excel</span>
             </button>
             
             {/* Import Data Button (Excel & PDF) */}
             <button 
               onClick={() => setIsImportModalOpen(true)}
-              className="px-2 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
+              className="px-2 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
             >
               <FileUp className="h-4 w-4 flex-shrink-0" />
+              <span className="sm:hidden">Import</span>
               <span className="hidden sm:inline">Import</span>
             </button>
 
@@ -1371,9 +1376,10 @@ function DataMatchItPageContent() {
             {/* Add User Button */}
             <button 
               onClick={() => setIsAddUserModalOpen(true)}
-              className="px-2 sm:px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
+              className="px-2 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
             >
               <UserPlus className="h-4 w-4 flex-shrink-0" />
+              <span className="sm:hidden">Nieuw</span>
               <span className="hidden sm:inline">Toevoegen</span>
             </button>
 

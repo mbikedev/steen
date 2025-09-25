@@ -69,12 +69,14 @@ export async function POST(request: Request) {
 
     console.log("Upserting grid data:", payload);
 
-    // First try to find existing record
+    // Use upsert with proper unique constraint handling
+    // First try to find existing record based on unique constraint fields
     const { data: existingData } = await supabase
       .from("toewijzingen_grid")
       .select("id")
-      .eq("row_number", payload.row_number)
-      .eq("column_number", payload.column_number)
+      .eq("assignment_date", payload.assignment_date)
+      .eq("row_index", payload.row_index || payload.row_number)
+      .eq("col_index", payload.col_index || payload.column_number)
       .single();
 
     let data, error;
@@ -112,6 +114,32 @@ export async function POST(request: Request) {
         .insert(payload)
         .select()
         .single();
+
+      // Handle unique constraint violations gracefully
+      if (
+        insertResult.error &&
+        (insertResult.error.message?.includes("unique_grid_position_per_date") ||
+         insertResult.error.code === '23505') // PostgreSQL unique violation code
+      ) {
+        console.log("Duplicate grid position detected, updating existing record instead");
+        // Find the existing record and update it
+        const { data: duplicateRecord } = await supabase
+          .from("toewijzingen_grid")
+          .select("id")
+          .eq("assignment_date", payload.assignment_date)
+          .eq("row_index", payload.row_index || payload.row_number)
+          .eq("col_index", payload.col_index || payload.column_number)
+          .single();
+
+        if (duplicateRecord) {
+          insertResult = await supabase
+            .from("toewijzingen_grid")
+            .update(payload)
+            .eq("id", duplicateRecord.id)
+            .select()
+            .single();
+        }
+      }
 
       // If color column doesn't exist, try without it
       if (
