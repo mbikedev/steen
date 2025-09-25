@@ -47,7 +47,7 @@ const IB_COLUMN_MIN = 1;
 const IB_COLUMN_MAX = 9;
 
 const Toewijzingen = () => {
-  const { dataMatchIt, updateInDataMatchIt } = useData();
+  const { dataMatchIt, updateInDataMatchIt, refreshResidents } = useData();
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [cellData, setCellData] = useState<CellData>({});
   const [cellColors, setCellColors] = useState<CellColorData>({});
@@ -431,7 +431,7 @@ const Toewijzingen = () => {
           const trimmedName = residentName.trim();
           const ibName = resolveIbNameForColumn(columnNumber);
           if (trimmedName && ibName) {
-            updateResidentsReferent(columnNumber, ibName, trimmedName);
+            await updateResidentsReferent(columnNumber, ibName, trimmedName);
           }
         }
       }
@@ -518,6 +518,12 @@ const Toewijzingen = () => {
         const rowNumber = parseInt(rowStr);
         const columnNumber = parseInt(colStr);
 
+        // Clear referent assignment if this is a resident cell
+        const isResidentCell = rowNumber >= 3 && rowNumber <= 13 && columnNumber >= 1 && columnNumber <= 9;
+        if (isResidentCell && cellData[cellId]) {
+          await clearResidentReferent(cellData[cellId]);
+        }
+
         // Clear from database
         await saveGridData(rowNumber, columnNumber, "", undefined);
       }
@@ -598,6 +604,12 @@ const Toewijzingen = () => {
         const [rowStr, colStr] = cellId.split("-");
         const rowNumber = parseInt(rowStr);
         const columnNumber = parseInt(colStr);
+
+        // Clear referent assignment if this is a resident cell
+        const isResidentCell = rowNumber >= 3 && rowNumber <= 13 && columnNumber >= 1 && columnNumber <= 9;
+        if (isResidentCell && cellData[cellId]) {
+          await clearResidentReferent(cellData[cellId]);
+        }
 
         // Delete from database by sending empty string (API will handle deletion)
         await saveGridData(rowNumber, columnNumber, "", undefined);
@@ -733,6 +745,11 @@ const Toewijzingen = () => {
     const rowNumber = parseInt(rowStr);
     const columnNumber = parseInt(colStr);
 
+    // Get the old value before updating
+    const oldValue = cellData[cellId] || "";
+    const trimmedOldValue = oldValue.trim();
+    const trimmedNewValue = tempValue.trim();
+
     // Update local state immediately
     setCellData((prev) => ({
       ...prev,
@@ -754,24 +771,38 @@ const Toewijzingen = () => {
       alert(`Fout bij het opslaan van celgegevens. Probeer het opnieuw.`);
     }
 
-    const trimmedValue = tempValue.trim();
     const isResidentAssignmentCell =
       rowNumber >= RESIDENT_ROW_MIN &&
       rowNumber <= RESIDENT_ROW_MAX &&
       columnNumber >= IB_COLUMN_MIN &&
       columnNumber <= IB_COLUMN_MAX;
 
-    if (isResidentAssignmentCell && trimmedValue) {
-      const ibName = resolveIbNameForColumn(columnNumber);
-      if (ibName) {
-        console.log(
-          `Assigning IB "${ibName}" to resident "${trimmedValue}" in column ${columnNumber}`,
-        );
-        updateResidentsReferent(columnNumber, ibName, trimmedValue);
-      } else {
-        console.warn(
-          `No IB name found for column ${columnNumber}; skipping referent update for "${trimmedValue}"`,
-        );
+    if (isResidentAssignmentCell) {
+      // Clear old referent if there was an old value and it's different from new value
+      if (trimmedOldValue && trimmedOldValue !== trimmedNewValue) {
+        console.log(`Clearing old referent for: "${trimmedOldValue}"`);
+        await clearResidentReferent(trimmedOldValue);
+      }
+
+      // Assign new referent if there's a new value
+      if (trimmedNewValue) {
+        const ibName = resolveIbNameForColumn(columnNumber);
+        if (ibName) {
+          console.log(
+            `Assigning IB "${ibName}" to resident "${trimmedNewValue}" in column ${columnNumber}`,
+          );
+          await updateResidentsReferent(columnNumber, ibName, trimmedNewValue);
+        } else {
+          console.warn(
+            `No IB name found for column ${columnNumber}; skipping referent update for "${trimmedNewValue}"`,
+          );
+        }
+      }
+      
+      // If new value is empty, clear referent for old value (if different from above case)
+      else if (!trimmedNewValue && trimmedOldValue) {
+        console.log(`Cell cleared, ensuring referent is cleared for: "${trimmedOldValue}"`);
+        await clearResidentReferent(trimmedOldValue);
       }
     }
 
@@ -883,7 +914,7 @@ const Toewijzingen = () => {
               const trimmedName = residentName.trim();
               const ibName = resolveIbNameForColumn(columnNumber);
               if (trimmedName && ibName) {
-                updateResidentsReferent(columnNumber, ibName, trimmedName);
+                await updateResidentsReferent(columnNumber, ibName, trimmedName);
               }
             }
           }
@@ -989,45 +1020,175 @@ const Toewijzingen = () => {
   };
 
   // Function to update a resident's referencePerson based on IB assignment
-  const updateResidentsReferent = (
+  const updateResidentsReferent = async (
     columnNumber: number,
     ibName: string,
     residentName: string,
   ) => {
     try {
-      if (!Array.isArray(dataMatchIt) || dataMatchIt.length === 0) {
-        console.warn(
-          "No residents loaded when attempting to update referent; skipping.",
-        );
+      // Always refresh residents data first to ensure we have the latest data
+      console.log(`Refreshing residents data before assignment...`);
+      await refreshResidents();
+      
+      // Get fresh data after refresh
+      const freshData = dataMatchIt;
+      
+      if (!Array.isArray(freshData) || freshData.length === 0) {
+        console.warn("No residents loaded after refresh; skipping referent update.");
         return;
       }
 
-      const updatedResidents = dataMatchIt.map((resident: any) => {
+      const cleanResidentName = residentName.trim().toLowerCase();
+      console.log(`Searching for resident: "${cleanResidentName}" to assign to IB: "${ibName}"`);
+      console.log(`Fresh residents data loaded:`, freshData.length);
+      
+      // Also try to match by badge number if the resident name looks like a number
+      const possibleBadgeNumber = parseInt(cleanResidentName);
+      const isNumericSearch = !isNaN(possibleBadgeNumber) && cleanResidentName === possibleBadgeNumber.toString();
+
+      let foundResident = null;
+      
+      for (const resident of freshData) {
         const residentFullName =
-          `${resident.firstName || ""} ${resident.lastName || ""}`.trim();
-        if (residentFullName === residentName.trim()) {
-          return {
-            ...resident,
-            referencePerson: ibName,
-          };
+          `${resident.firstName || ""} ${resident.lastName || ""}`.trim().toLowerCase();
+        
+        // Try different name matching patterns
+        const nameVariations = [
+          residentFullName, // Full name
+          `${resident.firstName || ""}`.trim().toLowerCase(), // First name only
+          `${resident.lastName || ""}`.trim().toLowerCase(), // Last name only
+          `${resident.lastName || ""} ${resident.firstName || ""}`.trim().toLowerCase(), // Last name first
+        ].filter(name => name.length > 0);
+
+        // Check name matching
+        const nameMatch = nameVariations.some(variation => 
+          variation === cleanResidentName || 
+          cleanResidentName.includes(variation) || 
+          variation.includes(cleanResidentName)
+        );
+        
+        // Check badge number matching if it's a numeric search
+        const badgeMatch = isNumericSearch && resident.badge === possibleBadgeNumber;
+        
+        const isMatch = nameMatch || badgeMatch;
+
+        if (isMatch && resident.id) {
+          foundResident = resident;
+          console.log(`✓ Found match: "${residentFullName}" (ID: ${resident.id}) -> assigning referent: "${ibName}"`);
+          break; // Exit loop after finding first match
         }
-        return resident;
-      });
+      }
 
-      const changedResident = updatedResidents.find(
-        (r: any) =>
-          `${r.firstName || ""} ${r.lastName || ""}`.trim() ===
-            residentName.trim() && r.referencePerson === ibName,
-      );
+      if (foundResident) {
+        // Double-check that the resident still exists by verifying ID exists in fresh data
+        const residentStillExists = freshData.some(r => r.id === foundResident.id);
+        if (!residentStillExists) {
+          console.log(`⚠️ Resident ${foundResident.id} found in cached data but not in fresh data. Skipping referent assignment.`);
+          return;
+        }
 
-      if (changedResident) {
-        updateInDataMatchIt(updatedResidents);
+        try {
+          await updateInDataMatchIt(foundResident.id, { referencePerson: ibName });
+          console.log(`✅ Successfully assigned referent "${ibName}" to resident "${foundResident.firstName} ${foundResident.lastName}"`);
+        } catch (error: any) {
+          console.error(`❌ Failed to update resident ${foundResident.id}:`, error);
+          
+          // Check if this is a "resident not found" error
+          if (error?.code === 'PGRST116' && error?.details === 'The result contains 0 rows') {
+            console.log(`🗑️ Resident ${foundResident.id} no longer exists in database. Refreshing data to remove stale entries.`);
+            // Trigger a data refresh to clean up stale entries
+            await refreshResidents();
+          } else {
+            console.log(`This might indicate the resident was deleted or another database issue occurred.`);
+            // Only re-throw for non-"not found" errors
+            throw error;
+          }
+        }
+      } else {
+        console.warn(`❌ No resident found matching: "${residentName}"`);
+        console.log(`Available residents:`, freshData.slice(0, 5).map(r => 
+          `${r.firstName || ""} ${r.lastName || ""}`.trim()
+        ).filter(name => name.length > 0));
       }
     } catch (error) {
       console.error(
         `Error updating referent for resident "${residentName}" to IB "${ibName}":`,
         error,
       );
+    }
+  };
+
+  // Function to clear a resident's referencePerson when removed from assignment
+  const clearResidentReferent = async (residentName: string) => {
+    try {
+      // Refresh data first to ensure accuracy
+      console.log(`Refreshing residents data before clearing referent...`);
+      await refreshResidents();
+      
+      const freshData = dataMatchIt;
+      
+      if (!Array.isArray(freshData) || freshData.length === 0) {
+        return;
+      }
+
+      const cleanResidentName = residentName.trim().toLowerCase();
+      console.log(`Clearing referent for resident: "${cleanResidentName}"`);
+
+      let foundResident = null;
+      
+      for (const resident of freshData) {
+        const residentFullName =
+          `${resident.firstName || ""} ${resident.lastName || ""}`.trim().toLowerCase();
+        
+        // Try different name matching patterns
+        const nameVariations = [
+          residentFullName, // Full name
+          `${resident.firstName || ""}`.trim().toLowerCase(), // First name only
+          `${resident.lastName || ""}`.trim().toLowerCase(), // Last name only
+          `${resident.lastName || ""} ${resident.firstName || ""}`.trim().toLowerCase(), // Last name first
+        ].filter(name => name.length > 0);
+
+        const isMatch = nameVariations.some(variation => 
+          variation === cleanResidentName || 
+          cleanResidentName.includes(variation) || 
+          variation.includes(cleanResidentName)
+        );
+
+        if (isMatch && resident.id && resident.referencePerson) {
+          foundResident = resident;
+          console.log(`✓ Found resident to clear referent: "${residentFullName}" (ID: ${resident.id})`);
+          break; // Exit loop after finding first match
+        }
+      }
+
+      if (foundResident) {
+        // Double-check that the resident still exists by verifying ID exists in fresh data
+        const residentStillExists = freshData.some(r => r.id === foundResident.id);
+        if (!residentStillExists) {
+          console.log(`⚠️ Resident ${foundResident.id} found in cached data but not in fresh data. Skipping referent clearing.`);
+          return;
+        }
+
+        try {
+          await updateInDataMatchIt(foundResident.id, { referencePerson: null });
+          console.log(`✅ Successfully cleared referent for resident "${foundResident.firstName} ${foundResident.lastName}"`);
+        } catch (error: any) {
+          console.error(`❌ Failed to clear referent for resident ${foundResident.id}:`, error);
+          
+          // Check if this is a "resident not found" error
+          if (error?.code === 'PGRST116' && error?.details === 'The result contains 0 rows') {
+            console.log(`🗑️ Resident ${foundResident.id} no longer exists in database. Refreshing data to remove stale entries.`);
+            // Trigger a data refresh to clean up stale entries
+            await refreshResidents();
+          } else {
+            console.log(`This might indicate the resident was deleted or another database issue occurred.`);
+          }
+        }
+      } else {
+        console.log(`ℹ️ No resident found with name "${residentName}" that has a referent to clear.`);
+      }
+    } catch (error) {
+      console.error(`Error clearing referent for resident "${residentName}":`, error);
     }
   };
 
@@ -1503,6 +1664,18 @@ const Toewijzingen = () => {
                                                 "Delete button clicked for cell:",
                                                 cellId,
                                               );
+                                              
+                                              // Clear referent assignment if this is a resident cell
+                                              const [rowStr, colStr] = cellId.split("-");
+                                              const rowNumber = parseInt(rowStr);
+                                              const columnNumber = parseInt(colStr);
+                                              const isResidentCell = rowNumber >= 3 && rowNumber <= 13 && columnNumber >= 1 && columnNumber <= 9;
+                                              
+                                              if (isResidentCell && cellData[cellId]) {
+                                                console.log(`Clearing referent for deleted resident: "${cellData[cellId]}"`);
+                                                await clearResidentReferent(cellData[cellId]);
+                                              }
+                                              
                                               setCellData((prev) => {
                                                 const newData = { ...prev };
                                                 delete newData[cellId];
@@ -1513,12 +1686,7 @@ const Toewijzingen = () => {
                                                 delete newColors[cellId];
                                                 return newColors;
                                               });
-                                              const [rowStr, colStr] =
-                                                cellId.split("-");
-                                              const rowNumber =
-                                                parseInt(rowStr);
-                                              const columnNumber =
-                                                parseInt(colStr);
+                                              
                                               try {
                                                 await saveGridData(
                                                   rowNumber,
