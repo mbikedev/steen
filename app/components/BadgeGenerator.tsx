@@ -118,7 +118,8 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       width: 100%;
       height: 100%;
       display: flex;
-      background: white;
+      background: white !important;
+      color: black !important;
       position: relative;
       overflow: hidden;
     }
@@ -129,6 +130,8 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       flex-direction: column;
       position: relative;
       border-right: 1px solid #000;
+      background: white !important;
+      color: black !important;
     }
     .badge-right {
       width: 30mm;
@@ -137,6 +140,8 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       align-items: center;
       justify-content: space-between;
       padding: 1mm;
+      background: white !important;
+      color: black !important;
     }
     .barcode-row {
       height: 11mm;
@@ -144,7 +149,8 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       align-items: center;
       justify-content: center;
       border-bottom: 1px solid #000;
-      background: white;
+      background: white !important;
+      color: black !important;
     }
     .barcode-image {
       height: 9mm;
@@ -158,6 +164,8 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       border-bottom: 1px solid #000;
       font-size: 16pt;
       font-weight: bold;
+      background: white !important;
+      color: black !important;
     }
     .info-row {
       height: 6.5mm;
@@ -168,6 +176,8 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       align-items: center;
       justify-content: center;
       text-align: center;
+      background: white !important;
+      color: black !important;
     }
     .info-row.lastname {
       height: 7mm;
@@ -176,6 +186,8 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       text-transform: uppercase;
       justify-content: center;
       text-align: center;
+      background: white !important;
+      color: black !important;
     }
     .info-row.firstname {
       height: 7mm;
@@ -183,6 +195,8 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       font-weight: bold;
       justify-content: center;
       text-align: center;
+      background: white !important;
+      color: black !important;
     }
     .info-row:last-child {
       border-bottom: none;
@@ -193,7 +207,7 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       display: flex;
       align-items: center;
       justify-content: center;
-      background: white;
+      background: white !important;
       overflow: hidden;
       margin-top: 5mm;
       border: 1px solid #ddd;
@@ -210,6 +224,8 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       font-weight: bold;
       margin-top: auto;
       padding-bottom: 2mm;
+      background: white !important;
+      color: black !important;
     }
   `;
 
