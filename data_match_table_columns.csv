@@ -1,0 +1,10 @@
+Column Name,Type,Default Value,Primary,Not Null,Unique
+id,uuid,uuid_generate_v4(),TRUE,TRUE,TRUE
+resident_id,uuid,,FALSE,FALSE,FALSE
+external_id,text,,FALSE,FALSE,FALSE
+external_system,text,'legacy_system',FALSE,FALSE,FALSE
+match_status,text,'matched',FALSE,FALSE,FALSE
+sync_status,text,'success',FALSE,FALSE,FALSE
+data_payload,jsonb,,FALSE,FALSE,FALSE
+created_at,timestamptz,now(),FALSE,FALSE,FALSE
+updated_at,timestamptz,now(),FALSE,FALSE,FALSE
