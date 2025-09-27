@@ -821,30 +821,30 @@ export default function ResidentsGridPage() {
         {/* Print Layout - Only visible when printing */}
         <div className="hidden print:block print-container">
           {(() => {
-            // Limit to first 44 residents for performance
-            const residentsForPrint = residents.slice(0, 44);
+            // Use filteredResidents to ensure consistent data with screen view
+            const residentsForPrint = filteredResidents.slice(0, 44);
 
             // Helper function to render resident card with room numbers for print
-            const renderResidentCard = (resident: ResidentGrid, keyPrefix: string) => (
+            const renderResidentCard = (resident: ResidentGrid, keyPrefix: string) => {
+              console.log('Print resident:', resident.badgeNumber, 'Room:', resident.roomNumber);
+              return (
               <div key={`${keyPrefix}-${resident.id}`} className="print-resident-card">
-                {/* Room Number Badge - Top Left */}
-                {resident.roomNumber && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '4px',
-                    left: '4px',
-                    backgroundColor: 'black',
-                    color: 'white',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    fontWeight: 'bold',
-                    zIndex: 10,
-                    lineHeight: '1'
-                  }}>
-                    {resident.roomNumber}
-                  </div>
-                )}
+                {/* Room Number Badge - Top Left - Always show for debugging */}
+                <div style={{
+                  position: 'absolute',
+                  top: '4px',
+                  left: '4px',
+                  backgroundColor: 'black',
+                  color: 'white',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  zIndex: 10,
+                  lineHeight: '1'
+                }}>
+                  {resident.roomNumber || 'NO_ROOM'}
+                </div>
                 <div className="print-photo-section">
                   {resident.photoUrl ? (
                     <Image
@@ -877,6 +877,7 @@ export default function ResidentsGridPage() {
                 </div>
               </div>
             );
+            };
 
             // Split residents into pages of 12 (3 rows x 4 columns)
             const pages = [];
