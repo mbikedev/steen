@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useData } from "@/lib/DataContext";
-import { DashboardLayout } from "@/app/components/layout/DashboardLayout";
+import DashboardLayout from "@/app/components/layout/DashboardLayout";
 import { Printer, FileText } from "lucide-react";
 
 export default function PermissionPapersPage() {
