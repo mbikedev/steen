@@ -9,6 +9,8 @@ export default function PermissionPapersPage() {
   const { residents } = useData();
   const [isGeneratingPrint, setIsGeneratingPrint] = useState(false);
 
+  console.log("Permission Papers Page - Residents count:", residents?.length || 0);
+
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("nl-BE", {
       day: "2-digit",
@@ -18,9 +20,11 @@ export default function PermissionPapersPage() {
   };
 
   const handlePrint = async () => {
+    console.log("Print button clicked!");
     setIsGeneratingPrint(true);
     // Small delay to show the generating state
     setTimeout(() => {
+      console.log("Opening print dialog...");
       window.print();
       setIsGeneratingPrint(false);
     }, 500);
@@ -54,9 +58,10 @@ export default function PermissionPapersPage() {
               <button
                 onClick={handlePrint}
                 disabled={isGeneratingPrint}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors disabled:opacity-50 cursor-pointer z-10 relative"
+                style={{ pointerEvents: 'auto' }}
               >
-                <Printer className="w-4 h-4" />
+                <Printer className="w-5 h-5" />
                 {isGeneratingPrint ? "Genereren..." : "Print Alle Permissiebladeren"}
               </button>
             </div>
