@@ -845,7 +845,7 @@ export default function ResidentsGridPage() {
                 }}>
                   {resident.roomNumber || 'NO_ROOM'}
                 </div>
-                <div className="print-photo-section">
+                <div className="print-photo-section" style={{ position: 'relative' }}>
                   {resident.photoUrl ? (
                     <Image
                       src={resident.photoUrl}
