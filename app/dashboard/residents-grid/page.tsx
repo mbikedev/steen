@@ -682,6 +682,9 @@ export default function ResidentsGridPage() {
                     cursor: resident.photoUrl ? "default" : "pointer",
                     position: "relative",
                     breakInside: "avoid",
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "250px"
                   }}
                 >
                   {/* Room Number Badge */}
@@ -704,10 +707,49 @@ export default function ResidentsGridPage() {
                     </div>
                   )}
 
+                  {/* Photo Section */}
+                  <div style={{
+                    flex: 1,
+                    position: 'relative',
+                    backgroundColor: '#f3f4f6',
+                    overflow: 'hidden',
+                    aspectRatio: '3/4',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {resident.photoUrl ? (
+                      <Image
+                        src={resident.photoUrl}
+                        alt={`${resident.voornaam} ${resident.naam}`}
+                        fill
+                        style={{ objectFit: 'cover' }}
+                        unoptimized
+                        onClick={(e) => openLightbox(resident.photoUrl!, resident, e)}
+                      />
+                    ) : (
+                      <div style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#f3f4f6',
+                        fontSize: '20px',
+                        fontWeight: 'bold',
+                        color: '#374151',
+                        cursor: 'pointer'
+                      }}>
+                        <Camera className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+
                 {/* Info Section */}
                 <div className="info-section" style={{
                   padding: '4px',
-                  backgroundColor: 'white'
+                  backgroundColor: 'white',
+                  flexShrink: 0
                 }}>
                   <div style={{
                     fontSize: '14px',
@@ -818,44 +860,28 @@ export default function ResidentsGridPage() {
               </div>
             );
 
-            const page1Residents = residentsForPrint.slice(0, 12);
-            const page2Residents = residentsForPrint.slice(12, 28);
-            const page3Residents = residentsForPrint.slice(28, 44);
+            // Split residents into pages of 12 (3 rows x 4 columns)
+            const pages = [];
+            for (let i = 0; i < residentsForPrint.length; i += 12) {
+              pages.push(residentsForPrint.slice(i, i + 12));
+            }
 
             return (
               <>
-                {/* Page 1: 3x4 Grid */}
-                {page1Residents.length > 0 && (
-                  <div className="print-page-break">
-                    {/* Page Header - First page only */}
-                    <div className="print-page-header">
-                      <div className="print-page-header-title">OOC STEENOKKERZEEL</div>
-                      <div className="print-page-header-subtitle">Bezetting ({residents.length})</div>
-                      <div className="print-page-header-date">{formatDate(new Date())}</div>
-                    </div>
+                {pages.map((pageResidents, pageIndex) => (
+                  <div
+                    key={`page-${pageIndex}`}
+                    className={
+                      pageIndex < pages.length - 1 ? "print-page-break" : ""
+                    }
+                  >
                     <div className="print-grid-3x4">
-                      {page1Residents.map(r => renderResidentCard(r, 'p1'))}
+                      {pageResidents.map((r) =>
+                        renderResidentCard(r, `p${pageIndex}`),
+                      )}
                     </div>
                   </div>
-                )}
-                
-                {/* Page 2: 4x4 Grid */}
-                {page2Residents.length > 0 && (
-                  <div className="print-page-break">
-                    <div className="print-grid-4x4">
-                      {page2Residents.map(r => renderResidentCard(r, 'p2'))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Page 3: 4x4 Grid */}
-                {page3Residents.length > 0 && (
-                  <div>
-                    <div className="print-grid-4x4">
-                      {page3Residents.map(r => renderResidentCard(r, 'p3'))}
-                    </div>
-                  </div>
-                )}
+                ))}
               </>
             );
           })()}
@@ -893,101 +919,6 @@ export default function ResidentsGridPage() {
             </div>
           </div>
 
-          {/* Print Layout - Only visible when printing */}
-          <div className="hidden print:block print-container">
-            {(() => {
-              // Get all residents for printing
-              const residentsForPrint = residents;
-
-              // Helper function to render resident card without room numbers for cleaner print
-              const renderResidentCard = (
-                resident: ResidentGrid,
-                keyPrefix: string,
-              ) => (
-                <div
-                  key={`${keyPrefix}-${resident.id}`}
-                  className="print-resident-card"
-                >
-                  <div className="print-photo-section">
-                    {resident.photoUrl ? (
-                      <Image
-                        src={resident.photoUrl}
-                        alt={`${resident.voornaam} ${resident.naam}`}
-                        fill
-                        style={{ objectFit: "cover" }}
-                        unoptimized
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          backgroundColor: "#f3f4f6",
-                          fontSize: "20px",
-                          fontWeight: "bold",
-                          color: "#374151",
-                        }}
-                      >
-                        {resident.voornaam[0]?.toUpperCase()}
-                        {resident.naam[0]?.toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                  <div className="print-info-section">
-                    <div className="print-badge-number">
-                      #{resident.badgeNumber}
-                    </div>
-                    <div className="print-name">{resident.voornaam}</div>
-                    <div className="print-name" style={{ color: "#666" }}>
-                      {resident.naam}
-                    </div>
-                  </div>
-                </div>
-              );
-
-              // Split residents into pages of 12 (3 rows x 4 columns)
-              const pages = [];
-              for (let i = 0; i < residentsForPrint.length; i += 12) {
-                pages.push(residentsForPrint.slice(i, i + 12));
-              }
-
-              return (
-                <>
-                  {pages.map((pageResidents, pageIndex) => (
-                    <div
-                      key={`page-${pageIndex}`}
-                      className={
-                        pageIndex < pages.length - 1 ? "print-page-break" : ""
-                      }
-                    >
-                      {/* Page Header - First page only */}
-                      {pageIndex === 0 && (
-                        <div className="print-page-header">
-                          <div className="print-page-header-title">
-                            OOC STEENOKKERZEEL
-                          </div>
-                          <div className="print-page-header-subtitle">
-                            Bezetting ({residents.length})
-                          </div>
-                          <div className="print-page-header-date">
-                            {formatDate(new Date())}
-                          </div>
-                        </div>
-                      )}
-                      <div className="print-grid-3x4">
-                        {pageResidents.map((r) =>
-                          renderResidentCard(r, `p${pageIndex}`),
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </>
-              );
-            })()}
-          </div>
 
           {/* Lightbox Modal */}
           {lightboxImage && (
@@ -1051,7 +982,6 @@ export default function ResidentsGridPage() {
               </div>
             </div>
           )}
-        </div>
       </DashboardLayout>
     </>
   );
