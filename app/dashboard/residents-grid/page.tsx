@@ -824,9 +824,27 @@ export default function ResidentsGridPage() {
             // Limit to first 44 residents for performance
             const residentsForPrint = residents.slice(0, 44);
 
-            // Helper function to render resident card without room numbers for cleaner print
+            // Helper function to render resident card with room numbers for print
             const renderResidentCard = (resident: ResidentGrid, keyPrefix: string) => (
               <div key={`${keyPrefix}-${resident.id}`} className="print-resident-card">
+                {/* Room Number Badge - Top Left */}
+                {resident.roomNumber && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '4px',
+                    left: '4px',
+                    backgroundColor: 'black',
+                    color: 'white',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    zIndex: 10,
+                    lineHeight: '1'
+                  }}>
+                    {resident.roomNumber}
+                  </div>
+                )}
                 <div className="print-photo-section">
                   {resident.photoUrl ? (
                     <Image
