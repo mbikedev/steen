@@ -435,6 +435,18 @@ export default function DashboardLayout({ children, className, onResidentSearch,
               <Calendar className="mr-3 h-5 w-5" />
               Weekend Permissie
             </Link>
+            {/* Permission Papers - Standalone item */}
+            <Link
+              href="/dashboard/permission-papers"
+              className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                pathname === '/dashboard/permission-papers'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              }`}
+            >
+              <FileText className="mr-3 h-5 w-5" />
+              Permissiebladeren
+            </Link>
 
             {/* Overzicht Jongeren - Standalone item */}
             <Link
@@ -631,6 +643,18 @@ export default function DashboardLayout({ children, className, onResidentSearch,
             >
               <Calendar className={`mr-3 h-5 w-5 transition-colors`} />
               Weekend Permissie
+            </Link>
+            {/* Permission Papers - Standalone item */}
+            <Link
+              href="/dashboard/permission-papers"
+              className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                pathname === '/dashboard/permission-papers'
+                  ? 'bg-primary text-primary-foreground shadow-lg'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:scale-105'
+              }`}
+            >
+              <FileText className={`mr-3 h-5 w-5 transition-colors`} />
+              Permissiebladeren
             </Link>
 
             {/* Overzicht Jongeren - Standalone item */}
