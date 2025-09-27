@@ -203,7 +203,7 @@ export default function AfsprakenPage() {
         <div className="mb-8">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-foreground font-title">Afspraken</h1>
-            <p className="text-sm text-gray-600 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               Afspraken worden gemaakt voor de volgende dag en automatisch opgeruimd
             </p>
           </div>
@@ -220,10 +220,10 @@ export default function AfsprakenPage() {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 bg-white text-foreground rounded-lg focus:ring-2 focus:ring-ring"
+                className="px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring dark:bg-background dark:border-border"
               />
             </div>
-            <div className="text-sm text-gray-600 dark:text-gray-300">
+            <div className="text-sm text-muted-foreground">
               {selectedDate && getFormattedDate(selectedDate)}
             </div>
           </div>
@@ -257,7 +257,7 @@ export default function AfsprakenPage() {
             <div className="flex items-center">
               <MapPin className="h-8 w-8 text-foreground mr-3" />
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Noord</p>
+                <p className="text-sm text-muted-foreground">Noord</p>
                 <p className="text-2xl font-bold text-foreground">
                   {isClient ? remarksData.filter(r => r.building === 'Noord').length : 0}
                 </p>
@@ -268,7 +268,7 @@ export default function AfsprakenPage() {
             <div className="flex items-center">
               <MapPin className="h-8 w-8 text-foreground mr-3" />
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Zuid</p>
+                <p className="text-sm text-muted-foreground">Zuid</p>
                 <p className="text-2xl font-bold text-foreground">
                   {isClient ? remarksData.filter(r => r.building === 'Zuid').length : 0}
                 </p>
@@ -287,7 +287,7 @@ export default function AfsprakenPage() {
             {isClient && remarksData.length > 0 ? (
               <div className="space-y-4">
                 {remarksData.map((item) => (
-                  <div key={`${item.id}-${item.building}`} className="border border-gray-200 rounded-lg p-4">
+                  <div key={`${item.id}-${item.building}`} className="border border-border rounded-lg p-4 bg-background">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
@@ -296,7 +296,7 @@ export default function AfsprakenPage() {
                           }`}>
                             {item.building}
                           </span>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                             Afspraak
                           </span>
                           {item.appointmentDate && (
@@ -307,13 +307,13 @@ export default function AfsprakenPage() {
                           <span className="text-sm font-medium text-foreground">
                             Kamer {item.room} - Bed {item.bedNumber || 'N/A'}
                           </span>
-                          <span className="text-sm text-gray-500 dark:text-muted-foreground">#{item.badge}</span>
+                          <span className="text-sm text-muted-foreground">#{item.badge}</span>
                         </div>
                         <h4 className="text-lg font-semibold text-foreground mb-2">{item.name}</h4>
                         <div className="bg-muted rounded-md p-3">
                           <div className="flex items-start">
                             <MessageSquare className="h-4 w-4 text-muted-foreground mr-2 mt-0.5 flex-shrink-0" />
-                            <span className="inline-block text-sm sm:text-base font-semibold text-foreground bg-yellow-100 px-2 py-1 rounded">
+                            <span className="inline-block text-sm sm:text-base font-semibold text-foreground bg-yellow-100 dark:bg-yellow-800 dark:text-yellow-100 px-2 py-1 rounded">
                               {item.remarks}
                             </span>
                           </div>
@@ -342,7 +342,7 @@ export default function AfsprakenPage() {
               <div className="text-center py-12">
                 <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
                 <h3 className="mt-2 text-sm font-medium text-foreground">Geen opmerkingen</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-300">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {isClient ? 
                     'Er zijn momenteel geen opmerkingen genoteerd voor bewoners.' :
                     'Laden...'
@@ -354,12 +354,12 @@ export default function AfsprakenPage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-4 text-sm text-gray-700 dark:text-gray-300">
+        <div className="mt-4 text-sm text-foreground">
           <div className="flex justify-between items-center">
             <div>
               Toont <span className="font-medium">{isClient ? remarksData.length : 0}</span> opmerkingen
             </div>
-            <div className="text-xs text-gray-500 flex items-center">
+            <div className="text-xs text-muted-foreground flex items-center">
               <Clock className="h-3 w-3 mr-1" />
               Laatst bijgewerkt: {isClient ? new Date().toLocaleString('nl-NL') : '---'}
             </div>

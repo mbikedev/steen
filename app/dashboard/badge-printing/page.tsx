@@ -90,8 +90,6 @@ export default function BadgePrintingPage() {
     console.log('Specific fields check:', {
       ov_number: resident.ov_number,
       ovNumber: resident.ovNumber,
-      room: resident.room,
-      wooneenheid: resident.wooneenheid,
     });
     
     // Auto-populate badge data with correct field mappings from data match page
@@ -104,9 +102,6 @@ export default function BadgePrintingPage() {
     // Map OV Nummer column from data match page - check all possible field names
     const ovNumber = resident.ov_number || resident.ovNumber || resident.ov_nummer || resident['OV Nummer'] || '';
     
-    // Map Wooneenheid column from data match page - check all possible field names
-    const roomNumber = resident.room || resident.wooneenheid || resident.Wooneenheid || resident.room_number || '';
-    
     // Auto-retrieve photo from administrative documents using badge number
     const photo = residentPhotos[badgeNumber] || residentPhotos[resident.id] || resident.photo || '';
     
@@ -117,7 +112,6 @@ export default function BadgePrintingPage() {
       dateOfBirth: formatDate(dateOfBirth),
       nationality,
       ovNumber,
-      roomNumber,
       photo: photo ? 'Photo found' : 'No photo',
       age: calculateAge(dateOfBirth)
     });
@@ -129,7 +123,6 @@ export default function BadgePrintingPage() {
       dateOfBirth: formatDate(dateOfBirth),
       nationality,
       ovNumber,
-      roomNumber,
       photo,
     });
     setSearchTerm('');
@@ -154,7 +147,7 @@ export default function BadgePrintingPage() {
 
   const handleBatchPrint = () => {
     // This would generate badges for all residents
-    alert('Batch printing feature coming soon!');
+    alert('Batchdruk functie komt binnenkort!');
   };
 
   if (isLoading) {
@@ -163,7 +156,7 @@ export default function BadgePrintingPage() {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>Loading residents data...</p>
+            <p>Bewonersgegevens laden...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -180,19 +173,19 @@ export default function BadgePrintingPage() {
               <div>
                 <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                   <CreditCard className="h-6 w-6" />
-                  Badge Printing System
+                  Badge Printsysteem
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Generate and print resident ID badges for Zebra ZC 350
+                  Genereer en print bewoner ID-badges voor Zebra ZC 350
                 </p>
                 {loadingPhotos && (
                   <p className="text-xs text-blue-600 mt-1">
-                    Loading resident photos from administrative documents...
+                    Bezig met laden van bewonersfoto's uit administratieve documenten...
                   </p>
                 )}
                 {!loadingPhotos && Object.keys(residentPhotos).length > 0 && (
                   <p className="text-xs text-green-600 mt-1">
-                    ✓ Loaded {Object.keys(residentPhotos).length} resident photos
+                    ✓ {Object.keys(residentPhotos).length} bewonersfoto's geladen
                   </p>
                 )}
               </div>
@@ -202,7 +195,7 @@ export default function BadgePrintingPage() {
                   className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center gap-2"
                 >
                   <Printer className="h-4 w-4" />
-                  Batch Print All
+                  Alles Batchdrukken
                 </button>
               </div>
             </div>
@@ -214,12 +207,12 @@ export default function BadgePrintingPage() {
           <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 border dark:border-gray-700">
             <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
               <Search className="h-5 w-5" />
-              Select Resident
+              Selecteer Bewoner
             </h2>
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search by name or badge number..."
+                placeholder="Zoek op naam of badgenummer..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-700 dark:border-gray-600"
@@ -238,7 +231,7 @@ export default function BadgePrintingPage() {
                         {resident.first_name} {resident.last_name}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Badge: {resident.badge} | Room: {resident.room || 'N/A'}
+                        Badge: {resident.badge} | Kamer: {resident.room || 'N.v.t.'}
                       </div>
                     </button>
                   ))}
@@ -250,7 +243,7 @@ export default function BadgePrintingPage() {
             {dataMatchIt && dataMatchIt.length > 0 ? (
               <div className="mt-4">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  Quick Access - Recent Residents
+                  Snelle Toegang - Recente Bewoners
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {dataMatchIt.slice(0, 8).map((resident: any) => (
@@ -271,7 +264,7 @@ export default function BadgePrintingPage() {
             </div>
           ) : (
             <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-              {isLoading ? 'Loading residents...' : 'No residents found. Please check the Data Match page to ensure data is loaded.'}
+              {isLoading ? 'Bewoners laden...' : 'Geen bewoners gevonden. Controleer de Data Match pagina om te zorgen dat gegevens zijn geladen.'}
             </div>
           )}
           </div>
@@ -281,7 +274,7 @@ export default function BadgePrintingPage() {
         {selectedResident ? (
           <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 border dark:border-gray-700">
             <h2 className="text-lg font-bold mb-4">
-              Badge for: {selectedResident.firstName} {selectedResident.lastName}
+              Badge voor: {selectedResident.firstName} {selectedResident.lastName}
             </h2>
             <BadgeGenerator
               resident={selectedResident}
@@ -294,30 +287,29 @@ export default function BadgePrintingPage() {
           <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-12 border dark:border-gray-700 text-center">
             <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
             <p className="text-gray-600 dark:text-gray-400">
-              Select a resident from the search above to generate their badge
+              Selecteer een bewoner uit de zoekopdracht hierboven om hun badge te genereren
             </p>
           </div>
         )}
 
         {/* Auto-Population Info */}
         <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <h3 className="font-bold text-sm mb-2">🤖 Automated Badge Generation:</h3>
+          <h3 className="font-bold text-sm mb-2">🤖 Geautomatiseerde Badge Generatie:</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700 dark:text-gray-300">
             <div>
-              <h4 className="font-semibold mb-1">Auto-populated from Data Match page:</h4>
+              <h4 className="font-semibold mb-1">Automatisch ingevuld vanaf Data Match pagina:</h4>
               <ul className="space-y-1 text-xs">
                 <li>• OV Nummer → OVN field</li>
-                <li>• Wooneenheid → Room number</li>
-                <li>• Date of birth → Age calculation</li>
-                <li>• Nationality information</li>
+                <li>• Geboortedatum → Leeftijdberekening</li>
+                <li>• Nationaliteit informatie</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-1">Photo retrieval:</h4>
+              <h4 className="font-semibold mb-1">Foto ophalen:</h4>
               <ul className="space-y-1 text-xs">
-                <li>• Auto-loads from Administrative Documents</li>
-                <li>• Matches by badge number</li>
-                <li>• Manual upload if not found</li>
+                <li>• Automatisch laden van administratieve documenten</li>
+                <li>• Koppeling op basis van badgenummer</li>
+                <li>• Handmatige upload indien niet gevonden</li>
               </ul>
             </div>
           </div>
@@ -325,14 +317,14 @@ export default function BadgePrintingPage() {
 
         {/* Instructions */}
         <div className="mt-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-          <h3 className="font-bold text-sm mb-2">Printing Instructions:</h3>
+          <h3 className="font-bold text-sm mb-2">Printinstructies:</h3>
           <ol className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
-            <li>1. Select a resident from the search or quick access</li>
-            <li>2. Badge data is auto-populated from your existing systems</li>
-            <li>3. Photo is automatically retrieved from administrative documents</li>
-            <li>4. Verify all information is correct</li>
-            <li>5. Click "Print Badge" to send to Zebra ZC 350</li>
-            <li>6. Ensure printer has blank CR80 cards loaded</li>
+            <li>1. Selecteer een bewoner via de zoekfunctie of snelle toegang</li>
+            <li>2. Badgegegevens worden automatisch ingevuld vanuit bestaande systemen</li>
+            <li>3. Foto wordt automatisch opgehaald uit administratieve documenten</li>
+            <li>4. Controleer of alle informatie correct is</li>
+            <li>5. Klik op "Badge Printen" om naar Zebra ZC 350 te verzenden</li>
+            <li>6. Zorg ervoor dat de printer blanco CR80 kaarten geladen heeft</li>
           </ol>
         </div>
       </div>

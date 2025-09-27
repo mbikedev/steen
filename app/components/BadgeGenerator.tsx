@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { useRef, useState, useEffect } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
-import JsBarcode from 'jsbarcode';
-import { Camera } from 'lucide-react';
+import React, { useRef, useState, useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import JsBarcode from "jsbarcode";
+import { Camera } from "lucide-react";
 
 interface ResidentBadgeData {
   badgeNumber: string;
@@ -21,26 +21,29 @@ interface BadgeGeneratorProps {
   onPhotoUpload?: (photo: string) => void;
 }
 
-export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGeneratorProps) {
+export default function BadgeGenerator({
+  resident,
+  onPhotoUpload,
+}: BadgeGeneratorProps) {
   const badgeRef = useRef<HTMLDivElement>(null);
-  const [photo, setPhoto] = useState<string>(resident.photo || '');
+  const [photo, setPhoto] = useState<string>(resident.photo || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Debug logging
   useEffect(() => {
-    console.log('BadgeGenerator received resident data:', resident);
-    console.log('OVN Number:', resident.ovNumber);
-    console.log('Room Number:', resident.roomNumber);
+    console.log("BadgeGenerator received resident data:", resident);
+    console.log("OVN Number:", resident.ovNumber);
+    console.log("Room Number:", resident.roomNumber);
   }, [resident]);
 
   // Update photo when resident changes
   useEffect(() => {
-    setPhoto(resident.photo || '');
+    setPhoto(resident.photo || "");
   }, [resident.badgeNumber, resident.photo]); // Re-run when badge number or photo changes
 
   // Generate barcode
   const generateBarcode = () => {
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     JsBarcode(canvas, resident.badgeNumber, {
       format: "CODE128",
       width: 1.5,
@@ -48,7 +51,7 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       displayValue: false,
       margin: 0,
     });
-    return canvas.toDataURL('image/png');
+    return canvas.toDataURL("image/png");
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,7 +70,7 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
   const handlePrint = () => {
     const printContent = badgeRef.current?.innerHTML;
     if (printContent) {
-      const printWindow = window.open('', '', 'width=1016,height=648');
+      const printWindow = window.open("", "", "width=1016,height=648");
       if (printWindow) {
         printWindow.document.write(`
           <!DOCTYPE html>
@@ -151,6 +154,7 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       border-bottom: 1px solid #000;
       background: white !important;
       color: black !important;
+      margin-top: 1mm;
     }
     .barcode-image {
       height: 9mm;
@@ -209,7 +213,7 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       justify-content: center;
       background: white !important;
       overflow: hidden;
-      margin-top: 5mm;
+      margin-top: 1mm;
       border: 1px solid #ddd;
     }
     .photo-container img {
@@ -223,7 +227,6 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       line-height: 1.4;
       font-weight: bold;
       margin-top: auto;
-      padding-bottom: 2mm;
       background: white !important;
       color: black !important;
     }
@@ -234,18 +237,18 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
       {/* Badge Preview */}
       <div className="badge-preview mb-6">
         <h3 className="text-lg font-bold mb-3">Badge Preview</h3>
-        <div 
+        <div
           ref={badgeRef}
           className="badge-container"
           style={{
-            width: '85.6mm',
-            height: '54mm',
-            border: '2px solid #333',
-            borderRadius: '4px',
-            overflow: 'hidden',
-            background: 'white',
-            margin: '0 auto',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            width: "85.6mm",
+            height: "54mm",
+            border: "2px solid #333",
+            borderRadius: "4px",
+            overflow: "hidden",
+            background: "white",
+            margin: "0 auto",
+            boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
           }}
         >
           <style dangerouslySetInnerHTML={{ __html: badgeStyles }} />
@@ -253,35 +256,41 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
             <div className="badge-left">
               {/* Barcode Row */}
               <div className="barcode-row">
-                <img 
-                  src={generateBarcode()} 
+                <img
+                  src={generateBarcode()}
                   alt="Barcode"
                   className="barcode-image"
                 />
               </div>
-              
+
               {/* Badge Number Row */}
               <div className="badge-number-row">{resident.badgeNumber}</div>
-              
+
               {/* Last Name Row */}
-              <div className="info-row lastname">{(resident.lastName || '').toUpperCase()}</div>
-              
+              <div className="info-row lastname">
+                {(resident.lastName || "").toUpperCase()}
+              </div>
+
               {/* First Name Row */}
               <div className="info-row firstname">{resident.firstName}</div>
-              
+
               {/* Birth Date Row */}
               <div className="info-row">Geboorte : {resident.dateOfBirth}</div>
-              
+
               {/* Nationality Row */}
-              <div className="info-row">Nationaliteit : {resident.nationality}</div>
-              
+              <div className="info-row">
+                Nationaliteit : {resident.nationality}
+              </div>
+
               {/* OVN Row */}
-              <div className="info-row">OVN : {resident.ovNumber || ''}</div>
-              
+              <div className="info-row">OVN : {resident.ovNumber || ""}</div>
+
               {/* Room Number Row */}
-              <div className="info-row">Kamer : {resident.roomNumber || ''}</div>
+              <div className="info-row">
+                Kamer : {resident.roomNumber || ""}
+              </div>
             </div>
-            
+
             <div className="badge-right">
               {/* Photo */}
               <div className="photo-container">
@@ -294,12 +303,12 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
                   </div>
                 )}
               </div>
-              
+
               {/* Facility Info */}
               <div className="facility-info">
                 <div>Keizerinlaan 2,</div>
                 <div>1820 Steenokkerzeel</div>
-                <div style={{ marginTop: '2mm' }}>02/755 23 60</div>
+                <div style={{ marginTop: "2mm" }}>02/755 23 60</div>
               </div>
             </div>
           </div>
@@ -332,13 +341,18 @@ export default function BadgeGenerator({ resident, onPhotoUpload }: BadgeGenerat
 
       {/* Printer Instructions */}
       <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-        <h4 className="font-bold text-sm mb-2">Zebra ZC 350 Printer Settings:</h4>
+        <h4 className="font-bold text-sm mb-2">
+          Zebra ZC 350 Printer Settings:
+        </h4>
         <ul className="text-xs space-y-1 text-gray-600 dark:text-gray-300">
           <li>• Card Size: CR80 (85.6mm x 54mm / 3.375" x 2.125")</li>
           <li>• Orientation: Landscape</li>
           <li>• Print Quality: High</li>
           <li>• Color Mode: Color (if using color ribbon)</li>
-          <li>• Ensure the printer driver is set to "Actual Size" or "100%" scaling</li>
+          <li>
+            • Ensure the printer driver is set to "Actual Size" or "100%"
+            scaling
+          </li>
         </ul>
       </div>
     </div>
