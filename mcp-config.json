@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "supabase-postgres": {
+      "command": "npx",
+      "args": [
+        "enhanced-postgres-mcp-server"
+      ],
+      "env": {
+        "POSTGRES_CONNECTION_STRING": "postgresql://postgres:[YOUR_PASSWORD]@db.xxcbpsjefpogxgfellui.supabase.co:5432/postgres"
+      }
+    }
+  }
+}
