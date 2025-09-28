@@ -19,9 +19,13 @@ export default function PermissionPapersPage() {
   const [bijlageDocuments, setBijlageDocuments] = useState<{
     [key: number]: any[];
   }>({});
+  const [loadingPdfs, setLoadingPdfs] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [isLoadingForPrint, setIsLoadingForPrint] = useState(false);
 
   const handlePrint = () => {
-    window.print();
+    handlePrintWithDocuments();
   };
 
   const formatDate = (date: Date) => {
@@ -66,43 +70,121 @@ export default function PermissionPapersPage() {
     loadPhotos();
   }, []);
 
-  // Load bijlage documents for all residents
-  useEffect(() => {
-    const loadBijlageDocuments = async () => {
-      try {
-        const documentsMap: { [key: number]: any[] } = {};
+  // Load bijlage documents only when needed (lazy loading)
+  const loadBijlageDocumentsForResident = async (residentId: number) => {
+    if (bijlageDocuments[residentId]) {
+      return; // Already loaded
+    }
 
-        for (const resident of residents) {
+    try {
+      console.log(`Loading bijlage documents for resident ${residentId}...`);
+      const documents = await apiService.getAdministrativeDocuments(residentId);
+
+      // Filter for bijlage documents
+      const bijlageDocs = documents.filter((doc: any) => {
+        if (!doc.file_name) return false;
+        const fileName = doc.file_name.toLowerCase();
+        const baseName = fileName.replace(/\.[^/.]+$/, "");
+
+        const matches =
+          fileName.includes("bijlage") ||
+          fileName.includes("bijl") ||
+          baseName === "bijlage" ||
+          baseName === "bijl" ||
+          fileName.startsWith("bijlage") ||
+          fileName.startsWith("bijl");
+
+        if (matches) {
+          console.log(`Found bijlage document: ${doc.file_name} for resident ${residentId}`);
+        }
+        return matches;
+      });
+
+      console.log(`Loaded ${bijlageDocs.length} bijlage documents for resident ${residentId}`);
+
+      setBijlageDocuments(prev => ({
+        ...prev,
+        [residentId]: bijlageDocs
+      }));
+
+      // Initialize loading state for PDF
+      const hasPdfDoc = bijlageDocs.some((doc: any) =>
+        doc.file_name?.toLowerCase().endsWith('.pdf')
+      );
+      if (hasPdfDoc || bijlageDocs.length > 0) {
+        const pdfKey = `${residentId}-bijlage`;
+        setLoadingPdfs(prev => ({
+          ...prev,
+          [pdfKey]: true
+        }));
+      }
+    } catch (error) {
+      console.error(`Error loading bijlage documents for resident ${residentId}:`, error);
+      setBijlageDocuments(prev => ({
+        ...prev,
+        [residentId]: []
+      }));
+    }
+  };
+
+  // Load bijlage documents on demand - only when actually needed
+  useEffect(() => {
+    // Only load documents when we're about to print or when viewing individual
+    if (selectedResident) {
+      // When viewing individual resident, load only their documents
+      loadBijlageDocumentsForResident(selectedResident.id);
+    }
+    // Don't load all documents automatically - only when print is clicked
+  }, [selectedResident]);
+
+  // Function to load all documents when print button is clicked
+  const handlePrintWithDocuments = async () => {
+    setIsLoadingForPrint(true);
+    try {
+      console.log("Loading bijlage documents for all residents before printing...");
+
+      // Load documents for all residents before printing
+      const loadPromises = residents.map(resident =>
+        loadBijlageDocumentsForResident(resident.id)
+      );
+      await Promise.all(loadPromises);
+
+      console.log("All documents loaded, initiating print...");
+
+      // Small delay to ensure documents are rendered
+      setTimeout(() => {
+        setIsLoadingForPrint(false);
+        window.print();
+      }, 500);
+    } catch (error) {
+      console.error("Error loading documents for print:", error);
+      // Print anyway even if some documents fail to load
+      setTimeout(() => {
+        setIsLoadingForPrint(false);
+        window.print();
+      }, 100);
+    }
+  };
+
+  // Preload PDFs for better performance
+  useEffect(() => {
+    try {
+      Object.values(bijlageDocuments).flat().forEach((doc: any) => {
+        if (doc.file_name?.toLowerCase().endsWith('.pdf') && doc.file_path) {
           try {
-            const documents = await apiService.getAdministrativeDocuments(
-              resident.id,
-            );
-            // Filter for bijlage documents (pattern: "bijlage" in filename)
-            const bijlageDocs = documents.filter(
-              (doc: any) =>
-                doc.file_name &&
-                doc.file_name.toLowerCase().includes("bijlage"),
-            );
-            documentsMap[resident.id] = bijlageDocs;
-          } catch (error) {
-            console.error(
-              `Error loading bijlage documents for resident ${resident.id}:`,
-              error,
-            );
-            documentsMap[resident.id] = [];
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.href = doc.file_path;
+            document.head.appendChild(link);
+          } catch (linkError) {
+            console.warn(`Failed to preload PDF: ${doc.file_path}`, linkError);
           }
         }
-
-        setBijlageDocuments(documentsMap);
-      } catch (error) {
-        console.error("Error loading bijlage documents:", error);
-      }
-    };
-
-    if (residents.length > 0) {
-      loadBijlageDocuments();
+      });
+    } catch (error) {
+      console.warn("Error in PDF preloading:", error);
     }
-  }, [residents]);
+  }, [bijlageDocuments]);
 
   // Search functionality
   useEffect(() => {
@@ -141,7 +223,14 @@ export default function PermissionPapersPage() {
   };
 
   const handlePrintIndividual = () => {
-    window.print();
+    try {
+      // Add small delay to ensure DOM is ready
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    } catch (error) {
+      console.error("Print error:", error);
+    }
   };
 
   return (
@@ -161,11 +250,20 @@ export default function PermissionPapersPage() {
               </div>
               <button
                 onClick={handlePrint}
-                disabled={showIndividualPrint}
+                disabled={showIndividualPrint || isLoadingForPrint}
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors disabled:opacity-50"
               >
-                <Printer className="w-5 h-5" />
-                Print Alle Permissiebladeren
+                {isLoadingForPrint ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Loading Documents...
+                  </>
+                ) : (
+                  <>
+                    <Printer className="w-5 h-5" />
+                    Print Alle Permissiebladeren
+                  </>
+                )}
               </button>
             </div>
 
@@ -568,66 +666,170 @@ export default function PermissionPapersPage() {
                 </div>
               </div>
 
-              {/* Page 2: Bijlage Documents */}
-              <div className="print-page">
-                <div className="bijlage-documents">
-                  <div className="text-center mb-8">
-                    <h2 className="text-xl font-bold">BIJLAGE DOCUMENTEN</h2>
-                    <p className="text-sm mt-2">
-                      Bewoner: {resident.first_name} {resident.last_name} -
-                      Badge: {resident.badge}
-                    </p>
-                  </div>
-                  <div className="mt-4 h-96 overflow-hidden">
-                    {bijlageDocuments[resident.id] &&
-                    bijlageDocuments[resident.id].length > 0 ? (
-                      <div className="space-y-2">
-                        {bijlageDocuments[resident.id]
-                          .slice(0, 3)
-                          .map((doc: any, docIndex: number) => (
-                            <div
-                              key={docIndex}
-                              className="border border-gray-300 p-3 rounded"
-                            >
-                              <h3 className="text-sm font-semibold mb-1">
-                                {doc.file_name}
-                              </h3>
-                              <p className="text-xs text-gray-600 mb-1">
-                                Datum:{" "}
-                                {new Date(doc.created_at).toLocaleDateString(
-                                  "nl-BE",
-                                )}
-                              </p>
-                              <div className="bg-gray-100 p-2 text-center">
-                                <p className="text-xs text-gray-600">
-                                  Document: {doc.file_name}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Type: {doc.document_type} | Grootte:{" "}
-                                  {doc.file_size
-                                    ? `${Math.round(doc.file_size / 1024)} KB`
-                                    : "N/A"}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        {bijlageDocuments[resident.id].length > 3 && (
-                          <div className="text-center text-xs text-gray-500 mt-2">
-                            En {bijlageDocuments[resident.id].length - 3} meer
-                            document(en)...
+              {/* Page 2: Bijlage Documents - Single page for all documents */}
+              {bijlageDocuments[resident.id] &&
+              bijlageDocuments[resident.id].length > 0 && (
+                <div className="print-page">
+                  <div className="bijlage-documents w-full h-full">
+                    {/* Display only the first PDF document found, or the first document if no PDF */}
+                    {(() => {
+                      const docs = bijlageDocuments[resident.id];
+                      // Prioritize PDF documents
+                      const pdfDoc = docs.find((doc: any) =>
+                        doc.file_name?.toLowerCase().endsWith('.pdf')
+                      );
+                      const selectedDoc = pdfDoc || docs[0]; // Use first PDF or first document
+
+                      if (!selectedDoc) return null;
+
+                      console.log(`Displaying bijlage document for resident ${resident.id}:`, selectedDoc);
+
+                      // Construct file URL
+                      let fileUrl = selectedDoc.file_path || selectedDoc.file_url || selectedDoc.url;
+                      if (!fileUrl && selectedDoc.id) {
+                        fileUrl = `/api/documents/${selectedDoc.id}`;
+                      }
+                      if (!fileUrl && selectedDoc.file_name && resident.id) {
+                        fileUrl = `/api/residents/${resident.id}/documents/${selectedDoc.file_name}`;
+                      }
+
+                      console.log(`Using file URL: ${fileUrl} for document ${selectedDoc.file_name}`);
+
+                      if (!fileUrl) {
+                        return (
+                          <div className="p-8 text-center">
+                            <h3 className="text-lg font-bold mb-4">{selectedDoc.file_name}</h3>
+                            <p className="text-red-500">Document URL niet beschikbaar</p>
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-center text-gray-500 mt-20">
-                        <p>
-                          Geen bijlage documenten gevonden voor deze bewoner
-                        </p>
-                      </div>
-                    )}
+                        );
+                      }
+
+                      if (selectedDoc.file_name.toLowerCase().endsWith('.pdf')) {
+                        // For PDF files
+                        const pdfViewerUrl = `${fileUrl}#view=FitH&toolbar=0&navpanes=0&scrollbar=0`;
+                        const pdfKey = `${resident.id}-bijlage`;
+                        const isLoading = loadingPdfs[pdfKey] !== false;
+
+                        return (
+                          <div className="w-full h-full relative">
+                            {/* Loading indicator */}
+                            {isLoading && (
+                              <div className="absolute inset-0 bg-white flex items-center justify-center z-10 print:hidden">
+                                <div className="text-center">
+                                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                                  <p className="text-gray-600 text-lg">Loading Bijlage Document...</p>
+                                  <p className="text-gray-500 text-sm mt-2">{selectedDoc.file_name}</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* PDF container with border enforcement */}
+                            <div
+                              className="absolute inset-0 border-frame"
+                              style={{
+                                border: '2px solid #374151',
+                                padding: '2px',
+                                backgroundColor: '#374151'
+                              }}
+                            >
+                              <iframe
+                                src={pdfViewerUrl}
+                                className="w-full h-full pdf-iframe"
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  border: '1px solid #374151',
+                                  borderRadius: '0px',
+                                  margin: 0,
+                                  padding: 0,
+                                  opacity: isLoading ? 0 : 1,
+                                  transition: 'opacity 0.3s ease-in-out',
+                                  display: 'block'
+                                }}
+                                title={`Bijlage: ${selectedDoc.file_name}`}
+                                allowFullScreen
+                                onLoad={() => {
+                                  console.log(`Bijlage PDF loaded successfully: ${fileUrl}`);
+                                  setLoadingPdfs(prev => ({
+                                    ...prev,
+                                    [pdfKey]: false
+                                  }));
+                                }}
+                                onError={(e) => {
+                                  console.error(`Failed to load bijlage PDF: ${fileUrl}`, e);
+                                  setLoadingPdfs(prev => ({
+                                    ...prev,
+                                    [pdfKey]: false
+                                  }));
+                                }}
+                              />
+                            </div>
+
+                            {/* Document info overlay for screen viewing */}
+                            <div className="print:hidden absolute top-6 left-6 bg-white p-2 rounded shadow z-20">
+                              <p className="text-xs text-gray-600">
+                                Bijlage: {selectedDoc.file_name}
+                                {docs.length > 1 && ` (1 of ${docs.length})`}
+                              </p>
+                            </div>
+
+                            {/* Open in new tab button */}
+                            <div className="print:hidden absolute top-6 right-6 bg-white p-2 rounded shadow z-20">
+                              <a
+                                href={fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 text-sm hover:underline"
+                              >
+                                Open in new tab
+                              </a>
+                            </div>
+                          </div>
+                        );
+                      } else if (selectedDoc.file_name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                        // For image files
+                        return (
+                          <div className="w-full h-full relative">
+                            <img
+                              src={fileUrl}
+                              alt={`Bijlage document: ${selectedDoc.file_name}`}
+                              className="w-full h-full object-contain"
+                            />
+                            <div className="print:hidden absolute top-4 left-4 bg-white p-2 rounded shadow z-20">
+                              <p className="text-xs text-gray-600">
+                                Bijlage: {selectedDoc.file_name}
+                                {docs.length > 1 && ` (1 of ${docs.length})`}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        // For other file types
+                        return (
+                          <div className="p-8 text-center">
+                            <h3 className="text-lg font-bold mb-4">{selectedDoc.file_name}</h3>
+                            <p className="mb-2">Datum: {new Date(selectedDoc.created_at).toLocaleDateString("nl-BE")}</p>
+                            <p className="mb-4">Type: {selectedDoc.document_type} | Grootte: {selectedDoc.file_size ? `${Math.round(selectedDoc.file_size / 1024)} KB` : "N/A"}</p>
+                            <a
+                              href={fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                            >
+                              Open Document
+                            </a>
+                            {docs.length > 1 && (
+                              <p className="text-sm text-gray-500 mt-4">
+                                Er zijn {docs.length} bijlage documenten. Dit is document 1.
+                              </p>
+                            )}
+                          </div>
+                        );
+                      }
+                    })()}
                   </div>
                 </div>
-              </div>
+              )}
             </React.Fragment>
           ))}
         </div>
@@ -692,8 +894,7 @@ export default function PermissionPapersPage() {
             page-break-after: auto;
           }
 
-          .permission-paper,
-          .bijlage-documents {
+          .permission-paper {
             font-family: "Times New Roman", Times, serif;
             font-size: 11px;
             line-height: 1.5;
@@ -703,6 +904,65 @@ export default function PermissionPapersPage() {
             width: 100%;
             height: 100%;
             box-sizing: border-box;
+          }
+
+          .bijlage-documents {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 11px;
+            line-height: 1.5;
+            color: black !important;
+            background: white !important;
+            padding: 2px !important;
+            margin: 0 !important;
+            width: 100% !important;
+            height: 100vh !important;
+            box-sizing: border-box;
+            overflow: hidden;
+            border: 2px solid #374151 !important;
+          }
+
+          /* Ensure PDF iframe has strong borders on all sides */
+          .bijlage-documents iframe,
+          .pdf-iframe {
+            border: 2px solid #374151 !important;
+            border-top: 2px solid #374151 !important;
+            border-right: 2px solid #374151 !important;
+            border-bottom: 2px solid #374151 !important;
+            border-left: 2px solid #374151 !important;
+            box-shadow: inset 0 0 0 1px #374151 !important;
+            outline: 1px solid #374151 !important;
+          }
+
+          /* Border frame container styling */
+          .border-frame {
+            background-color: #374151 !important;
+            padding: 2px !important;
+            border: 2px solid #374151 !important;
+          }
+
+          /* Print-specific border styling to ensure visibility */
+          @media print {
+            .bijlage-documents {
+              border: 2px solid black !important;
+              padding: 0 !important;
+            }
+
+            .border-frame {
+              background-color: black !important;
+              padding: 2px !important;
+              border: 2px solid black !important;
+            }
+
+            .bijlage-documents iframe,
+            .pdf-iframe {
+              border: 1px solid black !important;
+              border-top: 1px solid black !important;
+              border-right: 1px solid black !important;
+              border-bottom: 1px solid black !important;
+              border-left: 1px solid black !important;
+              box-shadow: none !important;
+              outline: none !important;
+            }
           }
 
           /* Times New Roman Typography */
