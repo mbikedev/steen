@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "node",
+      "args": ["/Users/mbike/Documents/steen-main2/mcp-server.js"],
+      "env": {
+        "DATABASE_URL": "postgresql://postgres:[YOUR_PASSWORD]@db.xxcbpsjefpogxgfellui.supabase.co:5432/postgres"
+      }
+    }
+  }
+}
