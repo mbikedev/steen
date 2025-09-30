@@ -16,6 +16,9 @@ import {
 import { ThemeToggle } from "../components/ui/theme-toggle";
 import { createClient } from "@/lib/supabase/client";
 
+// Force dynamic rendering since we use searchParams
+export const dynamic = 'force-dynamic';
+
 interface SignupFormData {
   email: string;
   password: string;
