@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -16,9 +16,6 @@ import {
 import { ThemeToggle } from "../components/ui/theme-toggle";
 import { createClient } from "@/lib/supabase/client";
 
-// Force dynamic rendering since we use searchParams
-export const dynamic = 'force-dynamic';
-
 interface SignupFormData {
   email: string;
   password: string;
@@ -27,7 +24,7 @@ interface SignupFormData {
   phone: string;
 }
 
-export default function SignupPage() {
+function SignupContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const supabase = createClient();
@@ -466,5 +463,21 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap in Suspense to handle useSearchParams during build
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    }>
+      <SignupContent />
+    </Suspense>
   );
 }
