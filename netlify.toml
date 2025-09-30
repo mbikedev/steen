@@ -4,6 +4,8 @@
 
 [build.environment]
   NEXT_TELEMETRY_DISABLED = "1"
+  # Canvas build requirements for badge generation
+  NODE_OPTIONS = "--max_old_space_size=4096"
   # Omit Next.js public environment variables from secrets scanning
   # These are intentionally included in client-side bundles
   SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_PROJECT_ID"
